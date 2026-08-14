@@ -2,6 +2,10 @@
 const SCREEN_W = 480, SCREEN_H = 480, FPS = 30, TILE = 24, MAP_X = 20, MAP_Y = 20;
 const STAT_HP=0,STAT_ATK=1,STAT_DEF=2,STAT_SPD=3,STAT_SATK=4,STAT_SDEF=5;
 
+// Virtual joystick & interact button (shared by main.js + renderer.js)
+const JOY_CX=78, JOY_CY=398, JOY_R=52, JOY_DEAD=14, JOY_ZONE=105, JOY_STEP=0.14;
+const INTB_CX=240, INTB_CY=446, INTB_R=24;
+
 const TYPE_NORMAL="Normal",TYPE_FIRE="Fire",TYPE_WATER="Water",TYPE_GRASS="Grass",
 TYPE_ELECTRIC="Electric",TYPE_ICE="Ice",TYPE_DARK="Dark",TYPE_SPIRIT="Spirit",
 TYPE_DRAGON="Dragon",TYPE_EARTH="Earth",TYPE_WIND="Wind",TYPE_LIGHT="Light";

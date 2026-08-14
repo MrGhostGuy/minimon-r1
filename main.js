@@ -25,6 +25,8 @@ const FACING = ["down","left","up","right"];
 const FACING_CYCLE = {down:"left",left:"up",up:"right",right:"down"};
 const DPAD_CX=65, DPAD_CY=400, DPAD_R=32, DPAD_BS=26;
 
+// Virtual joystick & interact button constants live in config.js (global, shared with renderer.js)
+
 let state = S_TITLE, time = 0, cursor = 0, running = true;
 let currentMap = null, dialogQueue = [], dialogCurrent = "", dialogSpeaker = "";
 let pendingEvolution = null, pendingStarter = null, pendingTrainer = null, pendingGym = null;
@@ -33,6 +35,9 @@ let pendingNameInput = false;
 let battleState = null, battlePhase = "select";
 let shopCursor = 0;
 let nameInput = "", nameCursor = 0;
+
+// Virtual joystick state (touch movement)
+let joystick = { active: false, cx: JOY_CX, cy: JOY_CY, tx: JOY_CX, ty: JOY_CY, dir: null, moveCD: 0 };
 let encounterTimer = 0, encounterData = null, encounterType = "wild";
 const NAME_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let pokedex = {};
@@ -253,12 +258,17 @@ function changeMap(idx, x, y) {
 
 function getInteractableInfo() {
   if (!currentMap) return null;
-  let fx = player.x, fy = player.y;
-  if (player.facing === "up") fy--; else if (player.facing === "down") fy++;
-  else if (player.facing === "left") fx--; else if (player.facing === "right") fx++;
-  for (const npc of currentMap.npcs) if (npc.x === fx && npc.y === fy) return { type: "npc", x: fx, y: fy };
-  for (const s of currentMap.signs) if (s.x === fx && s.y === fy) return { type: "sign", x: fx, y: fy };
-  if (INTERACTABLE.has(getT(currentMap, fx, fy))) return { type: "tile", x: fx, y: fy };
+  // Check the 4 tiles around the player (proximity), facing direction preferred
+  const order = player.facing === "up" ? [[0,-1],[0,1],[-1,0],[1,0]]
+    : player.facing === "down" ? [[0,1],[0,-1],[-1,0],[1,0]]
+    : player.facing === "left" ? [[-1,0],[1,0],[0,-1],[0,1]]
+    : [[1,0],[-1,0],[0,-1],[0,1]];
+  for (const [dx, dy] of order) {
+    const fx = player.x + dx, fy = player.y + dy;
+    for (const npc of currentMap.npcs) if (npc.x === fx && npc.y === fy) return { type: "npc", x: fx, y: fy };
+    for (const s of currentMap.signs) if (s.x === fx && s.y === fy) return { type: "sign", x: fx, y: fy };
+    if (INTERACTABLE.has(getT(currentMap, fx, fy))) return { type: "tile", x: fx, y: fy };
+  }
   return null;
 }
 
@@ -761,47 +771,88 @@ function handleClick(button, mx, my) {
   }
   else if (state === S_INTRO) advanceDialog();
   else if (state === S_NAME) {
-    if (nameCursor < 26) { nameInput += NAME_CHARS[nameCursor]; if (nameInput.length > 10) nameInput = nameInput.slice(0, 10); }
-    else if (nameCursor === 26) { nameInput = nameInput.slice(0, -1); }
-    else if (nameCursor === 27) { confirmName(); }
-    else if (nameCursor === 28) { nameInput += " "; if (nameInput.length > 10) nameInput = nameInput.slice(0, 10); }
+    const keys = getNameKeyLayout();
+    for (const k of keys) {
+      if (mx >= k.x && mx <= k.x + k.w && my >= k.y && my <= k.y + k.h) {
+        if (k.action === "DEL") nameInput = nameInput.slice(0, -1);
+        else if (k.action === "SPACE") { if (nameInput.length < 10) nameInput += " "; }
+        else if (k.action === "OK") confirmName();
+        else if (nameInput.length < 10) nameInput += k.ch;
+        return;
+      }
+    }
   }
   else if (state === S_OW) {
     if (button === 1) {
-      // Pause button hit test
+      // Pause button
       if (R.hitPauseButton(mx, my)) { state = S_PAUSE; cursor = 0; return; }
-      const dx = mx - DPAD_CX, dy = my - DPAD_CY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist <= DPAD_R && dist > 8) {
-        let dir;
-        if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? "right" : "left";
-        else dir = dy > 0 ? "down" : "up";
-        const ddx = dir === "right" ? 1 : dir === "left" ? -1 : 0;
-        const ddy = dir === "down" ? 1 : dir === "up" ? -1 : 0;
-        movePlayer(ddx, ddy, dir);
-      } else if (getInteractableInfo()) interact();
-      else {
-        const ddx = player.facing === "right" ? 1 : player.facing === "left" ? -1 : 0;
-        const ddy = player.facing === "down" ? 1 : player.facing === "up" ? -1 : 0;
-        movePlayer(ddx, ddy, player.facing);
+      // Interact button (appears near interactables)
+      if (R.hitInteractButton(mx, my)) { interact(); return; }
+      // Joystick zone is handled by touch drag; ignore plain taps there
+      if (joystickZone(mx, my)) return;
+      // Tap on the map area = step one tile toward the tapped direction (player is centered)
+      if (my < 340 && my > 30) {
+        const ddx = mx - 240, ddy = my - 240;
+        if (Math.abs(ddx) > Math.abs(ddy)) { const d = ddx > 0 ? "right" : "left"; movePlayer(d === "right" ? 1 : -1, 0, d); }
+        else { const d = ddy > 0 ? "down" : "up"; movePlayer(0, d === "down" ? 1 : -1, d); }
       }
-    } else if (button === 3) { state = S_PAUSE; cursor = 0; }
+    } else if (button === 3) {
+      // Side button = context action: interact if near something, else open pause menu
+      if (getInteractableInfo()) interact();
+      else { state = S_PAUSE; cursor = 0; }
+    }
   }
   else if (state === S_BATTLE) {
     if (button === 1) {
       if (battlePhase === "message") nextBattleMsg();
-      else if (battlePhase === "select") selectBattleAction();
-      else if (battlePhase === "moves") useBattleMove();
-      else if (battlePhase === "party") switchBattleCreature();
-      else if (battlePhase === "bag") useBattleItem();
+      else if (battlePhase === "select") {
+        // Tap-to-select battle actions
+        const acts = ["Fight","Bag","Party","Run"];
+        for (let i = 0; i < 4; i++) {
+          const ax = 30 + (i % 2) * 230, ay = 415 + Math.floor(i / 2) * 28;
+          if (mx >= ax - 6 && mx <= ax + 96 && my >= ay - 4 && my <= ay + 20) { cursor = i; selectBattleAction(); return; }
+        }
+        selectBattleAction();
+      }
+      else if (battlePhase === "moves") {
+        const moves = battleState.player.moves;
+        for (let i = 0; i < moves.length; i++) {
+          const col = i % 2, row = Math.floor(i / 2);
+          const cx = 28 + col * 220, cy = 62 + row * 116;
+          if (mx >= cx && mx <= cx + 208 && my >= cy && my <= cy + 108) { cursor = i; useBattleMove(); return; }
+        }
+      }
+      else if (battlePhase === "party") {
+        for (let i = 0; i < player.party.length; i++) {
+          const cy = 66 + i * 64;
+          if (mx >= 18 && mx <= 462 && my >= cy - 2 && my <= cy + 58) { cursor = i; switchBattleCreature(); return; }
+        }
+      }
+      else if (battlePhase === "bag") {
+        const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE,I_XATK,I_XDEF].includes(k));
+        for (let i = 0; i < items.length; i++) {
+          const y = 65 + i * 32;
+          if (mx >= 16 && mx <= 464 && my >= y && my <= y + 28) { cursor = i; useBattleItem(); return; }
+        }
+      }
     } else if (button === 3) {
       if (["moves","party","bag"].includes(battlePhase)) { battlePhase = "menu"; cursor = 0; }
     }
   }
-  else if (state === S_PAUSE && button === 1) selectPauseMenu();
+  else if (state === S_PAUSE && button === 1) {
+    const opts = ["Party","Bag","Minidex","Save","Load","Map","Close"];
+    for (let i = 0; i < opts.length; i++) {
+      const oy = 142 + i * 44;
+      if (mx >= 40 && mx <= 440 && my >= oy && my <= oy + 44) { cursor = i; selectPauseMenu(); return; }
+    }
+  }
   else if (state === S_PAUSE && button === 3) { state = S_OW; }
   else if (state === "pokedex") { state = S_PAUSE; cursor = 0; }
   else if (state === S_PARTY && button === 1) {
+    for (let i = 0; i < player.party.length; i++) {
+      const cy = 66 + i * 64;
+      if (mx >= 18 && mx <= 462 && my >= cy - 2 && my <= cy + 58) { cursor = i; break; }
+    }
     if (partyMode === "use") {
       if (cursor < player.party.length && pendingUseItem) {
         const c = player.party[cursor];
@@ -844,13 +895,26 @@ function handleClick(button, mx, my) {
     partyMode = "select"; state = S_PARTY; cursor = partyDetailIdx;
   }
   else if (state === S_BAG_CAT && button === 1) {
+    const tabW = 100, tabStartX = 40;
+    for (let i = 0; i < BAG_TABS.length; i++) {
+      const tx = tabStartX + i * (tabW + 5);
+      if (mx >= tx && mx <= tx + tabW && my >= 44 && my <= 64) { bagTab = i; cursor = i; return; }
+    }
+    const items = getBagItems(bagTab);
+    const listY = 84, maxShow = 9;
+    const itemCursor = Math.max(0, cursor - BAG_TABS.length);
+    const offset = Math.max(0, itemCursor - maxShow + 1);
+    for (let i = offset; i < Math.min(items.length, offset + maxShow); i++) {
+      const y = listY + 8 + (i - offset) * 34;
+      if (mx >= 46 && mx <= 434 && my >= y && my <= y + 30) { cursor = BAG_TABS.length + i; break; }
+    }
     if (cursor < BAG_TABS.length) {
       bagTab = cursor; cursor = BAG_TABS.length;
     } else {
-      const items = getBagItems(bagTab);
+      const items2 = getBagItems(bagTab);
       const itemIdx = cursor - BAG_TABS.length;
-      if (itemIdx < items.length) {
-        const itemName = items[itemIdx];
+      if (itemIdx < items2.length) {
+        const itemName = items2[itemIdx];
         const msg = useOverworldItem(itemName);
         if (msg === null) {
           // Check if we're in starter selection (easter egg)
@@ -869,7 +933,15 @@ function handleClick(button, mx, my) {
   else if (state === S_MAP && button === 3) { state = S_PAUSE; cursor = 5; }
   else if (state === S_MOVES && button === 1) {
     if (pendingMoveLearn) {
-      const c = pendingMoveLearn.creature, nm = pendingMoveLearn.newMove;
+      const c = pendingMoveLearn.creature;
+      if (c.moves.length >= 4) {
+        for (let i = 0; i < c.moves.length; i++) {
+          const col = i % 2, row = Math.floor(i / 2);
+          const cx = 28 + col * 220, cy = 62 + row * 116;
+          if (mx >= cx && mx <= cx + 208 && my >= cy && my <= cy + 108) { cursor = i; break; }
+        }
+      }
+      const nm = pendingMoveLearn.newMove;
       if (cursor < c.moves.length) {
         const oldName = MOVES[c.moves[cursor].id]?.name;
         c.moves[cursor] = nm;
@@ -883,7 +955,14 @@ function handleClick(button, mx, my) {
   }
   else if (state === S_DIALOG) advanceDialog();
   else if (state === S_SHOP) {
-    if (button === 1) buyItem(); else if (button === 3) state = S_OW;
+    if (button === 1) {
+      const maxV = 10, off = Math.max(0, shopCursor - maxV + 1);
+      for (let i = off; i < Math.min(SHOP_ITEMS.length, off + maxV); i++) {
+        const y = 94 + (i - off) * 34;
+        if (mx >= 22 && mx <= 458 && my >= y && my <= y + 30) { shopCursor = i; buyItem(); return; }
+      }
+      buyItem();
+    } else if (button === 3) state = S_OW;
   }
   else if (state === S_EVOLUTION) advanceDialog();
   else if (state === S_STARTER && button === 1) {
@@ -892,9 +971,22 @@ function handleClick(button, mx, my) {
       state = S_BAG_CAT; bagTab = 0; cursor = BAG_TABS.length;
       return;
     }
+    const spacing = 152, baseX = (SCREEN_W - spacing * (pendingStarter.length - 1)) / 2, pokeY = 225;
+    for (let i = 0; i < pendingStarter.length; i++) {
+      const cx = baseX + i * spacing;
+      if (mx >= cx - 32 && mx <= cx + 32 && my >= pokeY - 70 && my <= pokeY + 32) { cursor = i; chooseStarter(); return; }
+    }
     chooseStarter();
   }
-  else if (state === S_TM && button === 1) selectTMCreature();
+  else if (state === S_TM && button === 1) {
+    if (pendingTM) {
+      for (let i = 0; i < pendingTM.compatible.length; i++) {
+        const y = 65 + i * 65;
+        if (mx >= 16 && mx <= 464 && my >= y && my <= y + 60) { cursor = i; selectTMCreature(); return; }
+      }
+    }
+    selectTMCreature();
+  }
   else if (state === S_TM && button === 3) { pendingTM = null; state = S_BAG_CAT; cursor = BAG_TABS.length; }
   else if (state === S_GAMEOVER) { initGame(); state = S_TITLE; }
 }
@@ -1012,14 +1104,66 @@ function onWheel(e) { e.preventDefault(); if (scrollCD <= 0) { handleScroll(e.de
 function onMouseDown(e) { e.preventDefault(); const p = screenToCanvas(e.clientX, e.clientY); handleClick(e.button, p.x, p.y); }
 
 let touchStart = null;
-function onTouchStart(e) { e.preventDefault(); const t = e.touches[0]; const r = canvas.getBoundingClientRect(); touchStart = { x: (t.clientX - r.left) / (r.width / SCREEN_W), y: (t.clientY - r.top) / (r.height / SCREEN_H), time: Date.now() }; }
-function onTouchEnd(e) { e.preventDefault(); if (!touchStart) return; const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); const x = (t.clientX - r.left) / (r.width / SCREEN_W); const y = (t.clientY - r.top) / (r.height / SCREEN_H); const dx = x - touchStart.x, dy = y - touchStart.y; const dt = Date.now() - touchStart.time; if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 500) handleClick(1, x, y); else if (dt < 500) { const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"); handleScroll(dir === "up" || dir === "left" ? -1 : 1); } touchStart = null; }
+function joystickZone(x, y) {
+  const dx = x - JOY_CX, dy = y - JOY_CY;
+  return (dx * dx + dy * dy) <= JOY_ZONE * JOY_ZONE;
+}
+function updateJoyDir() {
+  let dx = joystick.tx - joystick.cx, dy = joystick.ty - joystick.cy;
+  const dist = Math.hypot(dx, dy);
+  if (dist < JOY_DEAD) { joystick.dir = null; return; }
+  const maxR = JOY_R;
+  if (dist > maxR) { dx = dx / dist * maxR; dy = dy / dist * maxR; joystick.tx = joystick.cx + dx; joystick.ty = joystick.cy + dy; }
+  if (Math.abs(dx) > Math.abs(dy)) joystick.dir = [dx > 0 ? 1 : -1, 0];
+  else joystick.dir = [0, dy > 0 ? 1 : -1];
+}
+function onTouchStart(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  const p = screenToCanvas(t.clientX, t.clientY);
+  touchStart = { x: p.x, y: p.y, time: Date.now() };
+  // Activate virtual joystick when in overworld and touching its zone
+  if (state === S_OW && joystickZone(p.x, p.y)) {
+    joystick.active = true;
+    joystick.cx = JOY_CX; joystick.cy = JOY_CY;
+    joystick.tx = p.x; joystick.ty = p.y;
+    updateJoyDir();
+  }
+}
+function onTouchMove(e) {
+  if (joystick.active) {
+    e.preventDefault();
+    const t = e.touches[0];
+    const p = screenToCanvas(t.clientX, t.clientY);
+    joystick.tx = p.x; joystick.ty = p.y;
+    updateJoyDir();
+  }
+}
+function onTouchEnd(e) {
+  e.preventDefault();
+  if (joystick.active) {
+    // Tap (no real drag) = single step in tapped direction; drag = handled live by loop
+    if (joystick.dir) { const [mx, my] = joystick.dir; const fc = mx > 0 ? "right" : mx < 0 ? "left" : my > 0 ? "down" : "up"; movePlayer(mx, my, fc); }
+    joystick.active = false; joystick.dir = null;
+    touchStart = null;
+    return;
+  }
+  if (!touchStart) return;
+  const t = e.changedTouches[0];
+  const p = screenToCanvas(t.clientX, t.clientY);
+  const dx = p.x - touchStart.x, dy = p.y - touchStart.y;
+  const dt = Date.now() - touchStart.time;
+  if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && dt < 500) handleClick(1, p.x, p.y);
+  else if (dt < 500) { const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"); handleScroll(dir === "up" || dir === "left" ? -1 : 1); }
+  touchStart = null;
+}
 
 // Canvas listeners
 canvas.addEventListener("wheel", onWheel, { passive: false });
 canvas.addEventListener("mousedown", onMouseDown, { passive: false });
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+canvas.addEventListener("touchmove", onTouchMove, { passive: false });
 canvas.addEventListener("touchend", onTouchEnd, { passive: false });
 
 // Document-level fallbacks for R1 (only when canvas doesn't catch it)
@@ -1044,6 +1188,17 @@ function gameLoop(timestamp) {
 
   // Update effects
   R.updateEffects(dt);
+
+  // Virtual joystick movement (overworld only)
+  if (joystick.active && joystick.dir && state === S_OW) {
+    joystick.moveCD -= dt;
+    if (joystick.moveCD <= 0) {
+      const [mx, my] = joystick.dir;
+      const fc = mx > 0 ? "right" : mx < 0 ? "left" : my > 0 ? "down" : "up";
+      movePlayer(mx, my, fc);
+      joystick.moveCD = JOY_STEP;
+    }
+  }
 
   // Auto-save
   if (state === S_OW) {
@@ -1140,6 +1295,24 @@ function gameLoop(timestamp) {
   }
 }
 
+function getNameKeyLayout() {
+  const keys = [];
+  const cols = 7, rows = 4, cw = 62, ch = 32, gx = 4, gy = 4;
+  const sx = 23, sy = 152;
+  for (let i = 0; i < NAME_CHARS.length; i++) {
+    const c = i % cols, r = Math.floor(i / cols);
+    keys.push({ x: sx + c * (cw + gx), y: sy + r * (ch + gy), w: cw, h: ch, ch: NAME_CHARS[i] });
+  }
+  const by = sy + rows * (ch + gy) + 8;
+  const bw = 144, bh = 30, bgap = 8;
+  const totalW = 3 * bw + 2 * bgap;
+  const bsx = (SCREEN_W - totalW) / 2;
+  keys.push({ x: bsx, y: by, w: bw, h: bh, action: "DEL", label: "DEL" });
+  keys.push({ x: bsx + bw + bgap, y: by, w: bw, h: bh, action: "SPACE", label: "SPACE" });
+  keys.push({ x: bsx + 2 * (bw + bgap), y: by, w: bw, h: bh, action: "OK", label: "OK" });
+  return keys;
+}
+
 function renderNameInput() {
   const ctx = R.ctx;
 
@@ -1180,76 +1353,33 @@ function renderNameInput() {
   ctx.globalAlpha = 1;
 
   // "Your Name" label above input box
-  R.text(240, 96, "Your Name", COL_YELLOW, 14, true);
+  R.text(240, 92, "Your Name", COL_YELLOW, 14, true);
 
   // Name input box - centered, Minimon-style border
-  var nbx = 140, nby = 110, nbw = 200, nbh = 36;
+  var nbx = 140, nby = 104, nbw = 200, nbh = 34;
   R.rect(nbx, nby, nbw, nbh, [15, 15, 35]);
   ctx.strokeStyle = rgb(COL_LGRAY); ctx.lineWidth = 2;
   ctx.strokeRect(nbx, nby, nbw, nbh);
   ctx.strokeStyle = rgb([55, 55, 90]); ctx.lineWidth = 1;
   ctx.strokeRect(nbx + 3, nby + 3, nbw - 6, nbh - 6);
   var display = nameInput.length ? (nameInput + (time % 1 < 0.5 ? "_" : " ")) : (time % 1 < 0.5 ? "Enter name..." : "Enter name");
-  R.text(nbx + nbw / 2, nby + 25, display, nameInput.length ? COL_WHITE : COL_GRAY, 18, true);
+  R.text(nbx + nbw / 2, nby + 23, display, nameInput.length ? COL_WHITE : COL_GRAY, 18, true);
 
-  // Letter grid: 6 cols x 5 rows
-  var cols = 6, rows = 5, cellW = 56, cellH = 32;
-  var gridW = cols * cellW;
-  var startX = (SCREEN_W - gridW) / 2;
-  var startY = 160;
-
-  // Grid background
-  R.rect(startX - 4, startY - 4, gridW + 8, rows * cellH + 8, [18, 18, 38], 0.7);
-  ctx.strokeStyle = rgb([40, 40, 70]); ctx.lineWidth = 1;
-  ctx.strokeRect(startX - 4, startY - 4, gridW + 8, rows * cellH + 8);
-
-  for (var i = 0; i < NAME_CHARS.length; i++) {
-    var c = i % cols, r = Math.floor(i / cols);
-    var x = startX + c * cellW, y = startY + r * cellH;
-    var selected = i === nameCursor;
-
-    // Cell background
-    R.rect(x + 1, y + 1, cellW - 2, cellH - 2, selected ? [55, 55, 95] : [28, 28, 48]);
-
-    // Cell border
-    ctx.strokeStyle = rgb(selected ? COL_YELLOW : [45, 45, 75]);
-    ctx.lineWidth = selected ? 2 : 1;
-    ctx.strokeRect(x + 1, y + 1, cellW - 2, cellH - 2);
-
-    // Yellow glow for selected cell
-    if (selected) {
-      var glowP = 0.18 + Math.sin(time * 4) * 0.08;
-      ctx.save();
-      ctx.globalAlpha = glowP;
-      ctx.shadowColor = rgb(COL_YELLOW);
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = rgb(COL_YELLOW);
-      ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
-      ctx.restore();
-    }
-
-    R.text(x + cellW / 2, y + cellH / 2 + 4, NAME_CHARS[i], selected ? COL_YELLOW : COL_WHITE, 14, true);
+  // === On-screen touch keyboard ===
+  const keys = getNameKeyLayout();
+  for (const k of keys) {
+    const isAction = !!k.action;
+    const isOK = k.action === "OK";
+    R.rect(k.x, k.y, k.w, k.h, isOK ? [40, 90, 50] : (isAction ? [60, 45, 70] : [30, 30, 52]));
+    ctx.strokeStyle = rgb(isOK ? COL_GREEN : (isAction ? [90, 70, 110] : [55, 55, 85]));
+    ctx.lineWidth = 1;
+    ctx.strokeRect(k.x, k.y, k.w, k.h);
+    if (!isAction) R.text(k.x + k.w / 2, k.y + k.h / 2 + 5, k.ch, COL_WHITE, 16, true);
+    else R.text(k.x + k.w / 2, k.y + k.h / 2 + 5, k.label, isOK ? COL_WHITE : COL_LGRAY, 12, true);
   }
 
-  // Buttons: DEL, OK, SPACE
-  var btnY = startY + rows * cellH + 12;
-  var btnW = 72, btnH = 28;
-  var btnSpacing = 12;
-  var totalBtnW = 3 * btnW + 2 * btnSpacing;
-  var btnStartX = (SCREEN_W - totalBtnW) / 2;
-  var btnLabels = ["DEL", "OK", "SPACE"];
-  for (var b = 0; b < 3; b++) {
-    var bx = btnStartX + b * (btnW + btnSpacing);
-    var bSel = nameCursor === 26 + b;
-    R.rect(bx, btnY, btnW, btnH, bSel ? [55, 55, 95] : [28, 28, 48]);
-    ctx.strokeStyle = rgb(bSel ? COL_YELLOW : [45, 45, 75]);
-    ctx.lineWidth = bSel ? 2 : 1;
-    ctx.strokeRect(bx, btnY, btnW, btnH);
-    R.text(bx + btnW / 2, btnY + 18, btnLabels[b], bSel ? COL_YELLOW : COL_LGRAY, 12, true);
-  }
-
-  // Help text
-  R.text(240, 462, "Scroll = Move  |  Click/Tap = Select", COL_GRAY, 11, true);
+  // Hint text
+  R.text(240, 356, "Tap letters to type  |  Tap OK when done", COL_GRAY, 11, true);
 }
 
 function renderStarter() {
@@ -1418,8 +1548,10 @@ function renderOverworld() {
     R.hud(player, currentMap.name);
     R.pauseButton(time);
     const info = getInteractableInfo();
-    if (info) R.interactBubble(info.x * TILE + TILE / 2, info.y * TILE - 12, time);
-    R.dpad(DPAD_CX, DPAD_CY, DPAD_R, DPAD_BS);
+    // Virtual joystick (overworld only, hidden during dialog/intro/battle surface)
+    if (state === S_OW) R.joystick(joystick, time);
+    // Fixed tappable interact button when something is nearby
+    if (info && state === S_OW) R.interactButton(time);
     if (state === S_INTRO) {
       // Minimon RSE-style blue gradient dialog box for intro
       var ictx = R.ctx;
@@ -1616,4 +1748,7 @@ function renderPokedex() {
 }
 
 requestAnimationFrame(gameLoop);
+
+if (location.hash === "#test") window.__mm = () => ({ state: state, name: player && player.name, px: player && player.x, py: player && player.y });
+
 })();

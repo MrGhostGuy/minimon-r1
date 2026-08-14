@@ -1695,6 +1695,61 @@ class Renderer {
     ctx.fillStyle = rgb(COL_WHITE); ctx.beginPath(); ctx.moveTo(x - 3, by + 7); ctx.lineTo(x + 3, by + 7); ctx.lineTo(x, by + 12); ctx.fill();
   }
 
+  // Fixed, tappable interact button (shown near interactables). Hidden during dialog/battle.
+  interactButton(t) {
+    const ctx = this.ctx;
+    const cx = INTB_CX, cy = INTB_CY, r = INTB_R;
+    const pulse = 0.55 + Math.sin(t * 5) * 0.35;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = rgb(COL_GREEN);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = rgb(COL_WHITE); ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, r + 3, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = rgb(COL_WHITE); ctx.beginPath(); ctx.arc(cx, cy, r - 4, 0, Math.PI * 2); ctx.fill();
+    // Speech-bubble "!" glyph
+    ctx.fillStyle = rgb(COL_GREEN);
+    ctx.beginPath(); ctx.arc(cx, cy - 2, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(cx - 1.5, cy + 2, 3, 7);
+    // Label
+    this.text(cx, cy + r + 12, "TAP", COL_LGRAY, 9, true);
+    ctx.restore();
+  }
+
+  hitInteractButton(mx, my) {
+    const dx = mx - INTB_CX, dy = my - INTB_CY;
+    return (dx * dx + dy * dy) <= (INTB_R + 4) * (INTB_R + 4);
+  }
+
+  // Virtual joystick (30% opacity). Only drawn in overworld when not in dialog/battle.
+  joystick(js, t) {
+    const ctx = this.ctx;
+    const cx = js.cx, cy = js.cy, r = JOY_R;
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    // Base ring
+    ctx.strokeStyle = rgb(COL_WHITE); ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = rgb([30, 30, 45]);
+    ctx.beginPath(); ctx.arc(cx, cy, r - 3, 0, Math.PI * 2); ctx.fill();
+    // Direction ticks
+    ctx.fillStyle = rgb([120, 120, 150]);
+    for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
+      ctx.beginPath(); ctx.arc(cx + dx * (r - 10), cy + dy * (r - 10), 4, 0, Math.PI * 2); ctx.fill();
+    }
+    // Stick (follows touch while active)
+    const sx = js.active ? js.tx : cx, sy = js.active ? js.ty : cy;
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = rgb(COL_WHITE); ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(sx, sy); ctx.stroke();
+    ctx.fillStyle = rgb(COL_YELLOW);
+    ctx.beginPath(); ctx.arc(sx, sy, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   wrapText(text, maxW) {
     const ctx = this.ctx; const words = text.split(" "); const lines = []; let cur = "";
     for (const word of words) {
