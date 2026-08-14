@@ -1,0 +1,11 @@
+# Minimon R1 - Rabbit R1 Pokemon-style game
+# No build step, plain static HTML/JS
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+*.log
+
+# Local generated artifacts (QR codes etc.)
+*.png
+!icon.png

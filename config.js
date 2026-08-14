@@ -1,0 +1,115 @@
+// Minimon - Config & Constants
+const SCREEN_W = 480, SCREEN_H = 480, FPS = 30, TILE = 24, MAP_X = 20, MAP_Y = 20;
+const STAT_HP=0,STAT_ATK=1,STAT_DEF=2,STAT_SPD=3,STAT_SATK=4,STAT_SDEF=5;
+
+const TYPE_NORMAL="Normal",TYPE_FIRE="Fire",TYPE_WATER="Water",TYPE_GRASS="Grass",
+TYPE_ELECTRIC="Electric",TYPE_ICE="Ice",TYPE_DARK="Dark",TYPE_SPIRIT="Spirit",
+TYPE_DRAGON="Dragon",TYPE_EARTH="Earth",TYPE_WIND="Wind",TYPE_LIGHT="Light";
+
+const ALL_TYPES=[TYPE_NORMAL,TYPE_FIRE,TYPE_WATER,TYPE_GRASS,TYPE_ELECTRIC,TYPE_ICE,
+TYPE_DARK,TYPE_SPIRIT,TYPE_DRAGON,TYPE_EARTH,TYPE_WIND,TYPE_LIGHT];
+
+const TYPE_COLORS={Normal:[168,168,120],Fire:[240,128,48],Water:[104,144,240],Grass:[120,200,80],
+Electric:[248,208,48],Ice:[152,216,216],Dark:[112,88,72],Spirit:[160,96,192],
+Dragon:[112,56,248],Earth:[224,192,104],Wind:[168,216,240],Light:[248,248,144]};
+
+const TYPE_CHART={
+Normal:{Spirit:0,Earth:.5,Light:.5},
+Fire:{Fire:.5,Water:.5,Grass:2,Ice:2,Earth:.5,Dragon:.5},
+Water:{Water:.5,Grass:.5,Fire:2,Earth:2,Dragon:.5},
+Grass:{Fire:.5,Water:2,Grass:.5,Earth:2,Wind:.5},
+Electric:{Water:2,Electric:.5,Grass:.5,Earth:0,Wind:2,Dragon:.5},
+Ice:{Grass:2,Earth:2,Water:.5,Fire:.5,Dragon:2,Wind:2},
+Dark:{Normal:2,Spirit:2,Dark:.5,Light:.5},
+Spirit:{Normal:0,Spirit:2,Dark:.5},
+Dragon:{Dragon:2,Light:.5},
+Earth:{Fire:2,Water:.5,Grass:.5,Electric:2,Wind:0,Ice:2},
+Wind:{Grass:2,Electric:.5,Earth:2,Ice:.5},
+Light:{Dark:2,Spirit:2,Normal:.5,Dragon:.5}
+};
+
+const GROWTH_FAST=4,GROWTH_MEDIUM=8,GROWTH_SLOW=10;
+function xpForLv(lv,r){return lv<=1?0:Math.floor(lv*lv*r/4)}
+function calcStat(b,lv){return Math.max(1,Math.floor(b*lv/50+5))}
+function calcHp(b,lv){return Math.max(1,Math.floor(b*2*lv/100+lv+10))}
+
+const SPHERE_NORMAL=1,SPHERE_GREAT=1.5,SPHERE_ULTRA=2,SPHERE_MASTER=255;
+
+// Items
+const I_POTION="Potion",I_SPOTION="Super Potion",I_HPOTION="Hyper Potion",I_FHEAL="Full Heal",
+I_SPHERE="Soul Sphere",I_GSPHERE="Great Sphere",I_USPHERE="Ultra Sphere",I_MSPHERE="Master Sphere",
+ I_XATK="X Attack",I_XDEF="X Defense",I_REVIVE="Revive",I_FREVIVE="Full Revive",I_ROPE="Escape Rope",I_REPEL="Repel",
+I_TM_EMBER="TM Ember",I_TM_WGUN="TM Water Gun",I_TM_VWHIP="TM Vine Whip",
+I_TM_TSHOCK="TM Thundershock",I_TM_ISHARD="TM Ice Shard",I_TM_BITE="TM Bite",
+I_TM_SBALL="TM Shadow Ball",I_TM_DCLAW="TM Dragon Claw",I_TMSEDGE="TM Stone Edge",
+I_TM_ASLASH="TM Air Slash",I_TM_DGLEAM="TM Dazzling Gleam",I_TM_FLAMET="TM Flamethrower",
+I_TM_HYDROP="TM Hydro Pump",I_TM_SOLBEAM="TM Solar Beam",I_TM_THUND="TM Thunderbolt",
+I_TM_BLIZZ="TM Blizzard",I_TM_EQUAKE="TM Earthquake",I_TM_CRUNCH="TM Crunch",
+I_TM_RECOVER="TM Recover",I_TM_SDANCE="TM Swords Dance";
+
+const TM_MOVES={};
+TM_MOVES[I_TM_EMBER]="ember";TM_MOVES[I_TM_WGUN]="water_gun";TM_MOVES[I_TM_VWHIP]="vine_whip";
+TM_MOVES[I_TM_TSHOCK]="thundershock";TM_MOVES[I_TM_ISHARD]="ice_shard";TM_MOVES[I_TM_BITE]="bite";
+TM_MOVES[I_TM_SBALL]="shadow_ball";TM_MOVES[I_TM_DCLAW]="dragon_claw";TM_MOVES[I_TMSEDGE]="stone_edge";
+TM_MOVES[I_TM_ASLASH]="air_slash";TM_MOVES[I_TM_DGLEAM]="dazzling_gleam";TM_MOVES[I_TM_FLAMET]="flamethrower";
+TM_MOVES[I_TM_HYDROP]="hydro_pump";TM_MOVES[I_TM_SOLBEAM]="solar_beam";TM_MOVES[I_TM_THUND]="thunderbolt";
+TM_MOVES[I_TM_BLIZZ]="blizzard";TM_MOVES[I_TM_EQUAKE]="earthquake";TM_MOVES[I_TM_CRUNCH]="crunch";
+TM_MOVES[I_TM_RECOVER]="recover";TM_MOVES[I_TM_SDANCE]="swords_dance";
+
+const TM_COMPAT={};
+TM_COMPAT[I_TM_EMBER]=[TYPE_FIRE];TM_COMPAT[I_TM_WGUN]=[TYPE_WATER];TM_COMPAT[I_TM_VWHIP]=[TYPE_GRASS];
+TM_COMPAT[I_TM_TSHOCK]=[TYPE_ELECTRIC];TM_COMPAT[I_TM_ISHARD]=[TYPE_ICE];
+TM_COMPAT[I_TM_BITE]=[TYPE_DARK,TYPE_NORMAL];TM_COMPAT[I_TM_SBALL]=[TYPE_SPIRIT,TYPE_DARK];
+TM_COMPAT[I_TM_DCLAW]=[TYPE_DRAGON];TM_COMPAT[I_TMSEDGE]=[TYPE_EARTH];TM_COMPAT[I_TM_ASLASH]=[TYPE_WIND];
+TM_COMPAT[I_TM_DGLEAM]=[TYPE_LIGHT];TM_COMPAT[I_TM_FLAMET]=[TYPE_FIRE];TM_COMPAT[I_TM_HYDROP]=[TYPE_WATER];
+TM_COMPAT[I_TM_SOLBEAM]=[TYPE_GRASS];TM_COMPAT[I_TM_THUND]=[TYPE_ELECTRIC];TM_COMPAT[I_TM_BLIZZ]=[TYPE_ICE];
+TM_COMPAT[I_TM_EQUAKE]=[TYPE_EARTH];TM_COMPAT[I_TM_CRUNCH]=[TYPE_DARK];TM_COMPAT[I_TM_RECOVER]=[TYPE_NORMAL];
+TM_COMPAT[I_TM_SDANCE]=[TYPE_NORMAL];
+
+const ALL_TM=Object.keys(TM_MOVES);
+
+const PRICES={};
+PRICES[I_POTION]=300;PRICES[I_SPOTION]=700;PRICES[I_HPOTION]=1200;PRICES[I_FHEAL]=600;
+PRICES[I_SPHERE]=200;PRICES[I_GSPHERE]=600;PRICES[I_USPHERE]=1200;PRICES[I_MSPHERE]=10000;
+PRICES[I_XATK]=500;PRICES[I_XDEF]=500;PRICES[I_REVIVE]=1500;PRICES[I_FREVIVE]=3000;PRICES[I_ROPE]=200;PRICES[I_REPEL]=100;
+for(let t of ALL_TM)PRICES[t]=t.includes("Shadow")||t.includes("Dragon")||t.includes("Flamethrow")||t.includes("Hydro")||t.includes("Solar")||t.includes("Thunderbo")||t.includes("Blizzard")||t.includes("Earthquake")||t.includes("Recover")?5000:3000+1000;
+
+const AI_WILD=0,AI_ROOKIE=1,AI_TRAINER=2,AI_GYM=3,AI_ELITE=4,AI_CHAMPION=5;
+
+const TILE_GRASS=0,TILE_TGRASS=1,TILE_PATH=2,TILE_WATER=3,TILE_TREE=4,TILE_WALL=5,TILE_DOOR=6,
+TILE_NPC=7,TILE_CHEST=8,TILE_SIGN=9,TILE_HEAL=10,TILE_SHOP=11,TILE_GYM=12,TILE_GROUND=13,
+TILE_ROOF=14,TILE_BRIDGE=15,TILE_ROCK=16;
+
+const TILE_COLORS={};
+TILE_COLORS[TILE_GRASS]=[74,140,63];
+TILE_COLORS[TILE_TGRASS]=[40,110,35];
+TILE_COLORS[TILE_PATH]=[196,168,122];
+TILE_COLORS[TILE_WATER]=[48,104,176];
+TILE_COLORS[TILE_TREE]=[45,107,48];
+TILE_COLORS[TILE_WALL]=[136,136,136];
+TILE_COLORS[TILE_DOOR]=[139,90,43];
+TILE_COLORS[TILE_GROUND]=[180,160,120];
+TILE_COLORS[TILE_HEAL]=[220,50,50];
+TILE_COLORS[TILE_SHOP]=[50,100,220];
+TILE_COLORS[TILE_SIGN]=[160,120,60];
+TILE_COLORS[TILE_GYM]=[220,180,50];
+TILE_COLORS[TILE_ROOF]=[180,60,60];
+TILE_COLORS[TILE_BRIDGE]=[140,100,50];
+TILE_COLORS[TILE_ROCK]=[100,90,80];
+
+const WALKABLE=new Set([TILE_GRASS,TILE_TGRASS,TILE_PATH,TILE_GROUND,TILE_DOOR,TILE_HEAL,TILE_SHOP,TILE_GYM,TILE_BRIDGE,TILE_SIGN]);
+const ENCOUNTER_TILES=new Set([TILE_TGRASS]);
+const INTERACTABLE=new Set([TILE_GYM,TILE_SHOP,TILE_HEAL,TILE_SIGN,TILE_DOOR]);
+
+const COL_BG=[24,24,32],COL_WHITE=[255,255,255],COL_BLACK=[0,0,0],COL_GRAY=[128,128,128],
+COL_LGRAY=[200,200,200],COL_RED=[220,50,50],COL_GREEN=[50,200,50],COL_BLUE=[50,100,220],
+COL_YELLOW=[240,220,50],COL_HPG=[80,200,80],COL_HPY=[240,200,50],COL_HPR=[220,60,60],
+COL_MENUBG=[40,40,56],COL_SELECT=[80,120,200],COL_BBG=[48,48,64];
+
+const FLAG_STARTER="starter_chosen",FLAG_RIVAL="rival_met";
+const FLAG_GYM1="gym_1",FLAG_GYM2="gym_2",FLAG_GYM3="gym_3",FLAG_GYM4="gym_4",
+FLAG_GYM5="gym_5",FLAG_GYM6="gym_6",FLAG_GYM7="gym_7",FLAG_GYM8="gym_8";
+const FLAG_EVIL1="evil_1",FLAG_EVIL2="evil_2",FLAG_EVIL3="evil_3",FLAG_CHAMPION="champion";
+
+function rgb(c){return`rgb(${c[0]},${c[1]},${c[2]})`}
+function rgba(c,a){return`rgba(${c[0]},${c[1]},${c[2]},${a})`}
