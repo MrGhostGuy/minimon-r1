@@ -117,3 +117,4 @@ const FLAG_EVIL1="evil_1",FLAG_EVIL2="evil_2",FLAG_EVIL3="evil_3",FLAG_CHAMPION=
 
 function rgb(c){return`rgb(${c[0]},${c[1]},${c[2]})`}
 function rgba(c,a){return`rgba(${c[0]},${c[1]},${c[2]},${a})`}
+function ctx_setAlpha(ctx, alpha, drawFn) { const sa = ctx.globalAlpha; ctx.globalAlpha = alpha; drawFn(); ctx.globalAlpha = sa; }

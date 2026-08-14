@@ -23,6 +23,7 @@ class Renderer {
     this.captureShake = { active: false, shakes: 0, timer: 0, interval: 0, result: null, callback: null };
     this.criticalHitText = { active: false, timer: 0 };
     this.evolutionGlow = { sparkles: [], glowPulse: 0, flashTimer: 0 };
+    this.tileCache = null; // built lazily on first townMap call
   }
 
   clear() { this.ctx.fillStyle = rgb(COL_BG); this.ctx.fillRect(0, 0, this.w, this.h); }
@@ -82,165 +83,416 @@ class Renderer {
   npcSprite(x, y, size, npcType) { drawNPC(this.ctx, x, y, size, npcType); }
   playerSprite(x, y, size) { drawPlayer(this.ctx, x, y, size); }
 
+  // ===== TILE SPRITE CACHE =====
+  _cc(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c.getContext("2d"); }
+  _sr(x, y) { let h = x * 374761393 + y * 668265263; h = (h ^ (h >> 13)) * 1274126177; h = h ^ (h >> 16); return (h & 0x7fffffff) / 0x7fffffff; }
+
+  buildTileCache() {
+    const T = TILE; this.tileCache = {};
+    const randIn = (n, seedA, seedB) => { const g = this._sr(seedA, seedB); return Math.floor(g * n); };
+
+    // GRASS variants (3)
+    for (let v = 0; v < 3; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([74, 140, 63]); g.fillRect(0, 0, T, T);
+      // darker patches
+      g.fillStyle = rgb([60, 120, 50]);
+      for (let i = 0; i < 4; i++) {
+        const dx = randIn(T - 4, v * 11 + i + 1, v + 2);
+        const dy = randIn(T - 4, v + 2, v * 11 + i + 1);
+        g.fillRect(dx, dy, 2, 2);
+      }
+      // blades
+      g.strokeStyle = rgb([80, 170, 70]); g.lineWidth = 1;
+      for (let i = 0; i < 14; i++) {
+        const bx = randIn(T - 4, v * 13 + i, v + 3);
+        const by = randIn(T - 6, v + 3, v * 13 + i);
+        g.beginPath(); g.moveTo(bx, by + 6); g.lineTo(bx + randIn(3, v, i) - 1, by); g.stroke();
+      }
+      // occasional flower
+      if (v === 0) { g.fillStyle = rgb([255, 90, 90]); g.fillRect(T / 2 - 1, T / 2 - 3, 3, 3); g.fillStyle = rgb([255, 255, 0]); g.fillRect(T / 2, T / 2 - 2, 1, 3); }
+      if (v === 1) { g.fillStyle = rgb([255, 130, 255]); g.fillRect(T / 2 - 1, T / 2 - 4, 3, 3); }
+      if (v === 2) { g.fillStyle = rgb([120, 200, 80]); g.fillRect(T / 2 - 1, T / 2 - 5, 3, 4); }
+      this.tileCache[`grass_${v}`] = c.canvas;
+    }
+
+    // TALL GRASS base (1) — blades overridden per-frame via sway
+    {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([45, 107, 48]); g.fillRect(0, 0, T, T);
+      g.strokeStyle = rgb([65, 135, 55]); g.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const bx = 2 + i * 5;
+        g.beginPath(); g.moveTo(bx, T - 2); g.lineTo(bx, 4); g.stroke();
+      }
+      this.tileCache.tallgrass = c.canvas;
+    }
+
+    // WATER base (1) — waves/sparkles overridden per-frame
+    {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([48, 104, 176]); g.fillRect(0, 0, T, T);
+      g.strokeStyle = rgb([60, 130, 200]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(2, 9); g.lineTo(T - 3, 9); g.stroke();
+      g.beginPath(); g.moveTo(4, 17); g.lineTo(T - 5, 17); g.stroke();
+      g.fillStyle = rgb([60, 130, 200]);
+      for (let i = 0; i < 4; i++) { const sx = 3 + i * 5, sy = 3 + (i % 2) * 5; g.fillRect(sx, sy, 2, 2); }
+      this.tileCache.water = c.canvas;
+    }
+
+    // PATH variants (3)
+    for (let v = 0; v < 3; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([196, 168, 132]); g.fillRect(0, 0, T, T);
+      // darker border edges for 3D
+      g.fillStyle = rgb([170, 140, 100]);
+      for (let i = 0; i < 3; i++) {
+        const dx = randIn(T - 6, v * 7 + i, v + 1);
+        const dy = randIn(T - 6, v + 1, v * 7 + i);
+        g.fillRect(1 + dx, 1 + dy, 2, 1);
+      }
+      // edge highlight
+      g.strokeStyle = rgb([205, 185, 145]); g.lineWidth = 1;
+      g.strokeRect(0, 0, T - 1, T - 1);
+      g.strokeStyle = rgb([160, 135, 95]);
+      g.lineWidth = 1; g.beginPath();
+      g.moveTo(0, T - 1); g.lineTo(T - 1, T - 1); g.lineTo(T - 1, 0); g.stroke();
+      this.tileCache[`path_${v}`] = c.canvas;
+    }
+
+    // TREE variants (2)
+    for (let v = 0; v < 2; v++) {
+      const c = this._cc(T, T), g = c;
+      // ground fill
+      g.fillStyle = rgb([50, 112, 52]); g.fillRect(0, T - 6, T, 6);
+      g.strokeStyle = rgb([38, 92, 40]); g.lineWidth = 1;
+      // canopy
+      g.fillStyle = rgb([38, 77, 32]);
+      for (let i = 0; i < 3; i++) {
+        const dx = randIn(T - 8, v * 5 + i, v + 1) + 1;
+        const dy = randIn(T - 8, v + 1, v * 5 + i) + 1;
+        g.fillRect(dx, dy, 6, 4);
+      }
+      g.fillStyle = rgb([20, 55, 20]);
+      for (let i = 0; i < 2; i++) { g.fillRect(randIn(T - 7, v, i) + 1, 2 + i * 3, 5, 3); }
+      // trunk
+      g.fillStyle = rgb([65, 55, 32]);
+      for (let i = 0; i < 2; i++) g.fillRect(T - 4 + i, T / 2 - 2, 2, 7);
+      // trunk lines (bark)
+      g.strokeStyle = rgb([45, 40, 25]);
+      g.beginPath(); g.moveTo(T - 4, T / 2); g.lineTo(T - 4, T - 1); g.stroke();
+      // shadow under tree
+      ctx_setAlpha(g, 0.35, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(1, T - 3, T - 2, 3); });
+      this.tileCache[`tree_${v}`] = c.canvas;
+    }
+
+    // WALL variants (2): stone bricks
+    for (let v = 0; v < 2; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([136, 136, 136]); g.fillRect(0, 0, T, T);
+      // mortar grid
+      g.strokeStyle = rgb([110, 110, 110]); g.lineWidth = 1;
+      for (let i = 0; i < T; i += 4) {
+        g.beginPath(); g.moveTo(0, i); g.lineTo(T, i);
+        g.beginPath(); g.moveTo(i, 0); g.lineTo(i, T);
+      }
+      g.stroke();
+      // brick color variation
+      for (let i = 0; i < 14; i++) {
+        const bx = randIn(T - 3, v * 8 + i, v) + 1;
+        const by = randIn(T - 3, v, v * 8 + i) + 1;
+        g.fillStyle = rgb([130, 130, 130]);
+        g.fillRect(bx, by, 2, 2);
+        g.fillStyle = rgb([140, 140, 140]);
+        g.fillRect(bx + 1, by + 1, 1, 1);
+      }
+      // darken top edge for depth
+      g.strokeStyle = rgb([90, 90, 90]);
+      g.lineWidth = 1; g.beginPath(); g.moveTo(0, 0); g.lineTo(T, 0); g.stroke();
+      this.tileCache[`wall_${v}`] = c.canvas;
+    }
+
+    // ROOF variants (2): red tiled roof
+    for (let v = 0; v < 2; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([190, 45, 28]); g.fillRect(0, 0, T, T);
+      // tile rows
+      g.fillStyle = rgb([205, 55, 36]);
+      for (let i = 0; i < 5; i++) {
+        const ty = 3 + i * 4;
+        g.fillRect(0, ty, T, 2);
+      }
+      // darker ridges
+      g.strokeStyle = rgb([170, 40, 24]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(1, 1); g.lineTo(T - 2, 1); g.stroke();
+      // shadow
+      ctx_setAlpha(g, 0.2, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(0, T / 2, T, T / 2); });
+      this.tileCache[`roof_${v}`] = c.canvas;
+    }
+
+    // HEAL: Pokecenter-style (red roof + white walls)
+    {
+      const c = this._cc(T, T), g = c;
+      // white walls
+      g.fillStyle = rgb([240, 240, 255]); g.fillRect(0, 0, T, T);
+      // red roof band at top
+      g.fillStyle = rgb([210, 40, 40]); g.fillRect(0, 0, T, 5);
+      // red cross
+      g.fillStyle = rgb([210, 40, 40]);
+      g.fillRect(T / 2 - 3, T / 2 - 5, 6, 11);
+      g.fillRect(T / 2 - 5, T / 2 - 3, 11, 6);
+      // white cross center
+      g.fillStyle = rgb([255, 255, 255]);
+      g.fillRect(T / 2 - 1, T / 2 - 3, 2, 7);
+      g.fillRect(T / 2 - 3, T / 2 - 1, 7, 2);
+      // door
+      g.fillStyle = rgb([90, 60, 40]); g.fillRect(T / 2 - 2, T - 4, 4, 4);
+      // windows
+      g.fillStyle = rgb([160, 210, 255]);
+      g.fillRect(3, T - 6, 4, 3);
+      g.fillRect(T - 7, T - 6, 4, 3);
+      this.tileCache.heal = c.canvas;
+    }
+
+    // SHOP: Mart
+    {
+      const c = this._cc(T, T), g = c;
+      // blue walls
+      g.fillStyle = rgb([50, 110, 220]); g.fillRect(0, 0, T, T);
+      // roof band
+      g.fillStyle = rgb([210, 180, 60]); g.fillRect(0, 0, T, 5);
+      // mart sign (white square + blue pole)
+      g.fillStyle = rgb([255, 255, 255]);
+      g.fillRect(3, 7, 6, 6);
+      g.strokeStyle = rgb([200, 200, 200]); g.lineWidth = 1;
+      g.strokeRect(3, 7, 6, 6);
+      // windows
+      g.fillStyle = rgb([160, 210, 255]);
+      g.fillRect(1, T - 5, 4, 3);
+      g.fillRect(T - 5, T - 5, 4, 3);
+      // door
+      g.fillStyle = rgb([90, 60, 40]); g.fillRect(T / 2 - 2, T - 5, 4, 5);
+      this.tileCache.shop = c.canvas;
+    }
+
+    // GYM:
+    {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([200, 170, 40]); g.fillRect(0, 0, T, T);
+      g.fillStyle = rgb([220, 190, 50]);
+      const cx = T / 2, cy = T / 2;
+      g.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
+        if (i === 0) g.moveTo(cx + Math.cos(a) * 7, cy + Math.sin(a) * 7); else g.lineTo(cx + Math.cos(a) * 7, cy + Math.sin(a) * 7);
+      }
+      g.closePath(); g.fill();
+      g.fillStyle = rgb([180, 155, 35]);
+      g.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
+        if (i === 0) g.moveTo(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3); else g.lineTo(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3);
+      }
+      g.closePath(); g.fill();
+      // accent spokes
+      g.strokeStyle = rgb([255, 220, 60]); g.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
+        g.beginPath(); g.moveTo(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5); g.lineTo(cx + Math.cos(a) * 2, cy + Math.sin(a) * 2); g.stroke();
+      }
+      this.tileCache.gym = c.canvas;
+    }
+
+    // SIGN:
+    {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([139, 119, 73]);
+      g.fillRect(2, 4, T - 4, T - 6);
+      // board darker border
+      g.strokeStyle = rgb([110, 95, 55]); g.lineWidth = 1; g.strokeRect(2, 4, T - 4, T - 6);
+      g.strokeStyle = rgb([90, 80, 45]); g.strokeRect(3, 5, T - 6, T - 8);
+      // post
+      g.fillStyle = rgb([80, 70, 50]);
+      g.fillRect(T - 3, 0, 3, T - 1);
+      // pole lines
+      g.strokeStyle = rgb([60, 55, 40]);
+      g.beginPath(); g.moveTo(T - 2, 0); g.lineTo(T - 2, T - 1); g.stroke();
+      this.tileCache.sign = c.canvas;
+    }
+
+    // BRIDGE variants (2)
+    for (let v = 0; v < 2; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([150, 110, 60]); g.fillRect(0, T / 2 + 2, T, T / 2 - 2);
+      g.strokeStyle = rgb([130, 95, 50]); g.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        const bx = (i * T) / 6;
+        g.beginPath(); g.moveTo(bx, T / 2 + 2); g.lineTo(bx + 2, T - 1); g.stroke();
+      }
+      // railings
+      g.strokeStyle = rgb([110, 80, 45]);
+      g.beginPath(); g.moveTo(0, T / 2 + 1); g.lineTo(T, T / 2 + 1); g.stroke();
+      this.tileCache[`bridge_${v}`] = c.canvas;
+    }
+
+    // ROCK variants (2)
+    for (let v = 0; v < 2; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([136, 136, 136]); g.fillRect(0, 0, T, T);
+      g.fillStyle = rgb([150, 150, 150]);
+      // rock shape
+      if (v === 0) { g.fillRect(2, 6, T - 4, T - 8); g.fillRect(4, 4, T - 8, T - 10); }
+      else { g.fillRect(3, 5, T - 7, T - 8); g.fillRect(1, 8, T - 3, T - 10); }
+      // lighter highlights
+      g.fillStyle = rgb([170, 170, 170]);
+      for (let i = 0; i < 6; i++) {
+        const bx = randIn(T - 4, v * 6 + i, v);
+        const by = randIn(T - 4, v, v * 6 + i);
+        g.fillRect(bx, by, 2, 2);
+      }
+      // shadow
+      ctx_setAlpha(g, 0.3, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(2, T - 2, T - 4, 2); });
+      this.tileCache[`rock_${v}`] = c.canvas;
+    }
+
+    // GROUND (indoor floor) variants (2)
+    for (let v = 0; v < 2; v++) {
+      const c = this._cc(T, T), g = c;
+      g.fillStyle = rgb([210, 180, 140]); g.fillRect(0, 0, T, T);
+      g.fillStyle = rgb([190, 160, 120]);
+      for (let i = 0; i < 4; i++) {
+        const bx = (i * T) / 4 + 1;
+        g.fillRect(bx, 1, 2, T - 2);
+      }
+      g.strokeStyle = rgb([180, 155, 115]); g.lineWidth = 1; g.strokeRect(0, 0, T - 1, T - 1);
+      this.tileCache[`ground_${v}`] = c.canvas;
+    }
+
+  }
+
+  _drawCachedTile(tile, sx, sy, variant) {
+    let key, v = variant || 0;
+    if (tile === TILE_GRASS) key = `grass_${v % 3}`;
+    else if (tile === TILE_TGRASS) key = "tallgrass";
+    else if (tile === TILE_WATER) key = "water";
+    else if (tile === TILE_PATH) key = `path_${v % 3}`;
+    else if (tile === TILE_TREE) key = `tree_${v % 2}`;
+    else if (tile === TILE_WALL) key = `wall_${v % 2}`;
+    else if (tile === TILE_ROOF) key = `roof_${v % 2}`;
+    else if (tile === TILE_HEAL) key = "heal";
+    else if (tile === TILE_SHOP) key = "shop";
+    else if (tile === TILE_GYM) key = "gym";
+    else if (tile === TILE_SIGN) key = "sign";
+    else if (tile === TILE_BRIDGE) key = `bridge_${v % 2}`;
+    else if (tile === TILE_ROCK) key = `rock_${v % 2}`;
+    else if (tile === TILE_GROUND) key = `ground_${v % 2}`;
+    else key = null;
+    if (key && this.tileCache[key]) { this.ctx.drawImage(this.tileCache[key], sx, sy); return true; }
+    return false;
+  }
+
   townMap(m, px, py, t) {
     const ctx = this.ctx;
-    const seededRand = (x, y) => {
-      let h = x * 374761393 + y * 668265263;
-      h = (h ^ (h >> 13)) * 1274126177;
-      h = h ^ (h >> 16);
-      return (h & 0x7fffffff) / 0x7fffffff;
-    };
+    if (!this.tileCache) this.buildTileCache();
+    const seededRand = this._sr;
+
+    // subtle vignette overlay
+    ctx.fillStyle = rgb([15, 15, 25]);
+    ctx.globalAlpha = 0.05;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    ctx.globalAlpha = 1;
+
     for (let y = 0; y < Math.min(m.height, MAP_Y); y++) {
       for (let x = 0; x < Math.min(m.width, MAP_X); x++) {
         const tile = getT(m, x, y);
         const sx = x * TILE, sy = y * TILE;
-        if (tile === TILE_GRASS) {
-          ctx.fillStyle = rgb([74, 140, 63]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([60, 120, 50]);
+        // animated tiles override; static tiles use cache from buildTileCache
+        if (tile === TILE_WATER) {
+          // animated water: cached base + per-frame waves/sparkles
+          if (this.tileCache.water) ctx.drawImage(this.tileCache.water, sx, sy);
+          ctx.fillStyle = rgb([55, 115, 190]);
+          ctx.globalAlpha = 0.25; ctx.fillRect(sx, sy, TILE - 1, TILE - 1); ctx.globalAlpha = 1;
+          ctx.strokeStyle = rgb([80, 150, 220]); ctx.lineWidth = 1;
+          const w1 = Math.sin(t * 1.8 + y * 0.8) * 4;
+          const w2 = Math.sin(t * 1.5 + y * 0.8 + 0.7) * 3;
+          ctx.beginPath(); ctx.moveTo(sx + 2, sy + 9 + w1); ctx.lineTo(sx + TILE - 3, sy + 9 + w1); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(sx + 4, sy + 17 + w2); ctx.lineTo(sx + TILE - 5, sy + 17 + w2); ctx.stroke();
+          // sparkles
           for (let i = 0; i < 5; i++) {
-            const dx = Math.floor(seededRand(x * 10 + i, y * 10) * (TILE - 4));
-            const dy = Math.floor(seededRand(x * 10, y * 10 + i) * (TILE - 4));
-            ctx.fillRect(sx + dx + 1, sy + dy + 1, 2, 2);
-          }
-        } else if (tile === TILE_TGRASS) {
-          ctx.fillStyle = rgb([45, 107, 48]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.strokeStyle = rgb([35, 90, 38]);
-          ctx.lineWidth = 1;
-          for (let i = 0; i < 4; i++) {
-            const sway = Math.sin(t * 3 + i * 1.5 + x * 0.5) * 2;
-            const bx = sx + 3 + i * 5;
-            ctx.beginPath();
-            ctx.moveTo(bx, sy + TILE - 2);
-            ctx.lineTo(bx + sway, sy + 4);
-            ctx.stroke();
-          }
-          ctx.strokeStyle = rgb([65, 130, 55]);
-          for (let i = 0; i < 3; i++) {
-            const sway = Math.sin(t * 3 + i * 1.5 + x * 0.5) * 2;
-            const bx = sx + 5 + i * 6;
-            ctx.beginPath();
-            ctx.moveTo(bx + sway, sy + 6);
-            ctx.lineTo(bx + sway, sy + 2);
-            ctx.stroke();
-          }
-        } else if (tile === TILE_WATER) {
-          ctx.fillStyle = rgb([48, 104, 176]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.strokeStyle = rgb([60, 120, 190]);
-          ctx.lineWidth = 1;
-          const waveShift = Math.sin(t * 1.5 + y * 0.8) * 3;
-          ctx.beginPath();
-          ctx.moveTo(sx + 2, sy + 8 + waveShift);
-          ctx.lineTo(sx + TILE - 3, sy + 8 + waveShift);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(sx + 4, sy + 16 - waveShift);
-          ctx.lineTo(sx + TILE - 5, sy + 16 - waveShift);
-          ctx.stroke();
-          for (let i = 0; i < 3; i++) {
-            const sparkleTime = t * 4 + i * 2.1 + x * 0.7;
-            const sparkle = Math.sin(sparkleTime);
-            if (sparkle > 0.6) {
-              const sparkleX = sx + 4 + Math.floor(seededRand(x + i, y) * (TILE - 8));
-              const sparkleY = sy + 4 + Math.floor(seededRand(x, y + i) * (TILE - 8));
-              ctx.fillStyle = rgb([255, 255, 255]);
-              ctx.globalAlpha = (sparkle - 0.6) * 2.5;
-              ctx.fillRect(sparkleX, sparkleY, 2, 2);
+            const sp = Math.sin(t * 4 + i * 1.3 + x * 0.6 + y * 0.3);
+            if (sp > 0.55) {
+              ctx.fillStyle = rgb([255, 245, 200]);
+              ctx.globalAlpha = (sp - 0.55) * 2.2;
+              ctx.fillRect(sx + 5 + (i * 5 % (TILE - 10)), sy + 5 + (i * 3 % (TILE - 10)), 2, 2);
               ctx.globalAlpha = 1;
             }
           }
-        } else if (tile === TILE_PATH) {
-          ctx.fillStyle = rgb([196, 168, 122]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([180, 152, 108]);
-          for (let i = 0; i < 3; i++) {
-            const dx = Math.floor(seededRand(x * 7 + i, y * 7) * (TILE - 4));
-            const dy = Math.floor(seededRand(x * 7, y * 7 + i) * (TILE - 4));
-            ctx.fillRect(sx + dx + 1, sy + dy + 1, 2, 1);
+        } else if (tile === TILE_TGRASS) {
+          // animated tall grass
+          if (this.tileCache.tallgrass) ctx.drawImage(this.tileCache.tallgrass, sx, sy);
+          ctx.strokeStyle = rgb([75, 150, 65]); ctx.lineWidth = 1;
+          for (let i = 0; i < 6; i++) {
+            const sway = Math.sin(t * 3.5 + i * 1.1 + x * 0.6) * 2.5;
+            const bx = sx + 2 + i * 4;
+            ctx.beginPath(); ctx.moveTo(bx, sy + TILE - 2); ctx.lineTo(bx + sway, sy + 5); ctx.stroke();
           }
-        } else if (tile === TILE_TREE) {
-          ctx.fillStyle = rgb([45, 107, 48]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([55, 125, 58]);
-          for (let i = 0; i < 3; i++) {
-            const dx = Math.floor(seededRand(x * 11 + i, y * 11) * (TILE - 6)) + 1;
-            const dy = Math.floor(seededRand(x * 11, y * 11 + i) * (TILE - 10)) + 1;
-            ctx.fillRect(sx + dx, sy + dy, 4, 3);
+          ctx.strokeStyle = rgb([95, 170, 75]);
+          for (let i = 0; i < 4; i++) {
+            const sway = Math.sin(t * 3.5 + i * 1.1 + x * 0.6 + 0.8) * 2.5;
+            const bx = sx + 4 + i * 5;
+            ctx.beginPath(); ctx.moveTo(bx + sway, sy + 7); ctx.lineTo(bx + sway, sy + 3); ctx.stroke();
           }
-          ctx.fillStyle = rgb([107, 66, 38]);
-          ctx.fillRect(sx + 8, sy + TILE - 6, 8, 5);
-          ctx.fillStyle = rgb([90, 55, 32]);
-          ctx.fillRect(sx + 10, sy + TILE - 5, 4, 4);
-        } else if (tile === TILE_WALL) {
-          ctx.fillStyle = rgb([136, 136, 136]);
+        } else if (tile === TILE_DOOR) {
+          // door: stone frame + wooden door
+          ctx.fillStyle = rgb([120, 120, 130]);
           ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.strokeStyle = rgb([115, 115, 115]);
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(sx, sy + 7); ctx.lineTo(sx + TILE - 1, sy + 7);
-          ctx.moveTo(sx, sy + 15); ctx.lineTo(sx + TILE - 1, sy + 15);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(sx + 8, sy); ctx.lineTo(sx + 8, sy + 7);
-          ctx.moveTo(sx + 16, sy + 7); ctx.lineTo(sx + 16, sy + 15);
-          ctx.moveTo(sx + 8, sy + 15); ctx.lineTo(sx + 8, sy + TILE - 1);
-          ctx.stroke();
-        } else if (tile === TILE_HEAL) {
-          ctx.fillStyle = rgb([220, 50, 50]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([255, 255, 255]);
-          ctx.fillRect(sx + 9, sy + 3, 6, TILE - 4);
-          ctx.fillRect(sx + 3, sy + 9, TILE - 4, 6);
-        } else if (tile === TILE_SHOP) {
-          ctx.fillStyle = rgb([50, 100, 220]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([255, 255, 255]);
-          ctx.fillRect(sx + 6, sy + 8, 12, 12);
-          ctx.fillStyle = rgb([50, 100, 220]);
-          ctx.fillRect(sx + 8, sy + 10, 8, 8);
-          ctx.strokeStyle = rgb([255, 255, 255]);
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(sx + 12, sy + 8, 4, Math.PI, 0);
-          ctx.stroke();
-        } else if (tile === TILE_GYM) {
-          ctx.fillStyle = rgb([220, 180, 50]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([255, 220, 80]);
-          const cx2 = sx + TILE / 2, cy2 = sy + TILE / 2;
-          ctx.beginPath();
-          for (let i = 0; i < 5; i++) {
-            const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
-            const method = i === 0 ? 'moveTo' : 'lineTo';
-            ctx[method](cx2 + Math.cos(angle) * 7, cy2 + Math.sin(angle) * 7);
-          }
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = rgb([200, 160, 40]);
-          ctx.beginPath();
-          for (let i = 0; i < 5; i++) {
-            const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
-            const method = i === 0 ? 'moveTo' : 'lineTo';
-            ctx[method](cx2 + Math.cos(angle) * 3, cy2 + Math.sin(angle) * 3);
-          }
-          ctx.closePath();
-          ctx.fill();
-        } else if (tile === TILE_SIGN) {
-          ctx.fillStyle = rgb([139, 119, 73]);
-          ctx.fillRect(sx + 6, sy + 8, TILE - 12, TILE - 10);
-          ctx.fillStyle = rgb([100, 80, 50]);
-          ctx.fillRect(sx + 10, sy + TILE - 4, 4, 6);
+          ctx.strokeStyle = rgb([100, 100, 110]); ctx.lineWidth = 1;
+          ctx.strokeRect(sx, sy, TILE - 1, TILE - 1);
+          ctx.fillStyle = rgb([80, 55, 35]);
+          ctx.fillRect(sx + 4, sy + 8, TILE - 8, TILE - 10);
+          ctx.fillStyle = rgb([90, 65, 45]);
+          ctx.fillRect(sx + TILE - 6, sy + 8, 4, TILE - 10);
+          // door knob
+          ctx.fillStyle = rgb([180, 180, 180]);
+          ctx.fillRect(sx + TILE - 8, sy + TILE / 2 - 1, 2, 2);
+        } else if (tile === TILE_CHEST) {
+          // treasure chest
+          ctx.fillStyle = rgb([120, 70, 35]);
+          ctx.fillRect(sx + 2, sy + 8, TILE - 4, TILE - 10);
+          ctx.fillStyle = rgb([170, 90, 45]);
+          ctx.fillRect(sx + 4, sy + 10, TILE - 8, TILE - 12);
+          ctx.strokeStyle = rgb([90, 50, 30]); ctx.lineWidth = 1;
+          ctx.strokeRect(sx + 2, sy + 8, TILE - 4, TILE - 10);
+          // chest lid highlight
+          ctx.fillStyle = rgb([200, 110, 50]);
+          ctx.fillRect(sx + 4, sy + 6, TILE - 8, 2);
+        } else if (tile === TILE_NPC) {
+          // NPC spawn tile: show as a marker (person-like)
+          ctx.fillStyle = rgb([60, 80, 180]);
+          ctx.fillRect(sx + 4, sy + 8, TILE - 8, TILE - 10);
         } else {
-          const col = TILE_COLORS[tile] || COL_GRAY;
-          ctx.fillStyle = rgb(col);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
+          // static tiles from cache
+          const variant = seededRand(x * 31, y * 47);
+          if (!this._drawCachedTile(tile, sx, sy, variant)) {
+            // fallback: flat tile
+            const col = TILE_COLORS[tile] || COL_GRAY;
+            ctx.fillStyle = rgb(col);
+            ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
+          }
         }
+        // overlay: NPC/creature spawn tiles handled by NPC sprites
       }
     }
+    // NPCs and player
     for (const npc of m.npcs) this.npcSprite(npc.x * TILE, npc.y * TILE, TILE, npc.type);
     this.playerSprite(px * TILE, py * TILE, TILE);
+    // soft shadow under NPCs and player
+    ctx.fillStyle = rgba([0, 0, 0], 0.25);
+    for (let i = 0; i < Math.min(m.npcs.length, 4); i++) {
+      const nx = m.npcs[i].x * TILE, ny = m.npcs[i].y * TILE;
+      ctx.fillRect(nx + 2, ny + TILE, TILE - 4, 3);
+    }
+    ctx.fillRect(px * TILE + 2, py * TILE + TILE, TILE - 4, 3);
   }
 
   hud(player, mapName) {
@@ -1904,7 +2156,7 @@ class Renderer {
       { name: "Medicine", icon: "+", items: ["Potion","Super Potion","Hyper Potion","Full Heal","Revive","Full Revive"] },
       { name: "Spheres", icon: "O", items: ["Soul Sphere","Great Sphere","Ultra Sphere","Master Sphere"] },
       { name: "TMs", icon: "T", items: Object.keys(TM_MOVES || {}) },
-      { name: "Battle", icon: "!", items: ["X Attack","X Defense"] }
+      { name: "Battle", icon: "!", items: ["X Attack","X Defense","Repel"] }
     ];
     const isOnTab = cursor < BAG_TABS.length;
     const itemCursor = Math.max(0, cursor - BAG_TABS.length);
@@ -1997,6 +2249,12 @@ class Renderer {
       if (desc) this.text(bx + bw / 2, descY, desc, COL_LGRAY, 10, true);
     }
 
+    // Back button (tappable)
+    this.rect(16, by + bh - 34, 100, 24, COL_SELECT, 0.3);
+    this.ctx.strokeStyle = rgb(COL_YELLOW); ctx.lineWidth = 2;
+    ctx.strokeRect(16, by + bh - 34, 100, 24);
+    this.text(66, by + bh - 16, "Back", COL_YELLOW, 12, true);
+
     this.text(bx + bw / 2, by + bh - 12, "Scroll=Navigate  Click=Select  Right-click=Back", COL_GRAY, 9, true);
     ctx.globalAlpha = 1;
   }
@@ -2014,7 +2272,8 @@ class Renderer {
       "Ultra Sphere": "Great catching sphere",
       "Master Sphere": "Never misses!",
       "X Attack": "Raises ATK in battle",
-      "X Defense": "Raises DEF in battle"
+      "X Defense": "Raises DEF in battle",
+      "Repel": "Prevents weak wild Minis"
     };
     if (descs[name]) return descs[name];
     if (name && name.startsWith("TM ")) return "Teaches: " + (MOVES[TM_MOVES[name]] ? MOVES[TM_MOVES[name]].name : name.slice(3));

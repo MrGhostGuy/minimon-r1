@@ -143,7 +143,7 @@ const BAG_TABS = [
   { name: "Medicine", items: ["Potion","Super Potion","Hyper Potion","Full Heal","Revive","Full Revive"] },
   { name: "Spheres", items: ["Soul Sphere","Great Sphere","Ultra Sphere","Master Sphere"] },
   { name: "TMs", items: ALL_TM },
-  { name: "Battle", items: ["X Attack","X Defense"] }
+  { name: "Battle", items: ["X Attack","X Defense","Repel"] }
 ];
 function getBagItems(tabIdx) {
   const tab = BAG_TABS[tabIdx];
@@ -152,12 +152,16 @@ function getBagItems(tabIdx) {
 }
 function useOverworldItem(itemName) {
   // Easter egg: Repel during starter selection transforms starters into legendaries
-  if (itemName === I_REPEL && state === S_STARTER) {
+  if (itemName === I_REPEL && (state === S_STARTER || bagReturnState === S_STARTER)) {
     repelUsedInStarter = true;
     pendingStarter = starterLegendaryOptions;
     removeItem(itemName);
     state = S_STARTER; cursor = 0;
     return null; // will re-render starter with legendary options
+  }
+  if (itemName === I_REPEL) {
+    removeItem(itemName);
+    return "Repel was used! Wild Minis won't appear for a while.";
   }
   if ([I_POTION,I_SPOTION,I_HPOTION].includes(itemName)) {
     if (!player.party.length) return "No Minis to heal!";
@@ -749,7 +753,7 @@ function handleScroll(dir) {
   }
   else if (state === S_BAG_CAT) {
     const items = getBagItems(bagTab);
-    const totalSlots = BAG_TABS.length + items.length + 1; // +1 for Back slot
+    const totalSlots = BAG_TABS.length + items.length;
     if (totalSlots > 0) cursor = (cursor + dir + totalSlots) % totalSlots;
   }
   else if (state === S_MAP) cursor = Math.max(0, Math.min(11, cursor + dir));
@@ -764,6 +768,8 @@ function handleScroll(dir) {
 }
 
 function handleClick(button, mx, my) {
+  // Normalize the R1 side button / right-click to button 3
+  if (button === 2) button = 3;
   if (state === S_ENCOUNTER) return;
   if (state === S_TITLE) {
     if ((button === 2 || button === 3) && tryHasSave()) { if (loadGame()) state = S_OW; }
@@ -900,6 +906,11 @@ function handleClick(button, mx, my) {
   }
   else if (state === S_BAG_CAT && button === 1) {
     const tabW = 100, tabStartX = 40;
+    // Back button (touch) at bottom
+    if (mx >= 16 && mx <= 464 && my >= 408 && my <= 436) {
+      bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0; return;
+    }
+    // Tab hit-test
     for (let i = 0; i < BAG_TABS.length; i++) {
       const tx = tabStartX + i * (tabW + 5);
       if (mx >= tx && mx <= tx + tabW && my >= 44 && my <= 64) { bagTab = i; cursor = i; return; }
@@ -916,56 +927,34 @@ function handleClick(button, mx, my) {
       bagTab = cursor; cursor = BAG_TABS.length;
     } else {
       const itemIdx = cursor - BAG_TABS.length;
-      if (itemIdx < BAG_TABS.length + items.length) {
-        // Check if we're on the Back slot (virtual last slot)
-        if (itemIdx === BAG_TABS.length + items.length - 1) {
-          bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
-        } else {
-          const itemName = items[itemIdx - BAG_TABS.length];
-          const msg = useOverworldItem(itemName);
-          if (msg === null) {
-            // Check if we're in starter selection (easter egg)
-            if (state === S_STARTER) {
-              return; // Repel was used - already handled in useOverworldItem
-            }
-            state = S_PARTY; partyMode = "use"; cursor = 0;
-          } else if (msg) {
-            state = S_DIALOG; setDialog([msg]);
-          }
-        }
-      } else {
-        // Cursor on Back slot (virtual)
-        if (cursor === BAG_TABS.length + items.length) {
-          bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
+      if (itemIdx < items.length) {
+        const itemName = items[itemIdx];
+        const msg = useOverworldItem(itemName);
+        if (msg === null) {
+          if (bagReturnState === S_STARTER) { return; }
+          state = S_PARTY; partyMode = "use"; cursor = 0;
+        } else if (msg) {
+          state = S_DIALOG; setDialog([msg]);
         }
       }
     }
   }
   else if (state === S_BAG_CAT && button === 3) {
-    // Side button = select current (tab or item)
+    // Side button = select current (tab or item); Back via touch button
     if (cursor < BAG_TABS.length) {
       bagTab = cursor; cursor = BAG_TABS.length;
     } else {
+      const items = getBagItems(bagTab);
       const itemIdx = cursor - BAG_TABS.length;
-      if (itemIdx < BAG_TABS.length + items.length) {
-        if (itemIdx === BAG_TABS.length + items.length - 1) {
-          // Back slot
-          bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
-        } else {
-          const itemName = items[itemIdx - BAG_TABS.length];
-          const msg = useOverworldItem(itemName);
-          if (msg === null) {
-            if (state === S_STARTER) {
-              return;
-            }
-            state = S_PARTY; partyMode = "use"; cursor = 0;
-          } else if (msg) {
-            state = S_DIALOG; setDialog([msg]);
-          }
+      if (itemIdx < items.length) {
+        const itemName = items[itemIdx];
+        const msg = useOverworldItem(itemName);
+        if (msg === null) {
+          if (bagReturnState === S_STARTER) { return; }
+          state = S_PARTY; partyMode = "use"; cursor = 0;
+        } else if (msg) {
+          state = S_DIALOG; setDialog([msg]);
         }
-      } else if (cursor === BAG_TABS.length + items.length) {
-        // Back slot
-        bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
       }
     }
   }
@@ -1790,6 +1779,6 @@ function renderPokedex() {
 
 requestAnimationFrame(gameLoop);
 
-if (location.hash === "#test") window.__mm = () => ({ state: state, name: player && player.name, px: player && player.x, py: player && player.y });
+if (location.hash === "#test") window.__mm = () => ({ state: state, name: player && player.name, px: player && player.x, py: player && player.y, bagTab: bagTab, cursor: cursor, starter: pendingStarter, repelUsed: repelUsedInStarter, inventory: player && player.inventory });
 
 })();
