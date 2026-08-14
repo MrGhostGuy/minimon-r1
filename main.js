@@ -735,7 +735,7 @@ function handleScroll(dir) {
     else if (battlePhase === "select") cursor = Math.max(0, Math.min(3, cursor + dir));
     else if (battlePhase === "moves") { const m = battleState.player.moves; cursor = Math.max(0, Math.min(m.length - 1, cursor + dir)); }
     else if (battlePhase === "party") cursor = Math.max(0, Math.min(player.party.length - 1, cursor + dir));
-    else if (battlePhase === "bag") { const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE].includes(k)); cursor = Math.max(0, Math.min(items.length - 1, cursor + dir)); }
+    else if (battlePhase === "bag") { const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE,I_XATK,I_XDEF].includes(k)); cursor = Math.max(0, Math.min(items.length - 1, cursor + dir)); }
   }
   else if (state === S_PAUSE) { cursor = Math.max(0, Math.min(6, cursor + dir)); }
   else if (state === S_PARTY) {
@@ -749,7 +749,7 @@ function handleScroll(dir) {
   }
   else if (state === S_BAG_CAT) {
     const items = getBagItems(bagTab);
-    const totalSlots = BAG_TABS.length + items.length;
+    const totalSlots = BAG_TABS.length + items.length + 1; // +1 for Back slot
     if (totalSlots > 0) cursor = (cursor + dir + totalSlots) % totalSlots;
   }
   else if (state === S_MAP) cursor = Math.max(0, Math.min(11, cursor + dir));
@@ -836,7 +836,11 @@ function handleClick(button, mx, my) {
         }
       }
     } else if (button === 3) {
-      if (["moves","party","bag"].includes(battlePhase)) { battlePhase = "menu"; cursor = 0; }
+      if (battlePhase === "message") nextBattleMsg();
+      else if (battlePhase === "select") selectBattleAction();
+      else if (battlePhase === "moves") useBattleMove();
+      else if (battlePhase === "party") switchBattleCreature();
+      else if (battlePhase === "bag") useBattleItem();
     }
   }
   else if (state === S_PAUSE && button === 1) {
@@ -846,7 +850,7 @@ function handleClick(button, mx, my) {
       if (mx >= 40 && mx <= 440 && my >= oy && my <= oy + 44) { cursor = i; selectPauseMenu(); return; }
     }
   }
-  else if (state === S_PAUSE && button === 3) { state = S_OW; }
+  else if (state === S_PAUSE && button === 3) { selectPauseMenu(); }
   else if (state === "pokedex") { state = S_PAUSE; cursor = 0; }
   else if (state === S_PARTY && button === 1) {
     for (let i = 0; i < player.party.length; i++) {
@@ -911,24 +915,60 @@ function handleClick(button, mx, my) {
     if (cursor < BAG_TABS.length) {
       bagTab = cursor; cursor = BAG_TABS.length;
     } else {
-      const items2 = getBagItems(bagTab);
       const itemIdx = cursor - BAG_TABS.length;
-      if (itemIdx < items2.length) {
-        const itemName = items2[itemIdx];
-        const msg = useOverworldItem(itemName);
-        if (msg === null) {
-          // Check if we're in starter selection (easter egg)
-          if (state === S_STARTER) {
-            return; // Repel was used - already handled in useOverworldItem
+      if (itemIdx < BAG_TABS.length + items.length) {
+        // Check if we're on the Back slot (virtual last slot)
+        if (itemIdx === BAG_TABS.length + items.length - 1) {
+          bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
+        } else {
+          const itemName = items[itemIdx - BAG_TABS.length];
+          const msg = useOverworldItem(itemName);
+          if (msg === null) {
+            // Check if we're in starter selection (easter egg)
+            if (state === S_STARTER) {
+              return; // Repel was used - already handled in useOverworldItem
+            }
+            state = S_PARTY; partyMode = "use"; cursor = 0;
+          } else if (msg) {
+            state = S_DIALOG; setDialog([msg]);
           }
-          state = S_PARTY; partyMode = "use"; cursor = 0;
-        } else if (msg) {
-          state = S_DIALOG; setDialog([msg]);
+        }
+      } else {
+        // Cursor on Back slot (virtual)
+        if (cursor === BAG_TABS.length + items.length) {
+          bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
         }
       }
     }
   }
-  else if (state === S_BAG_CAT && button === 3) { state = bagReturnState; cursor = bagReturnState === S_STARTER ? 0 : BAG_TABS.length; }
+  else if (state === S_BAG_CAT && button === 3) {
+    // Side button = select current (tab or item)
+    if (cursor < BAG_TABS.length) {
+      bagTab = cursor; cursor = BAG_TABS.length;
+    } else {
+      const itemIdx = cursor - BAG_TABS.length;
+      if (itemIdx < BAG_TABS.length + items.length) {
+        if (itemIdx === BAG_TABS.length + items.length - 1) {
+          // Back slot
+          bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
+        } else {
+          const itemName = items[itemIdx - BAG_TABS.length];
+          const msg = useOverworldItem(itemName);
+          if (msg === null) {
+            if (state === S_STARTER) {
+              return;
+            }
+            state = S_PARTY; partyMode = "use"; cursor = 0;
+          } else if (msg) {
+            state = S_DIALOG; setDialog([msg]);
+          }
+        }
+      } else if (cursor === BAG_TABS.length + items.length) {
+        // Back slot
+        bagReturnState = S_PAUSE; state = S_PAUSE; cursor = 0;
+      }
+    }
+  }
   else if (state === S_MAP && button === 1) { state = S_PAUSE; cursor = 5; }
   else if (state === S_MAP && button === 3) { state = S_PAUSE; cursor = 5; }
   else if (state === S_MOVES && button === 1) {
@@ -962,7 +1002,7 @@ function handleClick(button, mx, my) {
         if (mx >= 22 && mx <= 458 && my >= y && my <= y + 30) { shopCursor = i; buyItem(); return; }
       }
       buyItem();
-    } else if (button === 3) state = S_OW;
+    } else if (button === 3) buyItem();
   }
   else if (state === S_EVOLUTION) advanceDialog();
   else if (state === S_STARTER && button === 1) {
@@ -978,6 +1018,7 @@ function handleClick(button, mx, my) {
     }
     chooseStarter();
   }
+  else if (state === S_STARTER && button === 3) { cursor = 0; chooseStarter(); }
   else if (state === S_TM && button === 1) {
     if (pendingTM) {
       for (let i = 0; i < pendingTM.compatible.length; i++) {
