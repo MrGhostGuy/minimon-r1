@@ -1005,9 +1005,10 @@ function handleClick(button, mx, my) {
       const cx = baseX + i * spacing;
       if (mx >= cx - 32 && mx <= cx + 32 && my >= pokeY - 70 && my <= pokeY + 32) { cursor = i; chooseStarter(); return; }
     }
-    chooseStarter();
   }
-  else if (state === S_STARTER && button === 3) { cursor = 0; chooseStarter(); }
+  else if (state === S_STARTER && button === 3) {
+    cursor = (cursor + 1) % pendingStarter.length;
+  }
   else if (state === S_TM && button === 1) {
     if (pendingTM) {
       for (let i = 0; i < pendingTM.compatible.length; i++) {

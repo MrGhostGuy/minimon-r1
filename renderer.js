@@ -396,103 +396,151 @@ class Renderer {
     if (!this.tileCache) this.buildTileCache();
     const seededRand = this._sr;
 
-    // subtle vignette overlay
-    ctx.fillStyle = rgb([15, 15, 25]);
-    ctx.globalAlpha = 0.05;
-    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
-    ctx.globalAlpha = 1;
+    // Draw map in layers: ground -> objects/buildings -> NPCs -> player
+    const maxX = Math.min(m.width, MAP_X);
+    const maxY = Math.min(m.height, MAP_Y);
 
-    for (let y = 0; y < Math.min(m.height, MAP_Y); y++) {
-      for (let x = 0; x < Math.min(m.width, MAP_X); x++) {
+    // Layer 1: Ground tiles (grass, water, path, ground)
+    for (let y = 0; y < maxY; y++) {
+      for (let x = 0; x < maxX; x++) {
         const tile = getT(m, x, y);
         const sx = x * TILE, sy = y * TILE;
-        // animated tiles override; static tiles use cache from buildTileCache
+
         if (tile === TILE_WATER) {
-          // animated water: cached base + per-frame waves/sparkles
           if (this.tileCache.water) ctx.drawImage(this.tileCache.water, sx, sy);
           ctx.fillStyle = rgb([55, 115, 190]);
-          ctx.globalAlpha = 0.25; ctx.fillRect(sx, sy, TILE - 1, TILE - 1); ctx.globalAlpha = 1;
+          ctx.globalAlpha = 0.3; ctx.fillRect(sx, sy, TILE - 1, TILE - 1); ctx.globalAlpha = 1;
           ctx.strokeStyle = rgb([80, 150, 220]); ctx.lineWidth = 1;
-          const w1 = Math.sin(t * 1.8 + y * 0.8) * 4;
-          const w2 = Math.sin(t * 1.5 + y * 0.8 + 0.7) * 3;
-          ctx.beginPath(); ctx.moveTo(sx + 2, sy + 9 + w1); ctx.lineTo(sx + TILE - 3, sy + 9 + w1); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(sx + 4, sy + 17 + w2); ctx.lineTo(sx + TILE - 5, sy + 17 + w2); ctx.stroke();
-          // sparkles
-          for (let i = 0; i < 5; i++) {
-            const sp = Math.sin(t * 4 + i * 1.3 + x * 0.6 + y * 0.3);
-            if (sp > 0.55) {
-              ctx.fillStyle = rgb([255, 245, 200]);
-              ctx.globalAlpha = (sp - 0.55) * 2.2;
-              ctx.fillRect(sx + 5 + (i * 5 % (TILE - 10)), sy + 5 + (i * 3 % (TILE - 10)), 2, 2);
-              ctx.globalAlpha = 1;
-            }
-          }
+          const w1 = Math.sin(t * 1.8 + y * 0.8) * 3;
+          const w2 = Math.sin(t * 1.5 + y * 0.8 + 0.7) * 2;
+          ctx.beginPath(); ctx.moveTo(sx + 2, sy + 8 + w1); ctx.lineTo(sx + TILE - 3, sy + 8 + w1); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(sx + 4, sy + 16 + w2); ctx.lineTo(sx + TILE - 5, sy + 16 + w2); ctx.stroke();
         } else if (tile === TILE_TGRASS) {
-          // animated tall grass
-          if (this.tileCache.tallgrass) ctx.drawImage(this.tileCache.tallgrass, sx, sy);
-          ctx.strokeStyle = rgb([75, 150, 65]); ctx.lineWidth = 1;
-          for (let i = 0; i < 6; i++) {
-            const sway = Math.sin(t * 3.5 + i * 1.1 + x * 0.6) * 2.5;
+          // Tall grass base
+          ctx.fillStyle = rgb([40, 110, 35]); ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
+          // Grass blades
+          ctx.strokeStyle = rgb([65, 145, 55]); ctx.lineWidth = 1;
+          for (let i = 0; i < 5; i++) {
             const bx = sx + 2 + i * 4;
-            ctx.beginPath(); ctx.moveTo(bx, sy + TILE - 2); ctx.lineTo(bx + sway, sy + 5); ctx.stroke();
+            const sway = Math.sin(t * 3 + i * 1.2 + x * 0.5) * 2;
+            ctx.beginPath(); ctx.moveTo(bx, sy + TILE - 2); ctx.lineTo(bx + sway, sy + 4); ctx.stroke();
           }
-          ctx.strokeStyle = rgb([95, 170, 75]);
-          for (let i = 0; i < 4; i++) {
-            const sway = Math.sin(t * 3.5 + i * 1.1 + x * 0.6 + 0.8) * 2.5;
-            const bx = sx + 4 + i * 5;
-            ctx.beginPath(); ctx.moveTo(bx + sway, sy + 7); ctx.lineTo(bx + sway, sy + 3); ctx.stroke();
-          }
-        } else if (tile === TILE_DOOR) {
-          // door: stone frame + wooden door
-          ctx.fillStyle = rgb([120, 120, 130]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.strokeStyle = rgb([100, 100, 110]); ctx.lineWidth = 1;
-          ctx.strokeRect(sx, sy, TILE - 1, TILE - 1);
-          ctx.fillStyle = rgb([80, 55, 35]);
-          ctx.fillRect(sx + 4, sy + 8, TILE - 8, TILE - 10);
-          ctx.fillStyle = rgb([90, 65, 45]);
-          ctx.fillRect(sx + TILE - 6, sy + 8, 4, TILE - 10);
-          // door knob
-          ctx.fillStyle = rgb([180, 180, 180]);
-          ctx.fillRect(sx + TILE - 8, sy + TILE / 2 - 1, 2, 2);
-        } else if (tile === TILE_CHEST) {
-          // treasure chest
-          ctx.fillStyle = rgb([120, 70, 35]);
-          ctx.fillRect(sx + 2, sy + 8, TILE - 4, TILE - 10);
-          ctx.fillStyle = rgb([170, 90, 45]);
-          ctx.fillRect(sx + 4, sy + 10, TILE - 8, TILE - 12);
-          ctx.strokeStyle = rgb([90, 50, 30]); ctx.lineWidth = 1;
-          ctx.strokeRect(sx + 2, sy + 8, TILE - 4, TILE - 10);
-          // chest lid highlight
-          ctx.fillStyle = rgb([200, 110, 50]);
-          ctx.fillRect(sx + 4, sy + 6, TILE - 8, 2);
-        } else if (tile === TILE_NPC) {
-          // NPC spawn tile: show as a marker (person-like)
-          ctx.fillStyle = rgb([60, 80, 180]);
-          ctx.fillRect(sx + 4, sy + 8, TILE - 8, TILE - 10);
         } else {
-          // static tiles from cache
+          // Other ground tiles from cache (grass, path, ground)
           const variant = seededRand(x * 31, y * 47);
           if (!this._drawCachedTile(tile, sx, sy, variant)) {
-            // fallback: flat tile
             const col = TILE_COLORS[tile] || COL_GRAY;
             ctx.fillStyle = rgb(col);
             ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
           }
         }
-        // overlay: NPC/creature spawn tiles handled by NPC sprites
       }
     }
-    // NPCs and player
-    for (const npc of m.npcs) this.npcSprite(npc.x * TILE, npc.y * TILE, TILE, npc.type);
-    this.playerSprite(px * TILE, py * TILE, TILE);
-    // soft shadow under NPCs and player
-    ctx.fillStyle = rgba([0, 0, 0], 0.25);
-    for (let i = 0; i < Math.min(m.npcs.length, 4); i++) {
-      const nx = m.npcs[i].x * TILE, ny = m.npcs[i].y * TILE;
-      ctx.fillRect(nx + 2, ny + TILE, TILE - 4, 3);
+
+    // Layer 2: Objects & buildings (trees, walls, buildings, signs, rocks, chests)
+    for (let y = 0; y < maxY; y++) {
+      for (let x = 0; x < maxX; x++) {
+        const tile = getT(m, x, y);
+        const sx = x * TILE, sy = y * TILE;
+
+        if (tile === TILE_TREE) {
+          const variant = seededRand(x * 31, y * 47);
+          this._drawCachedTile(TILE_TREE, sx, sy, variant);
+          // Trunk at bottom
+          ctx.fillStyle = rgb([80, 55, 35]);
+          ctx.fillRect(sx + 10, sy + 16, 4, 8);
+        } else if (tile === TILE_WALL) {
+          const variant = seededRand(x * 31, y * 47);
+          this._drawCachedTile(TILE_WALL, sx, sy, variant);
+        } else if (tile === TILE_ROOF) {
+          const variant = seededRand(x * 31, y * 47);
+          this._drawCachedTile(TILE_ROOF, sx, sy, variant);
+        } else if (tile === TILE_HEAL) {
+          this._drawCachedTile(TILE_HEAL, sx, sy, 0);
+          // Red cross marker
+          ctx.fillStyle = rgb([210, 40, 40]);
+          ctx.fillRect(sx + 10, sy + 6, 4, 12);
+          ctx.fillRect(sx + 6, sy + 10, 12, 4);
+        } else if (tile === TILE_SHOP) {
+          this._drawCachedTile(TILE_SHOP, sx, sy, 0);
+          // Blue roof marker
+          ctx.fillStyle = rgb([50, 110, 220]);
+          ctx.fillRect(sx + 4, sy + 4, 16, 4);
+        } else if (tile === TILE_GYM) {
+          this._drawCachedTile(TILE_GYM, sx, sy, 0);
+          // Badge marker
+          ctx.fillStyle = rgb([220, 180, 50]);
+          ctx.beginPath(); ctx.arc(sx + 12, sy + 12, 6, 0, Math.PI * 2); ctx.fill();
+        } else if (tile === TILE_SIGN) {
+          this._drawCachedTile(TILE_SIGN, sx, sy, 0);
+          // Exclamation mark
+          ctx.fillStyle = rgb([255, 255, 100]);
+          ctx.fillRect(sx + 11, sy + 4, 2, 8);
+          ctx.fillRect(sx + 11, sy + 14, 2, 2);
+        } else if (tile === TILE_ROCK) {
+          const variant = seededRand(x * 31, y * 47);
+          this._drawCachedTile(TILE_ROCK, sx, sy, variant);
+        } else if (tile === TILE_BRIDGE) {
+          const variant = seededRand(x * 31, y * 47);
+          this._drawCachedTile(TILE_BRIDGE, sx, sy, variant);
+        } else if (tile === TILE_CHEST) {
+          // Chest sprite
+          ctx.fillStyle = rgb([120, 70, 35]);
+          ctx.fillRect(sx + 4, sy + 10, TILE - 8, TILE - 12);
+          ctx.fillStyle = rgb([170, 90, 45]);
+          ctx.fillRect(sx + 6, sy + 12, TILE - 12, TILE - 14);
+          ctx.strokeStyle = rgb([90, 50, 30]); ctx.lineWidth = 1;
+          ctx.strokeRect(sx + 4, sy + 10, TILE - 8, TILE - 12);
+          ctx.fillStyle = rgb([200, 110, 50]);
+          ctx.fillRect(sx + 6, sy + 8, TILE - 12, 2);
+        } else if (tile === TILE_DOOR) {
+          // Clear doorway - lighter path with door frame
+          ctx.fillStyle = rgb([196, 168, 132]);
+          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
+          // Door frame
+          ctx.strokeStyle = rgb([100, 70, 40]); ctx.lineWidth = 2;
+          ctx.strokeRect(sx + 2, sy + 2, TILE - 5, TILE - 5);
+          // Door
+          ctx.fillStyle = rgb([80, 55, 35]);
+          ctx.fillRect(sx + 5, sy + 6, TILE - 10, TILE - 10);
+          // Door knob
+          ctx.fillStyle = rgb([180, 150, 100]);
+          ctx.fillRect(sx + TILE - 8, sy + TILE / 2 - 1, 2, 2);
+          // Arrow indicator above door
+          ctx.fillStyle = rgb([100, 200, 100]);
+          ctx.beginPath();
+          ctx.moveTo(sx + 12, sy - 2);
+          ctx.lineTo(sx + 10, sy + 2);
+          ctx.lineTo(sx + 14, sy + 2);
+          ctx.closePath(); ctx.fill();
+        }
+      }
     }
-    ctx.fillRect(px * TILE + 2, py * TILE + TILE, TILE - 4, 3);
+
+    // Layer 3: NPCs (drawn from bottom to top for proper overlap)
+    const npcsSorted = [...m.npcs].sort((a, b) => a.y - b.y);
+    for (const npc of npcsSorted) {
+      // Shadow
+      ctx.fillStyle = rgba([0, 0, 0], 0.3);
+      ctx.fillRect(npc.x * TILE + 4, npc.y * TILE + TILE - 2, TILE - 8, 3);
+      // NPC sprite
+      this.npcSprite(npc.x * TILE, npc.y * TILE, TILE, npc.type);
+      // Exclamation if interactable and not defeated trainer
+      if (INTERACTABLE.has(npc.type) || (npc.type === "trainer" && !npc.defeated) || (npc.type === "rival" && !npc.defeated)) {
+        const bob = Math.sin(t * 4) * 3;
+        ctx.fillStyle = rgb([255, 220, 50]);
+        ctx.beginPath();
+        ctx.moveTo(npc.x * TILE + 12, npc.y * TILE - 8 + bob);
+        ctx.lineTo(npc.x * TILE + 10, npc.y * TILE - 14 + bob);
+        ctx.lineTo(npc.x * TILE + 14, npc.y * TILE - 14 + bob);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+
+    // Layer 4: Player (with shadow)
+    ctx.fillStyle = rgba([0, 0, 0], 0.3);
+    ctx.fillRect(px * TILE + 4, py * TILE + TILE - 2, TILE - 8, 3);
+    this.playerSprite(px * TILE, py * TILE, TILE);
   }
 
   hud(player, mapName) {
