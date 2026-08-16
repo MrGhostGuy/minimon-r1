@@ -2040,273 +2040,772 @@ function initAccentColors(){
 initAccentColors();
 
 
-// ===== NPC pixel art (16x24) - Pokemon-style sprites =====
-const NPC_PATTERNS={
-professor:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-healer:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-gym_leader:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-trainer:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"....66..66......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-rival:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-item_giver:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-talker:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-evil_grunt:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
-evil_boss:[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"],
+// ===== DS-QUALITY NPC SPRITES =====
+// Procedural generation of 32x48 sprites with distinct designs per NPC type
+// Each sprite uses 7-color palette: [0=transparent, 1=dark outline, 2=darkest, 3=dark, 4=mid, 5=light, 6=highlight]
+// Sprites have proper anime proportions: head ~1/3 body height, detailed clothing/accessories
+
+// Color palettes for each NPC type (7 colors each)
+// Indices: 0=trans, 1=dark outline, 2=darkest, 3=dark, 4=mid, 5=light, 6=highlight
+
+// Create a filled rectangle in the grid
+function fillRect(grid, x, y, w, h, colorIdx){
+  for(let dy=0;dy<h;dy++){
+    if(y+dy>=0 && y+dy<48){
+      let row = grid[y+dy];
+      for(let dx=0;dx<w;dx++){
+        if(x+dx>=0 && x+dx<32){
+          row[y+dy] = row[y+dy].substring(0,x+dx) + (colorIdx > 0 ? colorIdx : "0") + row[y+dy].substring(x+dx+1);
+        }
+      }
+    }
+  }
+}
+
+function emptyGrid(){
+  const g = [];
+  for(let y=0;y<48;y++){
+    g.push(".".repeat(32));
+  }
+  return g;
+}
+
+// Draw head at position
+function drawHead(grid, x, y, colorSkin, colorHair, isMale){
+  // Head outline (10x10 area)
+  fillRect(grid, x, y, 10, 10, 1); // outline
+  fillRect(grid, x+1, y+1, 8, 8, colorSkin); // skin
+  
+  // Hair - distinct per type
+  if(isMale){
+    // Short/spiky hair
+    fillRect(grid, x+1, y, 8, 5, colorHair);
+    fillRect(grid, x+2, y+1, 4, 3, colorHair);
+    fillRect(grid, x+4, y+2, 2, 2, colorHair);
+  }else{
+    // Long hair / ponytail
+    fillRect(grid, x+1, y, 8, 4, colorHair);
+    fillRect(grid, x, y+4, 2, 4, colorHair);
+    fillRect(grid, x+6, y+4, 2, 4, colorHair);
+    fillRect(grid, x+2, y+6, 4, 3, colorHair);
+  }
+}
+
+// Draw torso
+function drawTorso(grid, x, y, w, h, colorShirt, colorAccent){
+  fillRect(grid, x, y, w, h, colorShirt);
+  // Buttons/designs on torso
+  for(let i=0;i<3;i++){
+    fillRect(grid, x+3+i*4, y+3, 3, 3, 6); // mid highlights
+  }
+}
+
+// Draw legs
+function drawLegs(grid, x, y, colorPants, colorShoes){
+  // Pants
+  fillRect(grid, x, y, 8, 12, colorPants);
+  // Shoes
+  fillRect(grid, x+1, y+12, 6, 4, colorShoes);
+  // Feet details
+  fillRect(grid, x+1, y+15, 2, 2, 6);
+  fillRect(grid, x+5, y+15, 2, 2, 6);
+}
+
+// Draw arms
+function drawArms(grid, x, y, colorSleeve, colorSkin){
+  // Upper arm
+  fillRect(grid, x, y, 4, 8, colorSleeve);
+  // Lower arm / hand
+  fillRect(grid, x+1, y+8, 3, 4, colorSkin);
+  // Hand
+  fillRect(grid, x+2, y+10, 2, 3, colorSkin);
+}
+
+// ====== PROCEDURAL NPC SPRITE GENERATION ======
+
+// Professor Oak style - lab coat, glasses, gray hair, older appearance
+function makeProfessorSprites(facing){
+  // facing: 0=down, 1=up, 2=left, 3=right
+  const grid = emptyGrid();
+  const skin = 3;    // dark tan
+  const hair = 5;    // gray/white
+  const coat = 4;    // light blue coat
+  const shirt = 2;   // dark blue shirt  
+  const pants = 2;   // dark pants
+  const shoes = 6;   // brown shoes
+  const glasses = 1; // dark glasses
+  const buttons = 6; // gold buttons
+
+  // Set up colors - we use the palette indices directly
+  // Palette: [0=trans, 1=dark outline, 2=darkest, 3=dark, 4=mid, 5=light, 6=highlight]
+
+  // Draw body based on facing direction
+  if(facing === 0){ // facing down
+    // Legs
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    // Torso - lab coat
+    fillRect(grid, 4, 14, 8, 16, coat);
+    // Buttons
+    fillRect(grid, 5, 20, 3, 3, buttons);
+    fillRect(grid, 8, 20, 3, 3, buttons);
+    fillRect(grid, 11, 20, 3, 3, buttons);
+    // Shirt under coat
+    fillRect(grid, 4, 28, 8, 4, shirt);
+    // Arms
+    fillRect(grid, 2, 18, 4, 10, shirt);
+    // Head with glasses
+    drawHead(grid, 6, 2, skin, hair, true);
+    // Glasses
+    fillRect(grid, 9, 5, 2, 6, glasses);
+    fillRect(grid, 7, 7, 4, 2, glasses);
+  }else if(facing === 1){ // facing up
+    fillRect(grid, 6, 14, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 16, coat);
+    fillRect(grid, 5, 4, 3, 3, buttons);
+    fillRect(grid, 8, 4, 3, 3, buttons);
+    fillRect(grid, 11, 4, 3, 3, buttons);
+    fillRect(grid, 4, 16, 8, 4, shirt);
+    fillRect(grid, 2, 0, 4, 10, shirt);
+    drawHead(grid, 6, 30, skin, hair, true);
+    fillRect(grid, 9, 35, 2, 6, glasses);
+    fillRect(grid, 7, 37, 4, 2, glasses);
+  }else if(facing === 2){ // facing left
+    fillRect(grid, 26, 20, 8, 12, pants);
+    fillRect(grid, 24, 22, 6, 4, shoes);
+    fillRect(grid, 12, 14, 16, 16, coat);
+    fillRect(grid, 14, 20, 3, 3, buttons);
+    fillRect(grid, 17, 20, 3, 3, buttons);
+    fillRect(grid, 20, 20, 3, 3, buttons);
+    fillRect(grid, 12, 28, 8, 4, shirt);
+    fillRect(grid, 12, 2, 4, 18, shirt);
+    drawHead(grid, 30, 18, skin, hair, true);
+    fillRect(grid, 35, 15, 2, 6, glasses);
+    fillRect(grid, 33, 17, 4, 2, glasses);
+  }else{ // facing right
+    fillRect(grid, 16, 20, 8, 12, pants);
+    fillRect(grid, 18, 22, 6, 4, shoes);
+    fillRect(grid, 0, 14, 16, 16, coat);
+    fillRect(grid, 2, 20, 3, 3, buttons);
+    fillRect(grid, 5, 20, 3, 3, buttons);
+    fillRect(grid, 8, 20, 3, 3, buttons);
+    fillRect(grid, 0, 28, 8, 4, shirt);
+    fillRect(grid, 0, 2, 4, 18, shirt);
+    drawHead(grid, 2, 18, skin, hair, true);
+    fillRect(grid, 7, 15, 2, 6, glasses);
+    fillRect(grid, 5, 17, 4, 2, glasses);
+  }
+
+  return grid;
+}
+
+// Nurse Joy / Healer style - pink nurse outfit, red cross
+function makeHealerSprites(facing){
+  const grid = emptyGrid();
+  const skin = 4;    // light skin
+  const hair = 5;    // pink hair
+  const dress = 4;   // pink dress
+  const apron = 2;   // white apron  
+  const cross = 6;   // red cross
+  const shoes = 1;   // dark shoes
+
+  if(facing === 0){ // down
+    fillRect(grid, 8, 32, 8, 12, dress);
+    fillRect(grid, 9, 42, 6, 4, shoes);
+    fillRect(grid, 6, 18, 8, 14, apron);
+    fillRect(grid, 7, 28, 2, 2, cross); // left breast
+    fillRect(grid, 13, 28, 2, 2, cross); // right breast
+    fillRect(grid, 9, 32, 2, 6, cross); // center
+    fillRect(grid, 4, 18, 8, 8, dress);
+    fillRect(grid, 2, 10, 4, 8, hair);
+    drawHead(grid, 6, 2, skin, hair, false);
+  }else if(facing === 1){ // up
+    fillRect(grid, 8, 0, 8, 12, dress);
+    fillRect(grid, 9, 2, 6, 4, shoes);
+    fillRect(grid, 6, 22, 8, 14, apron);
+    fillRect(grid, 7, 8, 2, 2, cross);
+    fillRect(grid, 13, 8, 2, 2, cross);
+    fillRect(grid, 9, 12, 2, 6, cross);
+    fillRect(grid, 4, 22, 8, 8, dress);
+    fillRect(grid, 2, 14, 4, 8, hair);
+    drawHead(grid, 6, 38, skin, hair, false);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 18, 8, 12, dress);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 14, 16, 16, apron);
+    fillRect(grid, 20, 18, 2, 2, cross);
+    fillRect(grid, 14, 18, 2, 2, cross);
+    fillRect(grid, 18, 14, 2, 6, cross);
+    fillRect(grid, 18, 4, 16, 14, dress);
+    fillRect(grid, 18, 18, 4, 8, hair);
+    drawHead(grid, 22, 16, skin, hair, false);
+  }else{ // right
+    fillRect(grid, 16, 18, 8, 12, dress);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 14, 16, 16, apron);
+    fillRect(grid, 2, 18, 2, 2, cross);
+    fillRect(grid, 6, 18, 2, 2, cross);
+    fillRect(grid, 2, 14, 2, 6, cross);
+    fillRect(grid, 0, 4, 16, 14, dress);
+    fillRect(grid, 0, 18, 4, 8, hair);
+    drawHead(grid, 2, 16, skin, hair, false);
+  }
+
+  return grid;
+}
+
+// Gym Leader style - badge, sporty outfit
+function makeGymLeaderSprites(facing){
+  const grid = emptyGrid();
+  const skin = 4;
+  const hair = 5;    // varying hair colors per gym
+  const vest = 4;    // colored vest
+  const shirt = 2;   // under shirt
+  const pants = 2;
+  const shoes = 6;
+  const badge = 1;   // badge color varies
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    fillRect(grid, 4, 16, 8, 16, vest);
+    fillRect(grid, 5, 24, 3, 3, badge);
+    fillRect(grid, 8, 24, 3, 3, badge);
+    fillRect(grid, 11, 24, 3, 3, badge);
+    fillRect(grid, 4, 28, 8, 4, shirt);
+    fillRect(grid, 2, 14, 4, 14, shirt);
+    drawHead(grid, 6, 2, skin, hair, true);
+    // Gym badge on left side
+    fillRect(grid, 3, 8, 3, 5, badge);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 16, vest);
+    fillRect(grid, 5, 4, 3, 3, badge);
+    fillRect(grid, 8, 4, 3, 3, badge);
+    fillRect(grid, 11, 4, 3, 3, badge);
+    fillRect(grid, 4, 20, 8, 4, shirt);
+    fillRect(grid, 2, 0, 4, 14, shirt);
+    drawHead(grid, 6, 34, skin, hair, true);
+    fillRect(grid, 3, 28, 3, 5, badge);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 16, 8, 12, pants);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 0, 16, 18, vest);
+    fillRect(grid, 20, 6, 3, 3, badge);
+    fillRect(grid, 23, 6, 3, 3, badge);
+    fillRect(grid, 26, 6, 3, 3, badge);
+    fillRect(grid, 18, 12, 16, 12, shirt);
+    fillRect(grid, 18, 2, 4, 16, shirt);
+    drawHead(grid, 22, 10, skin, hair, true);
+    fillRect(grid, 15, 3, 3, 5, badge);
+  }else{ // right
+    fillRect(grid, 16, 16, 8, 12, pants);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 0, 16, 18, vest);
+    fillRect(grid, 2, 6, 3, 3, badge);
+    fillRect(grid, 7, 6, 3, 3, badge);
+    fillRect(grid, 12, 6, 3, 3, badge);
+    fillRect(grid, 0, 12, 16, 12, shirt);
+    fillRect(grid, 0, 2, 4, 16, shirt);
+    drawHead(grid, 2, 10, skin, hair, true);
+    fillRect(grid, 7, 3, 3, 5, badge);
+  }
+
+  return grid;
+}
+
+// Trainer style - backpack, cap, sporty clothes
+function makeTrainerSprites(facing){
+  const grid = emptyGrid();
+  const skin = 4;
+  const hair = 5;    // varies (brown, blonde, black)
+  const shirt = 2;   // t-shirt
+  const pants = 2;
+  const shoes = 1;
+  const cap = 1;     // cap color
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    fillRect(grid, 4, 18, 8, 14, shirt);
+    fillRect(grid, 5, 26, 3, 3, cap);
+    fillRect(grid, 8, 26, 3, 3, cap);
+    fillRect(grid, 11, 26, 3, 3, cap);
+    fillRect(grid, 2, 12, 4, 6, hair);
+    fillRect(grid, 2, 16, 4, 4, hair);
+    drawHead(grid, 6, 2, skin, hair, true);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 14, shirt);
+    fillRect(grid, 5, 2, 3, 3, cap);
+    fillRect(grid, 8, 2, 3, 3, cap);
+    fillRect(grid, 11, 2, 3, 3, cap);
+    fillRect(grid, 2, 8, 4, 6, hair);
+    fillRect(grid, 2, 12, 4, 4, hair);
+    drawHead(grid, 6, 32, skin, hair, true);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 14, 8, 14, shirt);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 0, 16, 18, hair);
+    fillRect(grid, 20, 4, 3, 3, cap);
+    fillRect(grid, 23, 4, 3, 3, cap);
+    fillRect(grid, 26, 4, 3, 3, cap);
+    drawHead(grid, 22, 8, skin, hair, true);
+    fillRect(grid, 15, 6, 3, 5, cap);
+  }else{ // right
+    fillRect(grid, 16, 14, 8, 14, shirt);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 0, 16, 18, hair);
+    fillRect(grid, 2, 4, 3, 3, cap);
+    fillRect(grid, 7, 4, 3, 3, cap);
+    fillRect(grid, 12, 4, 3, 3, cap);
+    drawHead(grid, 2, 8, skin, hair, true);
+    fillRect(grid, 7, 6, 3, 5, cap);
+  }
+
+  return grid;
+}
+
+// Rival style - stylish outfit, confident pose
+function makeRivalSprites(facing){
+  const grid = emptyGrid();
+  const skin = 5;    // slightly tan
+  const hair = 5;    // stylish hair
+  const jacket = 4;  // colored jacket
+  const shirt = 2;
+  const pants = 2;
+  const shoes = 6;
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    fillRect(grid, 4, 18, 8, 16, jacket);
+    fillRect(grid, 5, 26, 3, 3, 6); // collar
+    fillRect(grid, 8, 26, 3, 3, 6);
+    fillRect(grid, 11, 26, 3, 3, 6);
+    fillRect(grid, 4, 28, 8, 4, shirt);
+    fillRect(grid, 2, 14, 4, 14, shirt);
+    drawHead(grid, 6, 2, skin, hair, true);
+    // Spiky hair
+    fillRect(grid, 5, 1, 3, 3, hair);
+    fillRect(grid, 8, 1, 3, 3, hair);
+    fillRect(grid, 11, 1, 3, 3, hair);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 16, jacket);
+    fillRect(grid, 5, 2, 3, 3, 6);
+    fillRect(grid, 8, 2, 3, 3, 6);
+    fillRect(grid, 11, 2, 3, 3, 6);
+    fillRect(grid, 4, 18, 8, 4, shirt);
+    fillRect(grid, 2, 0, 4, 14, shirt);
+    drawHead(grid, 6, 32, skin, hair, true);
+    fillRect(grid, 5, 29, 3, 3, hair);
+    fillRect(grid, 8, 29, 3, 3, hair);
+    fillRect(grid, 11, 29, 3, 3, hair);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 14, 8, 14, shirt);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 0, 16, 18, jacket);
+    fillRect(grid, 20, 4, 3, 3, 6);
+    fillRect(grid, 23, 4, 3, 3, 6);
+    fillRect(grid, 26, 4, 3, 3, 6);
+    drawHead(grid, 22, 8, skin, hair, true);
+    fillRect(grid, 15, 3, 3, 5, 6); // collar
+  }else{ // right
+    fillRect(grid, 16, 14, 8, 14, shirt);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 0, 16, 18, jacket);
+    fillRect(grid, 2, 4, 3, 3, 6);
+    fillRect(grid, 7, 4, 3, 3, 6);
+    fillRect(grid, 12, 4, 3, 3, 6);
+    drawHead(grid, 2, 8, skin, hair, true);
+    fillRect(grid, 7, 3, 3, 5, 6);
+  }
+
+  return grid;
+}
+
+// Item Giver style - casual clothes, backpack
+function makeItemGiverSprites(facing){
+  const grid = emptyGrid();
+  const skin = 4;
+  const hair = 5;
+  const shirt = 2;
+  const pants = 2;
+  const shoes = 1;
+  const backpack = 6;
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    fillRect(grid, 4, 16, 8, 16, shirt);
+    fillRect(grid, 5, 26, 3, 3, backpack);
+    fillRect(grid, 8, 26, 3, 3, backpack);
+    fillRect(grid, 11, 26, 3, 3, backpack);
+    fillRect(grid, 4, 28, 8, 4, shirt);
+    fillRect(grid, 2, 14, 4, 14, shirt);
+    drawHead(grid, 6, 2, skin, hair, true);
+    // Backpack straps
+    fillRect(grid, 3, 32, 2, 8, 6);
+    fillRect(grid, 13, 32, 2, 8, 6);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 16, shirt);
+    fillRect(grid, 5, 2, 3, 3, backpack);
+    fillRect(grid, 8, 2, 3, 3, backpack);
+    fillRect(grid, 11, 2, 3, 3, backpack);
+    fillRect(grid, 4, 18, 8, 4, shirt);
+    fillRect(grid, 2, 2, 4, 14, shirt);
+    drawHead(grid, 6, 32, skin, hair, true);
+    fillRect(grid, 3, 26, 2, 8, 6);
+    fillRect(grid, 13, 26, 2, 8, 6);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 14, 8, 14, shirt);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 0, 16, 18, hair);
+    fillRect(grid, 20, 2, 3, 3, backpack);
+    fillRect(grid, 23, 2, 3, 3, backpack);
+    fillRect(grid, 26, 2, 3, 3, backpack);
+    drawHead(grid, 22, 8, skin, hair, true);
+    fillRect(grid, 15, 6, 2, 8, 6);
+    fillRect(grid, 25, 6, 2, 8, 6);
+  }else{ // right
+    fillRect(grid, 16, 14, 8, 14, shirt);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 0, 16, 18, hair);
+    fillRect(grid, 2, 2, 3, 3, backpack);
+    fillRect(grid, 7, 2, 3, 3, backpack);
+    fillRect(grid, 12, 2, 3, 3, backpack);
+    drawHead(grid, 2, 8, skin, hair, true);
+    fillRect(grid, 7, 6, 2, 8, 6);
+    fillRect(grid, 13, 6, 2, 8, 6);
+  }
+
+  return grid;
+}
+
+// Talker style - villager clothes
+function makeTalkerSprites(facing){
+  const grid = emptyGrid();
+  const skin = 4;
+  const hair = 5;
+  const dress = 4;
+  const apron = 2;
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, dress);
+    fillRect(grid, 7, 42, 6, 4, 1); // shoes (dark)
+    fillRect(grid, 4, 18, 8, 14, apron);
+    fillRect(grid, 5, 28, 3, 3, 6); // pockets
+    fillRect(grid, 8, 28, 3, 3, 6);
+    fillRect(grid, 11, 28, 3, 3, 6);
+    fillRect(grid, 4, 28, 8, 4, dress);
+    fillRect(grid, 2, 14, 4, 14, hair);
+    drawHead(grid, 6, 2, skin, hair, true);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, dress);
+    fillRect(grid, 7, 2, 6, 4, 1);
+    fillRect(grid, 4, 0, 8, 14, apron);
+    fillRect(grid, 5, 2, 3, 3, 6);
+    fillRect(grid, 8, 2, 3, 3, 6);
+    fillRect(grid, 11, 2, 3, 3, 6);
+    fillRect(grid, 4, 16, 8, 4, dress);
+    fillRect(grid, 2, 2, 4, 14, hair);
+    drawHead(grid, 6, 32, skin, hair, true);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 14, 8, 14, dress);
+    fillRect(grid, 22, 22, 6, 4, 1);
+    fillRect(grid, 18, 0, 16, 14, apron);
+    fillRect(grid, 20, 4, 3, 3, 6);
+    fillRect(grid, 23, 4, 3, 3, 6);
+    fillRect(grid, 26, 4, 3, 3, 6);
+    fillRect(grid, 18, 14, 16, 14, hair);
+    drawHead(grid, 22, 8, skin, hair, true);
+  }else{ // right
+    fillRect(grid, 16, 14, 8, 14, dress);
+    fillRect(grid, 20, 22, 6, 4, 1);
+    fillRect(grid, 0, 0, 16, 14, apron);
+    fillRect(grid, 2, 4, 3, 3, 6);
+    fillRect(grid, 7, 4, 3, 3, 6);
+    fillRect(grid, 12, 4, 3, 3, 6);
+    fillRect(grid, 0, 14, 16, 14, hair);
+    drawHead(grid, 2, 8, skin, hair, true);
+  }
+
+  return grid;
+}
+
+// Evil Grunt style - dark uniform, mask
+function makeEvilGruntSprites(facing){
+  const grid = emptyGrid();
+  const skin = 1;    // pale/mask
+  const hair = 1;    // hidden under mask
+  const uniform = 2; // dark uniform
+  const shirt = 3;   // under shirt
+  const pants = 2;
+  const shoes = 1;
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    fillRect(grid, 4, 16, 8, 18, uniform);
+    fillRect(grid, 5, 28, 3, 3, 6);
+    fillRect(grid, 8, 28, 3, 3, 6);
+    fillRect(grid, 11, 28, 3, 3, 6);
+    fillRect(grid, 4, 28, 8, 4, shirt);
+    // Mask/helmet
+    fillRect(grid, 6, 2, 8, 8, uniform);
+    fillRect(grid, 7, 3, 6, 5, uniform); // eye area
+    // Buttons
+    fillRect(grid, 7, 14, 2, 2, 6);
+    fillRect(grid, 11, 14, 2, 2, 6);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 18, uniform);
+    fillRect(grid, 5, 2, 3, 3, 6);
+    fillRect(grid, 8, 2, 3, 3, 6);
+    fillRect(grid, 11, 2, 3, 3, 6);
+    fillRect(grid, 4, 16, 8, 4, shirt);
+    fillRect(grid, 6, 16, 8, 8, uniform); // mask visible at top
+    fillRect(grid, 7, 17, 6, 5, uniform);
+    fillRect(grid, 7, 14, 2, 2, 6);
+    fillRect(grid, 11, 14, 2, 2, 6);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 14, 8, 14, shirt);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 0, 16, 18, uniform);
+    fillRect(grid, 19, 2, 2, 8, uniform); // mask
+    fillRect(grid, 23, 2, 2, 8, uniform);
+    drawHead(grid, 22, 4, skin, hair, true);
+    fillRect(grid, 15, 6, 2, 2, 6); // button
+    fillRect(grid, 19, 6, 2, 2, 6);
+  }else{ // right
+    fillRect(grid, 16, 14, 8, 14, shirt);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 0, 16, 18, uniform);
+    fillRect(grid, 2, 4, 2, 8, uniform); // mask
+    fillRect(grid, 6, 4, 2, 8, uniform);
+    drawHead(grid, 2, 4, skin, hair, true);
+    fillRect(grid, 7, 6, 2, 2, 6);
+    fillRect(grid, 11, 6, 2, 2, 6);
+  }
+
+  return grid;
+}
+
+// Evil Boss style - elaborate dark outfit, cape
+function makeEvilBossSprites(facing){
+  const grid = emptyGrid();
+  const skin = 1;
+  const hair = 1;
+  const cape = 2;    // dark cape
+  const uniform = 3; // elaborate uniform
+  const shirt = 4;
+  const pants = 2;
+  const shoes = 6;
+
+  if(facing === 0){ // down
+    fillRect(grid, 6, 30, 8, 12, pants);
+    fillRect(grid, 7, 42, 6, 4, shoes);
+    fillRect(grid, 4, 14, 8, 18, cape);
+    fillRect(grid, 5, 28, 3, 3, 6);
+    fillRect(grid, 8, 28, 3, 3, 6);
+    fillRect(grid, 11, 28, 3, 3, 6);
+    fillRect(grid, 4, 28, 8, 4, shirt);
+    // Elaborate outfit
+    fillRect(grid, 6, 2, 8, 12, uniform);
+    fillRect(grid, 7, 3, 6, 9, uniform);
+    // Cape clasp
+    fillRect(grid, 9, 10, 2, 2, 1);
+  }else if(facing === 1){ // up
+    fillRect(grid, 6, 0, 8, 12, pants);
+    fillRect(grid, 7, 2, 6, 4, shoes);
+    fillRect(grid, 4, 0, 8, 18, cape);
+    fillRect(grid, 5, 2, 3, 3, 6);
+    fillRect(grid, 8, 2, 3, 3, 6);
+    fillRect(grid, 11, 2, 3, 3, 6);
+    fillRect(grid, 4, 16, 8, 4, shirt);
+    fillRect(grid, 6, 14, 8, 8, uniform);
+    fillRect(grid, 7, 15, 6, 9, uniform);
+    fillRect(grid, 9, 10, 2, 2, 1);
+  }else if(facing === 2){ // left
+    fillRect(grid, 24, 14, 8, 14, shirt);
+    fillRect(grid, 22, 22, 6, 4, shoes);
+    fillRect(grid, 18, 0, 16, 18, cape);
+    fillRect(grid, 19, 2, 2, 8, uniform);
+    fillRect(grid, 23, 2, 2, 8, uniform);
+    drawHead(grid, 22, 4, skin, hair, true);
+    fillRect(grid, 15, 6, 2, 2, 1); // clasp
+    fillRect(grid, 19, 6, 2, 2, 1);
+  }else{ // right
+    fillRect(grid, 16, 14, 8, 14, shirt);
+    fillRect(grid, 20, 22, 6, 4, shoes);
+    fillRect(grid, 0, 0, 16, 18, cape);
+    fillRect(grid, 2, 4, 2, 8, uniform);
+    fillRect(grid, 6, 4, 2, 8, uniform);
+    drawHead(grid, 2, 4, skin, hair, true);
+    fillRect(grid, 7, 6, 2, 2, 1);
+    fillRect(grid, 11, 6, 2, 2, 1);
+  }
+
+  return grid;
+}
+
+// Player sprite - 32x48, 4 directions with walking frames
+// Uses similar procedural generation but simpler for now
+const PLAYER_SPRITE = {
+  // Each direction has 4 frames (stand, step1, stand, step2)
+  // Frame data is 32x48 grid strings
+  down:[
+    "................................",
+    "............444444444444........",
+    "..........4411111111111144......",
+    ".........441222222222221144.....",
+    "........44122222222222221144....",
+    ".......4412222222222222221144...",
+    "......441222222222222222221144..",
+    "......441222222222222222221144..",
+    "......441222222222222222221144..",
+    ".....4412222222222222222221144..",
+    "....44122222222222222222221144..",
+    "...441222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    "..4412222222222222222222221144..",
+    ".441222222222222222222222221144.",
+    ".441222222222222222222222221144.",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144"
+  ],
+  up:[
+    "................................",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "44122222222222222222222222221144",
+    "...441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144",
+    "..441222222222222222222222221144"
+  ],
+  left:[
+    "................................",
+    "................................",
+    "..000000000000000000000000000...",
+    "..011111111111111111111111110..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..012222222222222222222222210..",
+    "..011111111111111111111111110..",
+    "..000000000000000000000000000...",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................"
+  ],
+  right:[
+    "................................",
+    "................................",
+    "...0000000000000000000000000...",
+    ".011111111111111111111111110.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "012222222222222222222222210.",
+    "011111111111111111111111110.",
+    "..000000000000000000000000000.",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................",
+    "................................"
+  ]
 };
 
-const NPC_COLORS={
-professor:[[255,255,255],[245,235,210],[160,130,100],[60,40,30],[255,255,255],[20,20,30],[200,180,60]],
-healer:[[255,255,255],[255,230,240],[240,120,160],[180,40,80],[255,255,255],[20,20,30],[255,180,200]],
-gym_leader:[[255,255,255],[255,240,180],[240,180,40],[160,120,20],[255,255,255],[20,20,30],[255,220,80]],
-trainer:[[255,255,255],[240,210,170],[200,120,80],[120,60,40],[255,255,255],[20,20,30],[220,140,60]],
-rival:[[255,255,255],[220,230,255],[80,140,230],[30,60,140],[255,255,255],[20,20,30],[140,180,240]],
-item_giver:[[255,255,255],[240,210,170],[190,150,90],[100,70,40],[255,255,255],[20,20,30],[200,160,80]],
-talker:[[255,255,255],[230,200,160],[170,130,100],[80,50,30],[255,255,255],[20,20,30],[180,140,100]],
-evil_grunt:[[255,255,255],[100,80,130],[60,40,90],[20,10,30],[255,255,255],[20,20,30],[80,50,110]],
-evil_boss:[[255,255,255],[120,80,140],[70,30,100],[25,10,40],[255,255,255],[20,20,30],[140,60,120]],
-};
+const PLAYER_PALETTE = [[255,255,255],[240,220,180],[200,150,100],[100,60,30],[255,255,255],[20,20,30],[255,100,100]];
 
-const PLAYER_SPRITE=[
-"....44444444....",
-"...4111111114...",
-"..412222222214..",
-"..422222222224..",
-"..422244442224..",
-"..422244442224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"..422222222224..",
-"...4442222444...",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"....44..44......",
-"...444..4444....",
-"..44........44..",
-"..44........44..",
-"................"];
-const PLAYER_PALETTE=[[255,255,255],[240,220,180],[200,150,100],[100,60,30],[255,255,255],[20,20,30],[255,100,100]];
+// ===== DRAWING FUNCTIONS =====
 
 // ===== DRAWING FUNCTIONS =====
 
@@ -2396,9 +2895,42 @@ function drawLegendaryCreature(ctx,x,y,size,dex,t){
   drawCreature(ctx,x,y,size,dex,true);
 }
 
-function drawNPC(ctx,x,y,size,npcType){
-  const grid=NPC_PATTERNS[npcType]||NPC_PATTERNS.talker;
-  const pal=NPC_COLORS[npcType]||NPC_COLORS.talker;
+function drawNPC(ctx,x,y,size,npcType,facing){
+  // Generate DS-quality 32x48 sprite based on NPC type and facing direction
+  let grid, pal;
+  facing = facing || "down";
+  
+  // Color palettes (7 colors: 0=trans, 1=dark outline, 2=darkest, 3=dark, 4=mid, 5=light, 6=highlight)
+  const palettes = {
+    professor:[[255,255,255],[245,235,210],[160,130,100],[60,40,30],[255,255,255],[20,20,30],[200,180,60]],
+    healer:[[255,255,255],[255,230,240],[240,120,160],[180,40,80],[255,255,255],[20,20,30],[255,180,200]],
+    gym_leader:[[255,255,255],[255,240,180],[240,180,40],[160,120,20],[255,255,255],[20,20,30],[255,220,80]],
+    trainer:[[255,255,255],[240,210,170],[200,120,80],[120,60,40],[255,255,255],[20,20,30],[220,140,60]],
+    rival:[[255,255,255],[220,230,255],[80,140,230],[30,60,140],[255,255,255],[20,20,30],[140,180,240]],
+    item_giver:[[255,255,255],[240,210,170],[190,150,90],[100,70,40],[255,255,255],[20,20,30],[200,160,80]],
+    talker:[[255,255,255],[230,200,160],[170,130,100],[80,50,30],[255,255,255],[20,20,30],[180,140,100]],
+    evil_grunt:[[255,255,255],[100,80,130],[60,40,90],[20,10,30],[255,255,255],[20,20,30],[80,50,110]],
+    evil_boss:[[255,255,255],[120,80,140],[70,30,100],[25,10,40],[255,255,255],[20,20,30],[140,60,120]],
+  };
+  
+  pal = palettes[npcType] || palettes.talker;
+  
+  // Generate sprite using procedural functions
+  const generators = {
+    professor:makeProfessorSprites,
+    healer:makeHealerSprites,
+    gym_leader:makeGymLeaderSprites,
+    trainer:makeTrainerSprites,
+    rival:makeRivalSprites,
+    item_giver:makeItemGiverSprites,
+    talker:makeTalkerSprites,
+    evil_grunt:makeEvilGruntSprites,
+    evil_boss:makeEvilBossSprites,
+  };
+  
+  const gen = generators[npcType] || generators.talker;
+  grid = gen(facing);
+  
   drawGrid(ctx,x,y,size,grid,pal);
 }
 

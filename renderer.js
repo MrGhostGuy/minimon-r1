@@ -80,7 +80,7 @@ class Renderer {
     if (level !== undefined) this.text(x + size / 2, y + size + 12, "Lv." + level, COL_WHITE, 11, true);
   }
 
-  npcSprite(x, y, size, npcType) { drawNPC(this.ctx, x, y, size, npcType); }
+  npcSprite(x, y, size, npcType, facing) { drawNPC(this.ctx, x, y, size, npcType, facing); }
   playerSprite(x, y, size) { drawPlayer(this.ctx, x, y, size); }
 
   // ===== TILE SPRITE CACHE =====
@@ -524,7 +524,7 @@ class Renderer {
       ctx.fillStyle = rgba([0, 0, 0], 0.3);
       ctx.fillRect(npc.x * TILE + 4, npc.y * TILE + TILE - 2, TILE - 8, 3);
       // NPC sprite
-      this.npcSprite(npc.x * TILE, npc.y * TILE, TILE, npc.type);
+      this.npcSprite(npc.x * TILE, npc.y * TILE, TILE, npc.type, npc.facing);
       // Exclamation if interactable and not defeated trainer
       if (INTERACTABLE.has(npc.type) || (npc.type === "trainer" && !npc.defeated) || (npc.type === "rival" && !npc.defeated)) {
         const bob = Math.sin(t * 4) * 3;

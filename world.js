@@ -25,9 +25,17 @@ function createStartingTown(){
   const m=makeMap(20,20,"Starter Village",0.0);
   fillBorder(m,TILE_TREE);
   fillRect(m,5,5,14,14,TILE_PATH);
+  // Buildings: Pokémon Center (10,10), Mart (11,10), Sign (12,10)
   setT(m,10,10,TILE_HEAL);setT(m,11,10,TILE_SHOP);setT(m,12,10,TILE_SIGN);
+  // Building doors (2 tiles wide each)
+  setT(m,10,12,TILE_DOOR);setT(m,11,12,TILE_DOOR); // Pokémon Center
+  setT(m,11,12,TILE_DOOR);setT(m,12,12,TILE_DOOR); // Mart (overlap handled)
+  // Path to buildings
   for(let x=7;x<13;x++)setT(m,x,12,TILE_PATH);
-  setT(m,10,12,TILE_GROUND);
+  setT(m,10,12,TILE_DOOR);setT(m,11,12,TILE_DOOR);
+  // House at (6,8) - rival's mom
+  setT(m,6,12,TILE_DOOR);setT(m,7,12,TILE_DOOR);
+  // NPCs
   m.npcs.push({x:10,y:8,type:"professor",name:"Prof. Sage",dialog:["I'm Prof. Sage!","Good to see you, {name}!","Welcome to the world of Minimon!","Choose your partner wisely!"],facing:"down"});
   m.npcs.push({x:10,y:11,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"up"});
   m.npcs.push({x:6,y:8,type:"talker",name:"Rival's Mom",dialog:["My daughter Luna is out training.","She'll be your rival, {name}!","Good luck to you both!"],facing:"right"});
@@ -37,7 +45,18 @@ function createStartingTown(){
   m.npcs.push({x:13,y:13,type:"talker",name:"Fisherman",dialog:["I love fishing, {name}!","Have you seen the Water Minis?"]});
   m.npcs.push({x:12,y:10,type:"talker",name:"Sign Reader",dialog:["Welcome to Starter Village, {name}!","Speak to Prof. Sage to get your first Mini!"]});
   m.signs.push({x:12,y:10,text:"Starter Village - Where dreams begin!"});
-  m.doors.push({x:10,y:12,dest:1,destX:10,destY:18});
+  // Doors: dest index = interior map index
+  // Pokémon Center (10,10) -> interior 12
+  m.doors.push({x:10,y:12,dest:12,destX:5,destY:9});
+  m.doors.push({x:11,y:12,dest:12,destX:6,destY:9});
+  // Mart (11,10) -> interior 13
+  m.doors.push({x:11,y:12,dest:13,destX:5,destY:9});
+  m.doors.push({x:12,y:12,dest:13,destX:6,destY:9});
+  // House (6,8) -> interior 14
+  m.doors.push({x:6,y:12,dest:14,destX:4,destY:7});
+  m.doors.push({x:7,y:12,dest:14,destX:5,destY:7});
+  // Route 1 exit
+  m.doors.push({x:10,y:18,dest:1,destX:10,destY:18});
   return m;
 }
 
@@ -60,6 +79,12 @@ function createEmberTown(){
   const m=makeMap(20,20,"Ember Town",0.0);
   fillBorder(m,TILE_TREE);fillRect(m,3,3,16,16,TILE_PATH);
   setT(m,10,10,TILE_HEAL);setT(m,11,10,TILE_SHOP);setT(m,10,5,TILE_GYM);
+  // Building doors
+  setT(m,10,12,TILE_DOOR);setT(m,11,12,TILE_DOOR); // Pokémon Center
+  setT(m,10,12,TILE_DOOR);setT(m,11,12,TILE_DOOR); // Mart
+  setT(m,9,7,TILE_DOOR);setT(m,10,7,TILE_DOOR); // Gym (at y=5, door at y=7)
+  setT(m,8,14,TILE_DOOR);setT(m,9,14,TILE_DOOR); // TM Collector house
+  // Route connections
   setT(m,10,0,TILE_DOOR);m.doors.push({x:10,y:0,dest:1,destX:10,destY:18});
   setT(m,10,19,TILE_DOOR);m.doors.push({x:10,y:19,dest:3,destX:10,destY:1});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Flora",dialog:["I am Flora, the Nature Lodge Leader!","Welcome, {name}!","My plants will entangle you!"],facing:"down",defeated:false,party:[[3,12],[25,11],[15,13]],badge:"Nature Badge",reward:3000,rematchParty:[[6,38],[26,37],[44,36],[28,35]],rematchDialog:["Nature has grown since we last met, {name}!"],aiLevel:AI_GYM});
@@ -73,6 +98,15 @@ function createEmberTown(){
   m.npcs.push({x:7,y:7,type:"talker",name:"Old Man",dialog:["I remember when this town was just fields.","Now we have two gyms!"]});
   m.npcs.push({x:13,y:14,type:"talker",name:"Backpacker",dialog:["I just arrived from Frost Harbor.","The ice Minis there are beautiful!"]});
   m.signs.push({x:12,y:10,text:"Ember Town - Gateway to adventure!"});
+  // Interior doors
+  m.doors.push({x:10,y:12,dest:15,destX:5,destY:9}); // Pokémon Center
+  m.doors.push({x:11,y:12,dest:15,destX:6,destY:9});
+  m.doors.push({x:10,y:12,dest:16,destX:5,destY:9}); // Mart
+  m.doors.push({x:11,y:12,dest:16,destX:6,destY:9});
+  m.doors.push({x:9,y:7,dest:17,destX:6,destY:11}); // Gym
+  m.doors.push({x:10,y:7,dest:17,destX:7,destY:11});
+  m.doors.push({x:8,y:14,dest:18,destX:4,destY:7}); // TM Collector house
+  m.doors.push({x:9,y:14,dest:18,destX:5,destY:7});
   return m;
 }
 
@@ -94,6 +128,11 @@ function createFrostHarbor(){
   const m=makeMap(20,20,"Frost Harbor",0.10);
   fillBorder(m,TILE_TREE);fillRect(m,3,3,16,16,TILE_PATH);
   setT(m,10,10,TILE_HEAL);setT(m,11,10,TILE_SHOP);setT(m,10,5,TILE_GYM);
+  // Building doors
+  setT(m,10,12,TILE_DOOR);setT(m,11,12,TILE_DOOR); // Pokémon Center
+  setT(m,10,12,TILE_DOOR);setT(m,11,12,TILE_DOOR); // Mart
+  setT(m,9,7,TILE_DOOR);setT(m,10,7,TILE_DOOR); // Gym
+  // Route connections
   setT(m,10,0,TILE_DOOR);m.doors.push({x:10,y:0,dest:3,destX:10,destY:18});
   setT(m,10,19,TILE_DOOR);m.doors.push({x:10,y:19,dest:5,destX:10,destY:1});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Glacia",dialog:["I am Glacia, the Tidal Temple Leader!","Welcome, {name}!","Feel the power of the ocean!"],facing:"down",defeated:false,party:[[22,22],[32,21],[42,23]],badge:"Tidal Badge",reward:5000,rematchParty:[[5,42],[32,41],[42,40],[94,39]],rematchDialog:["The tides answer to me, {name}!"],aiLevel:AI_GYM});
@@ -105,6 +144,13 @@ function createFrostHarbor(){
   m.npcs.push({x:7,y:7,type:"talker",name:"Sailor",dialog:["The harbor is beautiful at sunset.","Watch out for storms on Route 2!"]});
   m.npcs.push({x:13,y:14,type:"talker",name:"Ice Fisher",dialog:["I fish through the ice!","Sometimes I catch Frostkit evolve forms!"]});
   m.signs.push({x:12,y:10,text:"Frost Harbor - Where ice meets sea!"});
+  // Interior doors
+  m.doors.push({x:10,y:12,dest:19,destX:5,destY:9}); // Pokémon Center
+  m.doors.push({x:11,y:12,dest:19,destX:6,destY:9});
+  m.doors.push({x:10,y:12,dest:20,destX:5,destY:9}); // Mart
+  m.doors.push({x:11,y:12,dest:20,destX:6,destY:9});
+  m.doors.push({x:9,y:7,dest:21,destX:6,destY:11}); // Gym
+  m.doors.push({x:10,y:7,dest:21,destX:7,destY:11});
   return m;
 }
 
@@ -214,4 +260,133 @@ function createChampionArena(){
   return m;
 }
 
-const MAP_CREATORS=[createStartingTown,createRoute1,createEmberTown,createRoute2,createFrostHarbor,createStormSpire,createCrystalCavern,createShadowGate,createSolarSanctum,createGrandColosseum,createElite4Hall,createChampionArena];
+// ===== INTERIOR MAPS =====
+const INTERIOR_MAPS_START = 12;
+
+function createPokemonCenterInterior(exteriorMapIdx, exitX, exitY){
+  const m=makeMap(12,10,"Pokémon Center",0.0);
+  // Floor
+  fillRect(m,0,0,11,9,TILE_GROUND);
+  // Walls
+  for(let x=0;x<12;x++){setT(m,x,0,TILE_WALL);setT(m,x,9,TILE_WALL);}
+  for(let y=0;y<10;y++){setT(m,0,y,TILE_WALL);setT(m,11,y,TILE_WALL);}
+  // Counter
+  fillRect(m,2,2,9,3,TILE_WALL);
+  // Healing machine
+  setT(m,5,3,TILE_HEAL);setT(m,6,3,TILE_HEAL);
+  // Nurse Joy behind counter
+  m.npcs.push({x:5,y:3,type:"healer",name:"Nurse Joy",dialog:["Welcome to the Pokémon Center!","Would you like me to heal your Minis?"],facing:"down"});
+  m.npcs.push({x:6,y:3,type:"healer",name:"Nurse Joy",dialog:["Welcome to the Pokémon Center!","Would you like me to heal your Minis?"],facing:"down"});
+  // PCs
+  setT(m,2,2,TILE_SHOP);setT(m,9,2,TILE_SHOP);
+  // Chairs
+  fillRect(m,2,5,3,3,TILE_GROUND);
+  fillRect(m,7,5,3,3,TILE_GROUND);
+  // Exit door at bottom center
+  setT(m,5,9,TILE_DOOR);setT(m,6,9,TILE_DOOR);
+  m.doors.push({x:5,y:9,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  m.doors.push({x:6,y:9,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  return m;
+}
+
+function createMartInterior(exteriorMapIdx, exitX, exitY){
+  const m=makeMap(12,10,"Poké Mart",0.0);
+  fillRect(m,0,0,11,9,TILE_GROUND);
+  for(let x=0;x<12;x++){setT(m,x,0,TILE_WALL);setT(m,x,9,TILE_WALL);}
+  for(let y=0;y<10;y++){setT(m,0,y,TILE_WALL);setT(m,11,y,TILE_WALL);}
+  // Counter
+  fillRect(m,2,2,9,3,TILE_WALL);
+  // Clerk
+  m.npcs.push({x:5,y:3,type:"item_giver",name:"Clerk",dialog:["Welcome to the Poké Mart!","Can I help you find something?"],facing:"down"});
+  m.npcs.push({x:6,y:3,type:"item_giver",name:"Clerk",dialog:["Welcome to the Poké Mart!","Can I help you find something?"],facing:"down"});
+  // Shelves
+  fillRect(m,2,5,9,4,TILE_WALL);
+  // Exit
+  setT(m,5,9,TILE_DOOR);setT(m,6,9,TILE_DOOR);
+  m.doors.push({x:5,y:9,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  m.doors.push({x:6,y:9,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  return m;
+}
+
+function createGymInterior(exteriorMapIdx, exitX, exitY, leaderName, leaderType, leaderParty, badgeName){
+  const m=makeMap(14,12,"Gym",0.0);
+  fillRect(m,0,0,13,11,TILE_GROUND);
+  for(let x=0;x<14;x++){setT(m,x,0,TILE_WALL);setT(m,x,11,TILE_WALL);}
+  for(let y=0;y<12;y++){setT(m,0,y,TILE_WALL);setT(m,13,y,TILE_WALL);}
+  // Gym leader at top
+  m.npcs.push({x:7,y:2,type:"gym_leader",name:leaderName,dialog:["I am the Leader of this Gym!","Let's battle!"],facing:"down",defeated:false,party:leaderParty,badge:badgeName,reward:3000,aiLevel:AI_GYM});
+  // Statues/trophies
+  setT(m,3,2,TILE_SIGN);setT(m,10,2,TILE_SIGN);
+  // Exit
+  setT(m,6,11,TILE_DOOR);setT(m,7,11,TILE_DOOR);
+  m.doors.push({x:6,y:11,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  m.doors.push({x:7,y:11,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  return m;
+}
+
+function createHouseInterior(exteriorMapIdx, exitX, exitY, npcData){
+  const m=makeMap(10,8,"House",0.0);
+  fillRect(m,0,0,9,7,TILE_GROUND);
+  for(let x=0;x<10;x++){setT(m,x,0,TILE_WALL);setT(m,x,7,TILE_WALL);}
+  for(let y=0;y<8;y++){setT(m,0,y,TILE_WALL);setT(m,9,y,TILE_WALL);}
+  // NPC inside
+  if(npcData){
+    m.npcs.push({x:5,y:3,type:npcData.type,name:npcData.name,dialog:npcData.dialog,facing:"down",give_item:npcData.give_item,give_count:npcData.give_count,gave_item:false});
+  }
+  // Furniture
+  setT(m,2,2,TILE_SHOP);setT(m,7,2,TILE_SHOP);
+  setT(m,2,5,TILE_SHOP);setT(m,7,5,TILE_SHOP);
+  // Exit
+  setT(m,4,7,TILE_DOOR);setT(m,5,7,TILE_DOOR);
+  m.doors.push({x:4,y:7,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  m.doors.push({x:5,y:7,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  return m;
+}
+
+// Add interior maps to MAP_CREATORS
+const MAP_CREATORS=[createStartingTown,createRoute1,createEmberTown,createRoute2,createFrostHarbor,createStormSpire,createCrystalCavern,createShadowGate,createSolarSanctum,createGrandColosseum,createElite4Hall,createChampionArena,
+  // 12: Starter Village Pokémon Center
+  () => createPokemonCenterInterior(0,10,11),
+  // 13: Starter Village Mart
+  () => createMartInterior(0,11,11),
+  // 14: Starter Village House (rival's mom)
+  () => createHouseInterior(0,6,9,{type:"talker",name:"Rival's Mom",dialog:["My daughter Luna is out training.","She'll be your rival, {name}!","Good luck to you both!"]}),
+  // 15: Ember Town Pokémon Center
+  () => createPokemonCenterInterior(2,10,11),
+  // 16: Ember Town Mart
+  () => createMartInterior(2,11,11),
+  // 17: Ember Town Gym (Nature Lodge)
+  () => createGymInterior(2,10,1,"Flora","Grass",[[3,12],[25,11],[15,13]],"Nature Badge"),
+  // 18: Ember Town House (TM Collector)
+  () => createHouseInterior(2,8,12,{type:"item_giver",name:"TM Collector",dialog:["I collect TMs!","Here, have this one!"],give_item:I_TM_VWHIP,give_count:1}),
+  // 19: Frost Harbor Pokémon Center
+  () => createPokemonCenterInterior(4,10,11),
+  // 20: Frost Harbor Mart
+  () => createMartInterior(4,11,11),
+  // 21: Frost Harbor Gym (Tidal Temple)
+  () => createGymInterior(4,10,1,"Glacia","Water",[[22,22],[32,21],[42,23]],"Tidal Badge"),
+  // 22: Storm Spire Pokémon Center
+  () => createPokemonCenterInterior(5,10,11),
+  // 23: Storm Spire Mart
+  () => createMartInterior(5,11,11),
+  // 24: Storm Spire Gym
+  () => createGymInterior(5,10,1,"Volt","Electric",[[11,22],[12,21],[45,23]],"Storm Badge"),
+  // 25: Crystal Cavern Pokémon Center
+  () => createPokemonCenterInterior(6,10,11),
+  // 26: Crystal Cavern Mart
+  () => createMartInterior(6,11,11),
+  // 27: Shadow Gate Pokémon Center
+  () => createPokemonCenterInterior(7,10,11),
+  // 28: Shadow Gate Mart
+  () => createMartInterior(7,11,11),
+  // 29: Solar Sanctum Pokémon Center
+  () => createPokemonCenterInterior(8,10,11),
+  // 30: Solar Sanctum Mart
+  () => createMartInterior(8,11,11),
+  // 31: Grand Colosseum Pokémon Center
+  () => createPokemonCenterInterior(9,10,11),
+  // 32: Grand Colosseum Mart
+  () => createMartInterior(9,11,11),
+];
+
+// MAP_COUNT updated to 32 (handled by MAP_CREATORS length)
