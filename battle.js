@@ -11,7 +11,7 @@ class BattleCreature {
       calcStat(t.baseStats[4], level), calcStat(t.baseStats[5], level)];
     this.maxHP = this.stats[0]; this.hp = this.maxHP;
     this.statStages = [0, 0, 0, 0, 0, 0]; this.status = null;
-    this.confusionTurns = 0; this.pendingMoves = []; this.protected = false;
+    this.statusTurns = 0; this.confusionTurns = 0; this.protected = false;
     if (moves) {
       this.moves = moves.map(id => { const m = MOVES[id]; return m ? { id, pp: m.maxPP, maxPP: m.maxPP } : null; }).filter(Boolean);
     } else {
@@ -101,7 +101,7 @@ function calcDamage(atk, def, mvData) {
 function applyStatus(atk, def, mv) {
   if (!mv.effect) return null;
   if (mv.effect === "recover") { const h = Math.floor(atk.maxHP / 2); atk.heal(h); return "recovered " + h + " HP"; }
-  if (mv.effect === "leech") { if (!def.status && Math.random() * 100 <= mv.effectChance) { def.status = "leech_seed"; return "leech_active"; } return null; }
+  if (mv.effect === "leech") { if (!def.status && Math.random() * 100 <= mv.effectChance) { def.status = "leech_seed"; def.statusTurns = 5; return "leech_active"; } return null; }
   if (mv.effect === "atk_spd_up") { atk.statStages[1] = Math.min(6, atk.statStages[1] + 1); atk.statStages[3] = Math.min(6, atk.statStages[3] + 1); return "atk_spd_up"; }
   if (mv.effect === "protect") { atk.protected = true; return "protect_active"; }
   if (mv.effect === "sandstorm") { return "sandstorm_active"; }
@@ -112,20 +112,33 @@ function applyStatus(atk, def, mv) {
   if (ups.includes(mv.effect)) { const i = statMap[mv.effect]; atk.statStages[i] = Math.min(6, atk.statStages[i] + 1); return mv.effect; }
   if (downs.includes(mv.effect)) { const i = statMap[mv.effect]; def.statStages[i] = Math.max(-6, def.statStages[i] - 1); return mv.effect; }
   const statusEffs = ["burn", "freeze", "paralyze", "poison", "sleep"];
-  if (statusEffs.includes(mv.effect)) { if (!def.status && Math.random() * 100 <= mv.effectChance) { def.status = mv.effect; return "status_" + mv.effect; } return null; }
+  if (statusEffs.includes(mv.effect)) {
+    const chance = mv.effectChance ? mv.effectChance : 30;
+    if (Math.random() * 100 <= chance) {
+      def.status = mv.effect;
+      const durations = { sleep: 1+Math.floor(Math.random()*3), freeze: 2+Math.floor(Math.random()*4), paralysis: 2+Math.floor(Math.random()*3), burn: 4, poison: 5 };
+      def.statusTurns = durations[mv.effect] || 1;
+      return "status_" + mv.effect;
+    }
+    return null;
+  }
   if (mv.effect === "confuse") { if (Math.random() * 100 <= mv.effectChance) { def.confusionTurns = 2 + Math.floor(Math.random() * 4); return "confuse"; } return null; }
   if (mv.effect === "flinch") { if (Math.random() * 100 <= mv.effectChance) { def.flinched = true; return "flinch"; } return null; }
   return null;
 }
 
-function attemptCatch(def, sphereMult) {
+function attemptCatch(def, sphereType, statusMultiplier) {
   const rate = def.catchRate;
   const hpF = (3 * def.maxHP - 2 * def.hp) / (3 * def.maxHP);
-  let chance = rate * hpF / 255 * sphereMult;
+  // Sphere multipliers: Normal=1, Great=1.5, Ultra=2, Master=255
+  const sphereMult = {normal: 1, great: 1.5, ultra: 2, master: 255}[sphereType] || 1;
+  // Status multipliers: None=1, Burn/Poison=1.5, Paralysis=2, Freeze=2, Sleep=2.5
+  const statusMod = {none: 1, burn: 1.5, poison: 1.5, paralysis: 2, freeze: 2, sleep: 2.5}[statusMultiplier] || 1;
+  let chance = rate * hpF * sphereMult * statusMod / 255;
   chance = Math.min(0.95, Math.max(0.05, chance));
   let shakes = 0;
   for (let i = 0; i < 4; i++) { if (Math.random() < chance) shakes++; else break; }
-  return [shakes >= 4, shakes];
+  return [shakes >= 4, shakes, chance];
 }
 
 function calcXP(defeated, partySize) {
@@ -282,7 +295,13 @@ class BattleState {
     // End-of-turn status
     for (const c of [this.player, this.enemy]) {
       if (c && c.isAlive() && c.status) {
-        if (c.status === "burn") { const d = Math.max(1, Math.floor(c.maxHP / 16)); c.takeDamage(d); this.messageQueue.push(c.name + " is hurt by its burn!"); }
+        // Decrement status turns
+        c.statusTurns--;
+        // Handle status removal after turns expire
+        if (c.statusTurns <= 0) {
+          const w = { burn: "burned", freeze: "frozen", paralysis: "paralyzed", poison: "poisoned", sleep: "put to sleep" };
+          this.messageQueue.push(c.name + " recovered from " + (w[c.status] || c.status) + "!"); c.status = null; c.statusTurns = 0;
+        } else if (c.status === "burn") { const d = Math.max(1, Math.floor(c.maxHP / 16)); c.takeDamage(d); this.messageQueue.push(c.name + " is hurt by its burn!"); }
         else if (c.status === "poison") { const d = Math.max(1, Math.floor(c.maxHP / 8)); c.takeDamage(d); this.messageQueue.push(c.name + " is hurt by poison!"); }
         else if (c.status === "leech_seed") { const d = Math.max(1, Math.floor(c.maxHP / 8)); c.takeDamage(d); const other = c === this.player ? this.enemy : this.player; if (other && other.isAlive()) other.heal(d); this.messageQueue.push(c.name + " health is sapped by Leech Seed!"); }
       }

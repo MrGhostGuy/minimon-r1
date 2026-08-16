@@ -524,10 +524,10 @@ function useBattleItem() {
     if (removeItem(name)) { battleState.player.status = null; battleState.player.confusionTurns = 0; battleState.addMsg("Status healed!"); }
   } else if ([I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE].includes(name)) {
     const sphereName = { [I_SPHERE]:"Soul Sphere", [I_GSPHERE]:"Great Sphere", [I_USPHERE]:"Ultra Sphere", [I_MSPHERE]:"Master Sphere" }[name];
-    const mult = { [I_SPHERE]:1, [I_GSPHERE]:1.5, [I_USPHERE]:2, [I_MSPHERE]:255 }[name];
     if (removeItem(name)) {
       battleState.addMsg("You threw a " + sphereName + "!");
-      const [caught, shakes] = attemptCatch(battleState.enemy, mult);
+      const statusMult = battleState.enemy.status || "none";
+      const [caught, shakes, chance] = attemptCatch(battleState.enemy, sphereName, statusMult);
       // Trigger capture shake animation
       R.triggerCaptureShake(shakes, function() {
         R.triggerFlash([255, 255, 100], 0.4);
