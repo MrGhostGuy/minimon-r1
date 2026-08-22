@@ -561,6 +561,15 @@ class Renderer {
     ctx.fillStyle = rgb([255, 200, 50]);
     ctx.fillRect(SCREEN_W - 99, 7, 6, 6);
     this.text(SCREEN_W - 88, 15, "$" + player.money, COL_YELLOW, 11);
+    // QoL: Repel timer + sprint indicator
+    try{
+      const rs = (typeof repelSteps!=='undefined'?repelSteps:(window.getRepelSteps?window.getRepelSteps():0));
+      if(rs>0){ ctx.fillStyle=rgba([100,200,255],0.9); ctx.fillRect(SCREEN_W-160,6,48,12); ctx.fillStyle=rgb([0,0,0]); ctx.font='10px monospace'; ctx.fillText('Repel '+rs, SCREEN_W-158,15); }
+      const sp = (typeof isSprinting!=='undefined'?isSprinting:(window.getSprinting?window.getSprinting():false));
+      if(sp){ ctx.fillStyle=rgba([255,220,80],0.9); ctx.fillRect(SCREEN_W-210,6,38,12); ctx.fillStyle=rgb([0,0,0]); ctx.font='10px monospace'; ctx.fillText('Sprint', SCREEN_W-208,15); }
+      const sv = (typeof lastSaveMsg!=='undefined'?lastSaveMsg:0);
+      if(sv>0 && Date.now()/1000 - sv < 2){ ctx.globalAlpha=0.9; ctx.fillStyle=rgb([80,220,120]); ctx.fillRect(SCREEN_W/2-40,30,80,14); ctx.fillStyle=rgb([0,0,0]); ctx.font='11px monospace'; ctx.textAlign='center'; ctx.fillText('Saved!', SCREEN_W/2,40); ctx.textAlign='left'; ctx.globalAlpha=1; }
+    }catch(e){}
     const party = player.party || [];
     for (let i = 0; i < Math.min(party.length, 6); i++) {
       const dotX = 8 + i * 14;

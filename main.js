@@ -58,9 +58,14 @@ let menuOpenTime = 0; // Relative time when menu was opened
 function pokedexSee(dex) { if (!pokedex[dex]) pokedex[dex] = { seen: true, caught: false }; else pokedex[dex].seen = true; }
 function pokedexCatch(dex) { pokedexSee(dex); if (pokedex[dex]) pokedex[dex].caught = true; }
 
+// QoL: Repel steps + auto-save feedback
+let repelSteps = 0;
+let lastSaveMsg = 0;
 // Auto-save timer
 let autoSaveTimer = 0;
 const AUTO_SAVE_INTERVAL = 180; // 3 minutes
+window.getRepelSteps = () => (typeof repelSteps!=='undefined'?repelSteps:0);
+window.getSprinting = () => (typeof isSprinting!=='undefined'?isSprinting:false);
 
 function saveGame() {
   let mapIdx = 0;
@@ -79,7 +84,7 @@ function saveGame() {
     pokedex: pokedex,
     defeatedTrainers: currentMap ? currentMap.npcs.filter(n => n.defeated).map(n => n.name) : []
   };
-  try { localStorage.setItem("minimon_save", JSON.stringify(data)); return true; } catch(e) { return false; }
+  try { localStorage.setItem("minimon_save", JSON.stringify(data)); lastSaveMsg=Date.now()/1000; return true; } catch(e) { return false; }
 }
 
 function loadGame() {
@@ -160,8 +165,17 @@ function useOverworldItem(itemName) {
     return null; // will re-render starter with legendary options
   }
   if (itemName === I_REPEL) {
-    removeItem(itemName);
-    return "Repel was used! Wild Minis won't appear for a while.";
+    if(removeItem(itemName)){ repelSteps=100; return "Repel was used! No encounters for 100 steps!"; }
+    return "No Repel left!";
+  }
+  if (itemName === I_ROPE) {
+    // Escape Rope - return to last Pokemon Center exterior
+    let centerMap=0, cx=10, cy=10;
+    for(let i=0;i<MAP_CREATORS.length;i++){ const mm=MAP_CREATORS[i](); if(mm.name.includes('Village')||mm.name.includes('Town')){ centerMap=i; cx=10; cy=10; break; } }
+    // find nearest center door position from current map
+    currentMap = MAP_CREATORS[0](); player.x=10; player.y=10;
+    if(removeItem(itemName)) return "Used Escape Rope! Returned to Starter Village!";
+    return "No Escape Rope!";
   }
   if ([I_POTION,I_SPOTION,I_HPOTION].includes(itemName)) {
     if (!player.party.length) return "No Minis to heal!";
@@ -245,8 +259,9 @@ function movePlayer(dx, dy, facing) {
     if (tile === TILE_DOOR) {
       for (const d of currentMap.doors) { if (d.x === nx && d.y === ny) { changeMap(d.dest, d.destX, d.destY); return; } }
     }
+    if (repelSteps>0){ repelSteps--; if(repelSteps===0) { /* repel wore off - could queue dialog but keep QoL silent */ } }
     if (tile === TILE_HEAL) healParty();
-    if (encTile(currentMap, nx, ny)) {
+    if (repelSteps<=0 && encTile(currentMap, nx, ny)) {
       const enc = getEnc(currentMap);
       if (enc) startWildBattle(enc[0], enc[1]);
     }
@@ -254,7 +269,7 @@ function movePlayer(dx, dy, facing) {
 }
 
 function changeMap(idx, x, y) {
-  if (idx >= 0 && idx < MAP_COUNT) {
+  if (idx >= 0 && idx < MAP_CREATORS.length) {
     R.triggerMapTransition();
     currentMap = MAP_CREATORS[idx](); player.x = x; player.y = y;
   }
@@ -287,6 +302,7 @@ function interact() {
   if (tile === TILE_GYM) { for (const npc of currentMap.npcs) if (npc.type === "gym_leader" && !npc.defeated) { startGymBattle(npc); return; } }
   if (tile === TILE_SHOP) { state = S_SHOP; shopCursor = 0; return; }
   if (tile === TILE_HEAL) { for (const npc of currentMap.npcs) if (npc.type === "healer") { interactNPC(npc); return; } }
+  if (tile === TILE_DOOR) { for (const d of currentMap.doors) if (d.x===fx&&d.y===fy){ changeMap(d.dest,d.destX,d.destY); return; } }
 }
 
 function interactNPC(npc) {
