@@ -43,6 +43,8 @@ const NAME_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let pokedex = {};
 let isSprinting = false;
 let stepTimer = 0;
+let walkPhase = 0;      // increments on every successful step -> drives walk animation
+let lastMoveTime = -10; // last time the player actually moved (for idle detection)
 const STEP_DELAY_NORMAL = 0.15;
 const STEP_DELAY_SPRINT = 0.08;
 // Pause menu state
@@ -255,6 +257,7 @@ function movePlayer(dx, dy, facing) {
   const nx = player.x + dx, ny = player.y + dy;
   if (currentMap && walkable(currentMap, nx, ny)) {
     player.x = nx; player.y = ny; player.stepCounter++;
+    walkPhase++; lastMoveTime = time;
     const tile = getT(currentMap, nx, ny);
     if (tile === TILE_DOOR) {
       for (const d of currentMap.doors) { if (d.x === nx && d.y === ny) { changeMap(d.dest, d.destX, d.destY); return; } }
@@ -1120,6 +1123,13 @@ function handleKeyDown(key) {
       if (nameInput.length > 10) nameInput = nameInput.slice(0, 10);
     }
   }
+  else if (state === S_STARTER) {
+    const maxC = pendingStarter ? pendingStarter.length - 1 : 0;
+    if (key === "Enter" || key === " ") { if (pendingStarter) chooseStarter(); }
+    else if (key === "ArrowLeft" || key === "a") { cursor = Math.max(0, cursor - 1); }
+    else if (key === "ArrowRight" || key === "d") { cursor = Math.min(maxC, cursor + 1); }
+    else if (key === "Escape") { state = S_TITLE; }
+  }
   else if (state === S_TM && key === "Escape") { pendingTM = null; state = S_BAG_CAT; cursor = BAG_TABS.length; }
   else if (state === S_GAMEOVER && key === "Enter") { initGame(); state = S_TITLE; }
 }
@@ -1591,7 +1601,8 @@ function renderStarter() {
 
 function renderOverworld() {
   if (currentMap) {
-    R.townMap(currentMap, player.x, player.y, time);
+    const walkFrame = (time - lastMoveTime) < 0.14 ? (walkPhase % 4) : 0;
+    R.townMap(currentMap, player.x, player.y, time, player.facing, walkFrame);
     R.hud(player, currentMap.name);
     R.pauseButton(time);
     const info = getInteractableInfo();
@@ -1796,6 +1807,40 @@ function renderPokedex() {
 
 requestAnimationFrame(gameLoop);
 
-if (location.hash === "#test") window.__mm = () => ({ state: state, name: player && player.name, px: player && player.x, py: player && player.y, bagTab: bagTab, cursor: cursor, starter: pendingStarter, repelUsed: repelUsedInStarter, inventory: player && player.inventory });
+// Debug/QA hook: only active with #test in the URL, inert during normal play
+if (location.hash === "#test") {
+  window.__mm = {
+    get: () => ({
+      state, battlePhase, name: player && player.name,
+      px: player && player.x, py: player && player.y,
+      facing: player && player.facing,
+      map: currentMap && currentMap.name,
+      mapIdx: currentMap ? MAP_CREATORS.findIndex(f => f().name === currentMap.name) : -1,
+      party: player && player.party.length,
+      starter: pendingStarter, nameInput: nameInput,
+      repelUsed: repelUsedInStarter, inventory: player && player.inventory,
+      money: player && player.money, badges: player && player.badges.length,
+      battle: battleState ? {
+        over: battleState.battleOver, won: battleState.playerWon,
+        enemyName: battleState.enemy && battleState.enemy.name,
+        enemyHp: battleState.enemy && battleState.enemy.hp,
+        playerHp: battleState.player && battleState.player.hp,
+        playerXp: battleState.player && battleState.player.xp,
+        playerLv: battleState.player && battleState.player.level,
+        msg: battleState.message
+      } : null,
+      equip: player && player.party[0] ? {
+        lv: player.party[0].level, xp: player.party[0].xp,
+        moves: player.party[0].moves.length,
+        pending: player.party[0].pendingMoves.length
+      } : null
+    }),
+    startWildBattle: (dex, lv) => startWildBattle(dex, lv),
+    nextMsg: () => nextBattleMsg(),
+    giveXp: (n) => { if (player.party[0]) player.party[0].gainXP(n); },
+    warp: (i, x, y) => changeMap(i, x, y),
+    interact: () => interact()
+  };
+}
 
 })();

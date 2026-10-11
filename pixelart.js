@@ -1968,61 +1968,399 @@ function glolslime(){return[
 
 
 // ===== DS-QUALITY MINIMON GENERATOR - replaces sparse 16x16 with dense Pokemon-accurate silhouettes =====
-function genMinimonGrid(dex){
-  // Base dense quadruped/biped body - 16x16 outline+fill, eyes, snout, limbs
-  const base=[
-    "0000000000000000",
-    "0011111111111100",
-    "0111111111111110",
-    "0111222222222110",
-    "0112555555552110",
-    "0112555115552110",
-    "0112551111115521",
-    "0112333333333321",
-    "0112222222222221",
-    "0111222222222110",
-    "0011222222211000",
-    "0001222222211000",
-    "0000111111100000",
-    "0000011111000000",
-    "0000001111000000",
-    "0000000000000000"
-  ];
-  let g=base.slice();
-  const set=(r,c,ch)=>{ if(r<0||r>=g.length||c<0||c>=16) return; g[r]=g[r].substring(0,c)+ch+g[r].substring(c+1); };
-  const c=CREATURES[dex]; const t=c?c.types[0]:'Normal'; const evo=c && c.evo ? 1:0;
-  // Type-specific details
-  if(t==='Fire'){ set(1,3,'6'); set(1,12,'6'); set(2,2,'6'); set(2,13,'6'); } // flame tips
-  if(t==='Water'){ set(11,1,'6'); set(11,14,'6'); set(12,0,'6'); set(12,15,'6'); } // fins
-  if(t==='Grass'){ set(0,5,'2'); set(0,10,'2'); set(1,5,'2'); set(1,10,'2'); } // leaves
-  if(t==='Electric'){ set(3,0,'6'); set(3,15,'6'); set(4,0,'6'); set(4,15,'6'); } // sparks
-  if(t==='Ice'){ set(0,7,'6'); set(0,8,'6'); set(1,6,'6'); set(1,9,'6'); } // ice shard
-  if(t==='Wind'){ set(2,0,'1'); set(2,1,'1'); set(2,14,'1'); set(2,15,'1'); } // wings
-  if(t==='Dark' || t==='Spirit'){ set(6,1,'5'); set(6,14,'5'); } // shadow eyes
-  if(t==='Dragon'){ set(0,6,'1'); set(0,9,'1'); set(1,7,'1'); set(1,8,'1'); } // horns
-  if(t==='Earth' || t==='Rock'){ set(11,3,'2'); set(11,12,'2'); } // rocks
-  // Dex-range silhouette variety
-  const r=dex%6;
-  if(r===1){ set(7,4,'2'); set(7,11,'2'); } // belly stripe
-  if(r===2){ set(8,5,'2'); set(8,10,'2'); set(9,6,'2'); set(9,9,'2'); } // spots
-  if(r===3){ set(10,5,'6'); set(10,10,'6'); } // accent spots
-  if(r===4){ set(5,3,'6'); set(5,12,'6'); } // cheek
-  // Evolution = larger / extra detail
-  if(evo===0 && dex>10){ set(13,7,'1'); set(13,8,'1'); } // small tail
-  if(dex>=75){ // legendaries extra grandeur
-    set(0,7,'6'); set(0,8,'6'); set(0,6,'6'); set(0,9,'6');
-    set(1,6,'6'); set(1,9,'6'); g[1]='0111166666111110';
+/* ===== CREATURE SPRITE ENGINE =====
+   16x16 grids. Palette: 0=outline 1=highlight 2=mid(type) 3=shadow
+                         4=eye-white 5=pupil 6=accent
+   Distinct silhouettes per archetype, expressive faces, type-driven features,
+   and hand-authored specs for the signature creatures.                    */
+function crBlank(){ const g=[]; for(let y=0;y<16;y++) g.push(new Array(16).fill('.')); return g; }
+function crSet(g,x,y,c){ if(x>=0&&x<16&&y>=0&&y<16) g[y][x]=c; }
+function crRect(g,x1,y1,x2,y2,c){ for(let y=y1;y<=y2;y++) for(let x=x1;x<=x2;x++) crSet(g,x,y,c); }
+function crEllipse(g,cx,cy,rx,ry,c){
+  for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)
+    for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){
+      const dx=(x-cx)/rx, dy=(y-cy)/ry;
+      if(dx*dx+dy*dy<=1) crSet(g,x,y,c);
+    }
+}
+// Robust barycentric triangle fill (handles out-of-bounds + degenerate edges)
+function crTri(g,x1,y1,x2,y2,x3,y3,c){
+  const minX=Math.min(x1,x2,x3), maxX=Math.max(x1,x2,x3);
+  const minY=Math.min(y1,y2,y3), maxY=Math.max(y1,y2,y3);
+  const den=((y2-y3)*(x1-x3)+(x3-x2)*(y1-y3));
+  if(den===0) return;
+  for(let y=minY;y<=maxY;y++){
+    for(let x=minX;x<=maxX;x++){
+      const px=x+0.5, py=y+0.5;
+      const a=((y2-y3)*(px-x3)+(x3-x2)*(py-y3))/den;
+      const b=((y3-y1)*(px-x3)+(x1-x3)*(py-y3))/den;
+      const cc=1-a-b;
+      if(a>=0&&b>=0&&cc>=0) crSet(g,x,y,c);
+    }
   }
-  if(dex>=86){ // ultra
-    g[0]='0000111111110000'; g[1]='0011166666111100';
+}
+function crRows(g){ return g.map(r=>r.join('')); }
+
+// Wrap every non-empty pixel in a 1px black outline -> crisp Pokemon-style edge
+function crOutline(g){
+  const solid = (x,y)=> x>=0&&x<16&&y>=0&&y<16 && g[y][x]!=='.';
+  const add=[];
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    if(solid(x,y)) continue;
+    if(solid(x+1,y)||solid(x-1,y)||solid(x,y+1)||solid(x,y-1)||
+       solid(x+1,y+1)||solid(x-1,y-1)||solid(x-1,y+1)||solid(x+1,y-1)) add.push([x,y]);
   }
+  for(const [x,y] of add) g[y][x]='0';
   return g;
+}
+
+// Big expressive eyes: 2 wide x 2 tall with a highlight pixel
+function crEyes(g,y,x1,x2){
+  crRect(g,x1,y,x1+1,y+1,'4'); crRect(g,x2,y,x2+1,y+1,'4');
+  crSet(g,x1+1,y+1,'5'); crSet(g,x2+1,y+1,'5');
+  crSet(g,x1,y,'4');
+  // brows for attitude
+  crSet(g,x1-1,y-1,'2'); crSet(g,x2+2,y-1,'2');
+}
+function crEyesSmall(g,y,x1,x2){
+  crSet(g,x1,y,'4'); crSet(g,x2,y,'4');
+  crSet(g,x1,y+1,'5'); crSet(g,x2,y+1,'5');
+}
+function crSmile(g,y,x){
+  crSet(g,x,y,'3'); crSet(g,x+1,y,'3'); crSet(g,x+2,y,'3');
+  crSet(g,x-1,y-1,'3'); crSet(g,x+3,y-1,'3');
+}
+
+/* ── body archetypes ──
+   Each draws the silhouette (no outline). Features are added afterwards.   */
+const CR_BODIES = {
+  /* four-legged beast */
+  quad(g,o){
+    crEllipse(g,7,13,6,2.5,'2');                 // body
+    crRect(g,2,13,11,14,'2');
+    crEllipse(g,4,8,4,3.5,'2');                  // head
+    crRect(g,3,7,6,10,'2');
+    crRect(g,1,11,2,14,'3'); crRect(g,9,11,10,14,'3'); // legs
+    crRect(g,11,10,13,11,'2');                   // tail base
+    crRect(g,2,5,4,6,'2');                       // ears
+    crRect(g,5,5,7,6,'2');
+    o.eyeY = 8; o.eyeL = 3; o.eyeR = 5;
+  },
+  /* standing biped, oversized head */
+  biped(g,o){
+    crEllipse(g,7,6,5,4.5,'2');                  // big head
+    crEllipse(g,7,12,4,3,'2');                   // small body
+    crRect(g,5,14,6,15,'3'); crRect(g,9,14,10,15,'3'); // legs
+    crRect(g,2,11,4,13,'2'); crRect(g,11,11,13,13,'2'); // arms
+    o.eyeY = 6; o.eyeL = 4; o.eyeR = 8; o.big = true;
+  },
+  /* winged flier */
+  avian(g,o){
+    crEllipse(g,7,10,3,4,'2');                   // body
+    crEllipse(g,7,5,3,3,'2');                    // head
+    crTri(g,4,9,1,5,5,11,'6');                   // far wing
+    crTri(g,9,9,14,5,10,11,'6');                 // near wing
+    crRect(g,5,13,6,15,'2'); crRect(g,8,13,9,15,'2');
+    crRect(g,7,14,7,15,'6');                     // tail
+    o.eyeY = 5; o.eyeL = 5; o.eyeR = 8;
+  },
+  /* coiled serpent */
+  serpent(g,o){
+    crEllipse(g,5,5,3.5,3,'2');                  // head
+    crEllipse(g,9,10,4,3,'2');                   // upper coil
+    crEllipse(g,6,13,4,2.5,'2');                 // lower coil
+    crRect(g,11,12,13,13,'2');
+    o.eyeY = 5; o.eyeL = 3; o.eyeR = 6; o.serpent = true;
+  },
+  /* aquatic */
+  aquatic(g,o){
+    crEllipse(g,6,8,5,4,'2');
+    crTri(g,10,8,14,4,14,12,'6');                // tail fin
+    crTri(g,1,8,-2,4,-2,12,'6');                 // head fin
+    crRect(g,5,4,6,5,'2');                       // top fin
+    crRect(g,2,12,12,13,'3');
+    o.eyeY = 7; o.eyeL = 3; o.eyeR = 6;
+  },
+  /* round slime */
+  blob(g,o){
+    crEllipse(g,7,9,6,5.5,'2');
+    crRect(g,3,13,11,14,'2');
+    crEllipse(g,7,4,3,2,'1');
+    o.eyeY = 9; o.eyeL = 4; o.eyeR = 8;
+  },
+  /* insect */
+  insect(g,o){
+    crEllipse(g,7,8,4,4,'2');
+    crEllipse(g,7,4,2.5,2.5,'2');
+    crEllipse(g,2,6,3,2.2,'6'); crEllipse(g,12,6,3,2.2,'6'); // wings
+    crRect(g,3,12,4,14,'3'); crRect(g,9,12,10,14,'3');
+    crRect(g,2,1,3,3,'2'); crRect(g,11,1,12,3,'2');  // antennae
+    o.eyeY = 5; o.eyeL = 5; o.eyeR = 8; o.insect = true;
+  },
+  /* blocky armored */
+  golem(g,o){
+    crRect(g,3,4,12,13,'2');
+    crRect(g,3,3,12,5,'2');
+    crRect(g,2,6,3,12,'3'); crRect(g,12,6,13,12,'3');
+    crRect(g,4,13,6,15,'3'); crRect(g,9,13,11,15,'3');
+    o.eyeY = 6; o.eyeL = 5; o.eyeR = 9;
+  },
+  /* floating ghost */
+  wisp(g,o){
+    crEllipse(g,7,7,5,4.5,'2');
+    crTri(g,3,9,5,15,7,9,'2');
+    crTri(g,8,9,10,15,11,9,'2');
+    crRect(g,2,10,3,11,'2'); crRect(g,12,10,13,11,'2');
+    o.eyeY = 7; o.eyeL = 5; o.eyeR = 8; o.wisp = true;
+  },
+  /* big legendary wyrm */
+  wyrm(g,o){
+    crTri(g,2,10,-3,3,6,12,'6');                 // huge left wing
+    crTri(g,13,10,18,3,9,12,'6');                // huge right wing
+    crEllipse(g,7,9,5,4,'2');                    // body
+    crEllipse(g,7,4,3.5,3,'2');                  // head
+    crRect(g,5,13,9,14,'2');
+    crRect(g,4,1,5,4,'6'); crRect(g,9,1,10,4,'6'); // horns
+    o.eyeY = 4; o.eyeL = 5; o.eyeR = 8; o.legendary = true;
+  }
+};
+
+/* ── type features (added after the body) ── */
+function crTypeFeatures(g, types, o){
+  const t = types[0];
+  if(t==='Fire'){
+    crTri(g,12,11,16,7,12,6,'6');                // flame tail from the body's rear
+    crTri(g,13,12,16,9,13,8,'6');
+    crTri(g,11,10,15,8,11,7,'6');
+  }
+  if(t==='Water'){
+    crTri(g,12,12,15,14,12,15,'6');              // fin
+    crTri(g,2,2,0,0,3,4,'1');                    // water drop crest
+  }
+  if(t==='Grass'){
+    crEllipse(g,7,2,2.5,2,'1');                  // leaf sprout, overlaps the head
+    crTri(g,5,3,7,0,9,3,'1');
+    crRect(g,6,3,8,5,'1');                       // stem down into the head
+    crTri(g,12,11,15,10,12,12,'1');              // vine tail off the body
+  }
+  if(t==='Electric'){
+    crTri(g,14,5,16,3,15,6,'6');                 // bolt
+    crTri(g,1,6,3,4,2,7,'6');
+  }
+  if(t==='Ice'){
+    crTri(g,4,0,7,3,10,0,'6');                   // ice shards on head
+    crTri(g,6,3,8,0,10,3,'1');
+  }
+  if(t==='Wind'){
+    crTri(g,4,3,0,1,5,2,'6');                    // wing tufts attached at the shoulders
+    crTri(g,11,3,15,1,10,2,'6');
+    crTri(g,4,4,1,3,5,4,'6');
+    crTri(g,11,4,14,3,10,4,'6');
+  }
+  if(t==='Dark'){
+    crTri(g,3,4,1,1,6,3,'1');                    // pointed dark ears
+    crTri(g,12,4,15,1,9,3,'1');
+  }
+  if(t==='Spirit'){
+    crEllipse(g,7,1,3,1.6,'1');                  // spectral halo
+    crSet(g,4,1,'6'); crSet(g,10,1,'6');
+  }
+  if(t==='Dragon'){
+    crTri(g,5,4,4,1,8,3,'6');                    // horns attached to the head
+    crTri(g,10,4,12,1,7,3,'6');
+    crTri(g,5,5,6,3,8,4,'1');
+    crTri(g,10,5,9,3,7,4,'1');
+  }
+  if(t==='Earth'){
+    crRect(g,3,12,5,14,'3'); crRect(g,10,12,12,14,'3'); // rocky plates
+    crRect(g,2,2,4,4,'1');
+  }
+  if(t==='Light'){
+    crEllipse(g,7,1,3,1.2,'1');                  // halo
+    crSet(g,3,1,'6'); crSet(g,8,1,'6'); crSet(g,11,1,'6');
+    crSet(g,15,6,'1'); crSet(g,0,6,'1');         // rays
+  }
+  if(t==='Normal' && o.big){
+    crRect(g,4,10,9,11,'3');                     // chest fluff
+  }
+}
+
+/* ── signature creatures: hand-authored spec overrides ── */
+const CR_SPECS = {
+  1:{body:'quad', flame:'big', tail:'big'},      // Emberpup - fire pup
+  2:{body:'aquatic', fin:'big'},                 // Aquapup
+  3:{body:'biped', leaf:'big'},                  // Sproutling
+  4:{body:'quad', flame:'big', size:1, ears:'tall'},
+  5:{body:'aquatic', size:1, fin:'big'},
+  6:{body:'golem', size:1, leaf:'big'},
+  7:{body:'avian'},                              // Flutterwisp
+  8:{body:'wyrm', size:1},                       // Galewing
+  9:{body:'golem', dig:true},                    // Burrowmole
+  10:{body:'golem', dig:true, size:1},
+  11:{body:'biped', bolt:true},                  // Sparkitten
+  12:{body:'serpent', bolt:true, size:1},        // Voltraith
+  13:{body:'quad', ice:true},                    // Frostkit
+  14:{body:'quad', ice:true, size:1},
+  15:{body:'quad', dark:true},                   // Shadeling
+  16:{body:'quad', dark:true, size:1},
+  17:{body:'insect', glow:true},                 // Lumibug
+  18:{body:'insect', glow:true, size:1},
+  19:{body:'golem'},                             // Pebblit
+  20:{body:'golem', size:1},
+  21:{body:'aquatic'},                           // Pondling
+  22:{body:'aquatic', wisp:true, size:1},        // Nessiel
+  23:{body:'wisp', flame:true},                  // Wispflame
+  24:{body:'wisp', flame:true, size:1},
+  25:{body:'biped', thorn:true},                 // Thornling
+  26:{body:'biped', thorn:true, size:1},
+  27:{body:'serpent', bolt:true},                // Zappling
+  28:{body:'serpent', bolt:true, size:1},
+  29:{body:'avian', sand:true},                  // Sandswirl
+  30:{body:'wyrm', sand:true, size:1},
+  31:{body:'aquatic', coral:true},               // Coralbit
+  32:{body:'aquatic', coral:true, size:1},
+  33:{body:'insect', dark:true},
+  34:{body:'wyrm', dark:true, size:1},
+  35:{body:'golem', iron:true},
+  36:{body:'golem', iron:true, size:1},
+  37:{body:'quad', ice:true, horns:true},
+  38:{body:'wyrm', ice:true, size:1},
+  39:{body:'wyrm', flame:true},
+  40:{body:'wyrm', flame:true, size:1},
+  41:{body:'aquatic', size:1, big:true},
+  42:{body:'wyrm', water:true, size:1},
+  43:{body:'wisp', leaf:true},
+  44:{body:'wisp', leaf:true, size:1},
+  45:{body:'serpent', bolt:true},
+  46:{body:'serpent', bolt:true, size:1},
+  47:{body:'avian', ice:true},
+  48:{body:'wyrm', ice:true, size:1, halo:true},
+  49:{body:'quad', flame:true, bushytail:true},
+  50:{body:'quad', flame:true, bushytail:true, size:1},
+  51:{body:'golem', drill:true},
+  52:{body:'golem', drill:true, bolt:true, size:1},
+  53:{body:'wisp', wind:true},
+  54:{body:'wyrm', wind:true, size:1},
+  55:{body:'golem', flame:true},
+  56:{body:'golem', flame:true, size:1},
+  57:{body:'wyrm', dark:true},
+  58:{body:'wyrm', dark:true, size:1},
+  59:{body:'wyrm', halo:true},
+  60:{body:'wyrm', halo:true, size:1},
+  61:{body:'golem', halo:true},
+  62:{body:'golem', halo:true, size:1},
+  63:{body:'avian', bolt:true},
+  64:{body:'wyrm', bolt:true, size:1},
+  65:{body:'wyrm', ice:true},
+  66:{body:'wyrm', ice:true, size:1},
+  67:{body:'wisp', dark:true},
+  68:{body:'wisp', dark:true, size:1},
+  69:{body:'quad', dark:true, flame:true},
+  70:{body:'quad', dark:true, flame:true, size:1},
+  71:{body:'avian', halo:true},
+  72:{body:'wyrm', halo:true, size:1},
+  73:{body:'golem', iron:true, big:true},
+  74:{body:'golem', iron:true, size:1},
+  // legendaries
+  75:{body:'wyrm', halo:true, flame:true, big:true},
+  76:{body:'wisp', ice:true, big:true, halo:true},
+  77:{body:'golem', size:1, spirit:true},
+  78:{body:'aquatic', dark:true, big:true},
+  79:{body:'wyrm', bolt:true, big:true},
+  80:{body:'wisp', flame:true, big:true},
+  // rival line
+  81:{body:'serpent', water:true},
+  82:{body:'biped', leaf:true},
+  83:{body:'wyrm', water:true, size:1},
+  84:{body:'quad', dark:true, size:1},
+  // ultra legendaries
+  86:{body:'wyrm', halo:true, big:true},
+  87:{body:'wisp', dark:true, big:true},
+  88:{body:'wyrm', flame:true, big:true},
+  89:{body:'aquatic', big:true},
+  90:{body:'wyrm', big:true, plain:true}
+};
+
+/* extra decorative props keyed by spec flag */
+function crProps(g, spec){
+  if(spec.flame==='big' || spec.flame){ crTri(g,13,11,16,7,13,6,'6'); crTri(g,14,12,16,9,14,8,'6'); }
+  if(spec.fin==='big'){ crTri(g,11,11,15,13,11,15,'6'); }
+  if(spec.leaf==='big'){ crEllipse(g,7,1,2.5,2,'1'); crTri(g,5,4,7,0,9,4,'1'); }
+  if(spec.bushytail){ crEllipse(g,14,10,2.5,3,'2'); crRect(g,13,9,15,13,'2'); }
+  if(spec.bolt){ crTri(g,14,4,16,2,15,5,'6'); crTri(g,1,5,3,3,2,6,'6'); }
+  if(spec.ice){ crTri(g,6,1,8,0,10,2,'6'); crTri(g,4,3,6,1,8,3,'1'); }
+  if(spec.dark){ crTri(g,3,4,1,1,6,3,'1'); crTri(g,12,4,15,1,9,3,'1'); }
+  if(spec.horns){ crTri(g,5,3,4,-1,8,2,'6'); crTri(g,10,3,12,-1,7,2,'6'); }
+  if(spec.halo){ crEllipse(g,7,0,4,1.1,'6'); crSet(g,3,0,'1'); crSet(g,12,0,'1'); }
+  if(spec.glow){ crEllipse(g,7,7,7,6.5,'1'); }
+  if(spec.thorn){ crTri(g,4,13,5,16,6,13,'3'); crTri(g,9,13,10,16,11,13,'3'); }
+  if(spec.sand){ crRect(g,3,13,12,14,'3'); }
+  if(spec.coral){ crTri(g,2,13,3,16,4,13,'6'); crTri(g,11,13,12,16,13,13,'6'); }
+  if(spec.drill){ crTri(g,12,12,16,13,12,14,'6'); }
+  if(spec.iron){ crRect(g,2,11,13,12,'3'); crRect(g,3,2,12,3,'3'); }
+  if(spec.big){ crRect(g,2,10,13,13,'2'); }
+  if(spec.dig){ crRect(g,4,14,5,15,'3'); crRect(g,10,14,11,15,'3'); }
+  if(spec.wisp){ crTri(g,5,12,6,16,7,12,'2'); crTri(g,8,12,9,16,10,12,'2'); }
+  if(spec.water){ crTri(g,12,13,15,15,12,16,'6'); }
+  if(spec.spirit){ crEllipse(g,7,1,4,1.4,'1'); }
+}
+
+/* pick a sensible archetype when no hand-authored spec exists */
+function crInferBody(c){
+  const t=(c&&c.types[0])||'Normal';
+  const map={Fire:'quad',Water:'aquatic',Grass:'biped',Electric:'biped',Ice:'quad',
+    Dark:'quad',Spirit:'wisp',Dragon:'wyrm',Earth:'golem',Wind:'avian',
+    Light:'avian',Normal:'quad'};
+  return map[t]||'quad';
+}
+
+// Re-centre a finished sprite inside the 16x16 grid so it isn't lopsided
+function crCenter(g){
+  let minX=16,maxX=-1,minY=16,maxY=-1;
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    if(g[y][x]==='.') continue;
+    if(x<minX)minX=x; if(x>maxX)maxX=x;
+    if(y<minY)minY=y; if(y>maxY)maxY=y;
+  }
+  if(maxX<0) return g;
+  const w=maxX-minX+1, h=maxY-minY+1;
+  let dx=((16-w)/2|0)-minX;
+  let dy=((16-h)/2|0)-minY;
+  if(!dx && !dy) return g;
+  const ng=[];
+  for(let y=0;y<16;y++) ng.push(new Array(16).fill('.'));
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    if(g[y][x]==='.') continue;
+    const nx=x+dx, ny=y+dy;
+    if(nx>=0&&nx<16&&ny>=0&&ny<16) ng[ny][nx]=g[y][x];
+  }
+  return ng;
+}
+
+function genMinimonGrid(dex){
+  const c=CREATURES[dex];
+  const spec=CR_SPECS[dex]||{};
+  const o={};
+  const g=crBlank();
+  const body=(CR_BODIES[spec.body]||CR_BODIES[crInferBody(c)]);
+  body(g,o);
+  crTypeFeatures(g,c?c.types:[TYPE_NORMAL],o);
+  crProps(g,spec);
+  const big=o.big;
+  const eyes = big?crEyesSmall:crEyes;
+  if(!o.wisp) eyes(g,o.eyeY,o.eyeL,o.eyeR);
+  else{ crRect(g,o.eyeL,o.eyeY,o.eyeL+1,o.eyeY+1,'5'); crRect(g,o.eyeR,o.eyeY,o.eyeR+1,o.eyeY+1,'5'); }
+  crSet(g,((o.eyeL+o.eyeR)/2|0), (o.eyeY+3), '3');   // small mouth
+  crOutline(crCenter(g));
+  return crRows(g);
 }
 // ===== MAP CREATURES TO SPRITES =====
 function initCreatureSprites(){
   const S=CREATURE_SPRITES;
-  for(let i=1;i<=100;i++) S[i]=genMinimonGrid(i);
+  for(let i=1;i<=100;i++){ if(CREATURES[i]) S[i]=genMinimonGrid(i); }
 }
+
+
 
 function initAccentColors(){
   const A=CREATURE_ACCENT;
@@ -2681,153 +3019,129 @@ function makeEvilBossSprites(facing){
   return grid;
 }
 
-// Player sprite - 32x48, 4 directions with walking frames
-// Uses similar procedural generation but simpler for now
-const PLAYER_SPRITE = {
-  // Each direction has 4 frames (stand, step1, stand, step2)
-  // Frame data is 32x48 grid strings
-  down:[
-    "................................",
-    "............444444444444........",
-    "..........4411111111111144......",
-    ".........441222222222221144.....",
-    "........44122222222222221144....",
-    ".......4412222222222222221144...",
-    "......441222222222222222221144..",
-    "......441222222222222222221144..",
-    "......441222222222222222221144..",
-    ".....4412222222222222222221144..",
-    "....44122222222222222222221144..",
-    "...441222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    "..4412222222222222222222221144..",
-    ".441222222222222222222222221144.",
-    ".441222222222222222222222221144.",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144"
-  ],
-  up:[
-    "................................",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "44122222222222222222222222221144",
-    "...441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144",
-    "..441222222222222222222222221144"
-  ],
-  left:[
-    "................................",
-    "................................",
-    "..000000000000000000000000000...",
-    "..011111111111111111111111110..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..012222222222222222222222210..",
-    "..011111111111111111111111110..",
-    "..000000000000000000000000000...",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................"
-  ],
-  right:[
-    "................................",
-    "................................",
-    "...0000000000000000000000000...",
-    ".011111111111111111111111110.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "012222222222222222222222210.",
-    "011111111111111111111111110.",
-    "..000000000000000000000000000.",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................",
-    "................................"
-  ]
-};
+/* ── Player sprite: programmatic Pokemon-trainer generator ──
+   Palette: 0 transparent 1 skin 2 hair 3 cap red 4 cap white
+            5 jacket blue 6 jacket dark 7 pants 8 shoes 9 eyes */
+const PLAYER_PALETTE = [
+  [0,0,0],
+  [242,214,178],
+  [122,74,36],
+  [222,58,58],
+  [248,248,252],
+  [58,108,224],
+  [32,68,158],
+  [58,62,92],
+  [92,58,32],
+  [26,26,38]
+];
+const PP_TRANSPARENT = '.';
 
-const PLAYER_PALETTE = [[255,255,255],[240,220,180],[200,150,100],[100,60,30],[255,255,255],[20,20,30],[255,100,100]];
+function ppBlank(){ const r=[]; for(let y=0;y<48;y++){ r.push(new Array(32).fill(PP_TRANSPARENT)); } return r; }
+function ppSet(g,x,y,c){ if(x>=0&&x<32&&y>=0&&y<48) g[y][x]=c; }
+function ppRect(g,x1,y1,x2,y2,c){ for(let y=y1;y<=y2;y++) for(let x=x1;x<=x2;x++) ppSet(g,x,y,c); }
+function ppEllipse(g,cx,cy,rx,ry,c){ for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++) for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){ const dx=(x-cx)/rx,dy=(y-cy)/ry; if(dx*dx+dy*dy<=1) ppSet(g,x,y,c); } }
+function ppOut(g){ return g.map(r=>r.join('')); }
+
+/* Body shared by every frame. bob = vertical body offset used to sell the walk.
+   opts: back (no face, add backpack) · side (profile, cap brim to one side)
+   step: 0 = standing, 1 = left stride, 2 = right stride */
+function ppBody(back, side, step){
+  const g = ppBlank();
+  const bob = (step===1||step===2) ? -2 : 0;   // body lifts 2px mid-stride
+  const R=(x1,y1,x2,y2,c)=>ppRect(g,x1,y1+bob,x2,y2+bob,c);
+  const E=(cx,cy,rx,ry,c)=>ppEllipse(g,cx,cy+bob,rx,ry,c);
+  const S=(x,y,c)=>ppSet(g,x,y+bob,c);
+
+  // ── Cap ──
+  E(16,11,10,8,'3');
+  R(14,3,18,8,'3');                       // flat crown
+  R(6,11,25,13,'3');
+  if(side){                               // brim extends sideways from the dome
+    const bx = side<0 ? 1 : 20;
+    R(bx,12,side<0?10:31,14,'4');
+    R(side<0?1:20,14,side<0?10:31,15,'4');
+    R(side<0?7:22,11,side<0?10:25,13,'3');
+  }else{
+    R(4,12,27,14,'4');
+    R(5,15,26,16,'4');
+    if(back) R(13,7,18,11,'3');           // cap seam from behind
+  }
+
+  // ── Hair ──
+  E(16,19,8,3,'2');
+  if(back) R(8,18,23,22,'2');
+
+  // ── Face ──
+  if(!back && !side){
+    E(16,22,8,6,'1');
+    R(9,23,22,26,'1');
+    S(11,21,'9'); S(12,21,'9'); S(19,21,'9'); S(20,21,'9');
+    R(14,25,17,25,'2');                   // mouth
+  }else if(side){
+    E(16,22,8,6,'1');
+    R(9,23,22,26,'1');
+    S(side<0?11:20,21,'9');
+    R(14,25,17,25,'2');
+  }
+
+  // ── Neck ──
+  R(13,27,18,29,'1');
+
+  // ── Jacket ──
+  E(16,36,10,7,'5');
+  R(6,34,25,45,'5');
+  R(6,30,25,32,'5');
+  if(!side){
+    R(12,30,19,33,'4');                   // collar
+    R(15,33,16,45,'6');                   // zip
+    R(8,38,10,45,'6'); R(21,38,23,45,'6');
+  }else{
+    R(15,33,17,45,'6');
+  }
+  if(side){
+    R(side<0?7:22,34,side<0?10:24,42,'5');
+    R(side<0?7:22,42,side<0?10:24,43,'1');
+  }else{
+    R(4,34,8,42,'5'); R(23,34,27,42,'5');
+    R(4,42,8,43,'1'); R(23,42,27,43,'1');
+  }
+
+  // ── Backpack (back view) ──
+  if(back){
+    R(9,34,22,44,'9');
+    R(12,37,19,40,'6');
+    R(5,34,8,45,'9');
+  }
+
+  // ── Legs + shoes (NOT bobbing - they carry the stride) ──
+  // Stride is deliberately large: at TILE=24 each grid pixel is ~0.5 screen px,
+  // so a subtle 1px offset would be invisible in-game.
+  if(step===1){                           // left leg forward & planted, right trailing
+    ppRect(g,4,45,12,49,'7');
+    ppRect(g,18,46,25,49,'7');
+    ppRect(g,2,47,13,48,'8');             // front foot flat on ground
+    ppRect(g,20,44,27,45,'8');            // back foot lifted off the ground
+  }else if(step===2){                     // mirror
+    ppRect(g,9,46,17,49,'7');
+    ppRect(g,19,45,27,49,'7');
+    ppRect(g,18,47,29,48,'8');
+    ppRect(g,4,44,11,45,'8');
+  }else{
+    ppRect(g,9,46,14,49,'7'); ppRect(g,17,46,22,49,'7');
+    ppRect(g,6,47,14,48,'8');  ppRect(g,17,47,25,48,'8');
+  }
+  return g;
+}
+
+/* Trim to 32x48 then serialise */
+function ppFinish(g){ return ppOut(g); }
+
+const PLAYER_SPRITE = {
+  down: [ ppFinish(ppBody(false,0,0)), ppFinish(ppBody(false,0,1)), ppFinish(ppBody(false,0,0)), ppFinish(ppBody(false,0,2)) ],
+  up:   [ ppFinish(ppBody(true,0,0)),  ppFinish(ppBody(true,0,1)),  ppFinish(ppBody(true,0,0)),  ppFinish(ppBody(true,0,2)) ],
+  left: [ ppFinish(ppBody(false,-1,0)), ppFinish(ppBody(false,-1,1)) ],
+  right:[ ppFinish(ppBody(false,1,0)),  ppFinish(ppBody(false,1,1)) ]
+};
 
 // ===== DRAWING FUNCTIONS =====
 
@@ -2958,8 +3272,14 @@ function drawNPC(ctx,x,y,size,npcType,facing){
   drawGrid(ctx,x,y,size,grid,pal);
 }
 
-function drawPlayer(ctx,x,y,size){
-  drawGrid(ctx,x,y,size,PLAYER_SPRITE,PLAYER_PALETTE);
+function drawPlayer(ctx,x,y,size,facing,frame){
+  const dir = PLAYER_SPRITE[facing] || PLAYER_SPRITE.down;
+  const grid = dir.length ? dir[(frame||0) % dir.length] : null;
+  if(!grid) return;
+  // grid is 32 wide x 48 tall drawn at size/scale -> horizontally centre it in the tile
+  const px = size / Math.max(grid.length, grid[0].length);
+  const ox = (size - px * grid[0].length) / 2;
+  drawGrid(ctx, x + ox, y, size, grid, PLAYER_PALETTE);
 }
 
 initCreatureSprites();

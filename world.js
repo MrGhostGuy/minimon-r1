@@ -294,7 +294,7 @@ function createCrystalCavern(){
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:5,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:5,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:7,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:7,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:25,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:27,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:25,destX:5,destY:8});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Frostbane",dialog:["I am Frostbane, Crystal Cavern Leader!","Welcome, {name}!","Feel the chill of eternity!"],facing:"down",defeated:false,party:[[24,32],[34,30]],badge:"Crystal Badge",reward:7000,rematchParty:[[14,46],[38,45],[48,44],[66,43]],rematchDialog:["Eternal frost awaits, {name}!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Frosty",dialog:["My Ice moves are freezing!"],facing:"right",defeated:false,party:[[24,24],[34,23]],rematchParty:[[24,40],[34,39],[66,38]],rematchDialog:["Feel the absolute zero!"],aiLevel:AI_GYM});
@@ -319,7 +319,7 @@ function createShadowGate(){
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:6,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:6,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:8,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:8,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:27,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:27,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:27,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Nyx",dialog:["I am Nyx, Shadow Gate Leader!","Embrace the darkness!"],facing:"down",defeated:false,party:[[25,36],[35,34]],badge:"Shadow Badge",reward:8000,rematchParty:[[16,48],[58,47],[68,46],[87,45]],rematchDialog:["Darkness knows no limits!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:14,y:14,type:"trainer",name:"Team Shadow Boss",dialog:["I am the Boss!","You dare challenge?"],facing:"up",defeated:false,party:[[25,35],[35,34],[45,33],[55,32]],evil:true,evil_enc:3,rematchParty:[[58,52],[68,51],[46,50],[36,49]],rematchDialog:["Never falls!"],aiLevel:AI_ELITE});
@@ -346,7 +346,7 @@ function createSolarSanctum(){
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:7,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:7,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:9,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:9,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:29,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:29,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:29,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Lux",dialog:["I am Lux, Solar Sanctum Leader!","Behold the light!"],facing:"down",defeated:false,party:[[26,40],[36,38]],badge:"Solar Badge",reward:9000,rematchParty:[[50,50],[72,49],[48,48],[8,47]],rematchDialog:["Dawn shines brighter!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Dawn",dialog:["My Light moves shine!"],facing:"right",defeated:false,party:[[26,32],[36,31]],rematchParty:[[26,48],[36,47],[72,46]],rematchDialog:["Light blinds all!"],aiLevel:AI_ELITE});
@@ -372,7 +372,7 @@ function createGrandColosseum(){
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:8,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:8,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:10,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:10,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:31,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:31,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:31,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Drakon",dialog:["I am Drakon!","Witness the might of dragons!"],facing:"down",defeated:false,party:[[27,44],[37,42]],badge:"Dragon Badge",reward:10000,rematchParty:[[40,54],[60,53],[72,52],[58,51]],rematchDialog:["Dragon's soul burns eternal!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:6,y:11,type:"trainer",name:"Wyvern",dialog:["Dragon moves are fierce!"],facing:"right",defeated:false,party:[[27,36],[37,35]],rematchParty:[[27,52],[37,51],[58,50]],rematchDialog:["Fury is absolute!"],aiLevel:AI_ELITE});
@@ -516,8 +516,8 @@ const MAP_CREATORS=[createStartingTown,createRoute1,createEmberTown,createRoute2
   () => createPokemonCenterInterior(0,10,11),
   // 13: Starter Village Mart
   () => createMartInterior(0,11,11),
-  // 14: Starter Village House (rival's mom)
-  () => createHouseInterior(0,6,9,{type:"talker",name:"Rival's Mom",dialog:["My daughter Luna is out training.","She'll be your rival, {name}!","Good luck to you both!"]}),
+  // 14: Starter Village House (rival's mom) - exits beside the house door, not inside a tree
+  () => createHouseInterior(0,15,17,{type:"talker",name:"Rival's Mom",dialog:["My daughter Luna is out training.","She'll be your rival, {name}!","Good luck to you both!"]}),
   // 15: Ember Town Pokémon Center
   () => createPokemonCenterInterior(2,10,11),
   // 16: Ember Town Mart
@@ -526,10 +526,10 @@ const MAP_CREATORS=[createStartingTown,createRoute1,createEmberTown,createRoute2
   () => createGymInterior(2,10,1,"Flora","Grass",[[3,12],[25,11],[15,13]],"Nature Badge"),
   // 18: Ember Town House (TM Collector)
   () => createHouseInterior(2,8,12,{type:"item_giver",name:"TM Collector",dialog:["I collect TMs!","Here, have this one!"],give_item:I_TM_VWHIP,give_count:1}),
-  // 19: Frost Harbor Pokémon Center
-  () => createPokemonCenterInterior(4,10,11),
-  // 20: Frost Harbor Mart
-  () => createMartInterior(4,11,11),
+  // 19: Frost Harbor Pokémon Center - exits below the PC door (old spot was inside gym walls)
+  () => createPokemonCenterInterior(4,7,9),
+  // 20: Frost Harbor Mart - exits below the Mart door
+  () => createMartInterior(4,12,9),
   // 21: Frost Harbor Gym (Tidal Temple)
   () => createGymInterior(4,10,1,"Glacia","Water",[[22,22],[32,21],[42,23]],"Tidal Badge"),
   // 22: Storm Spire Pokémon Center

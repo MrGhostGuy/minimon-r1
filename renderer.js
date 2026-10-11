@@ -81,7 +81,7 @@ class Renderer {
   }
 
   npcSprite(x, y, size, npcType, facing) { drawNPC(this.ctx, x, y, size, npcType, facing); }
-  playerSprite(x, y, size) { drawPlayer(this.ctx, x, y, size); }
+  playerSprite(x, y, size, facing, frame) { drawPlayer(this.ctx, x, y, size, facing || "down", frame || 0); }
 
   // ===== TILE SPRITE CACHE =====
   _cc(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c.getContext("2d"); }
@@ -186,138 +186,328 @@ class Renderer {
       this.tileCache[`tree_${v}`] = c.canvas;
     }
 
-    // WALL variants (2): stone bricks
+    // WALL variants (2): stone bricks with mortar lines
     for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([136, 136, 136]); g.fillRect(0, 0, T, T);
-      // mortar grid
-      g.strokeStyle = rgb([110, 110, 110]); g.lineWidth = 1;
-      for (let i = 0; i < T; i += 4) {
-        g.beginPath(); g.moveTo(0, i); g.lineTo(T, i);
-        g.beginPath(); g.moveTo(i, 0); g.lineTo(i, T);
-      }
-      g.stroke();
-      // brick color variation
-      for (let i = 0; i < 14; i++) {
-        const bx = randIn(T - 3, v * 8 + i, v) + 1;
-        const by = randIn(T - 3, v, v * 8 + i) + 1;
-        g.fillStyle = rgb([130, 130, 130]);
-        g.fillRect(bx, by, 2, 2);
-        g.fillStyle = rgb([140, 140, 140]);
-        g.fillRect(bx + 1, by + 1, 1, 1);
+      g.fillStyle = rgb([148, 142, 132]); g.fillRect(0, 0, T, T);
+      // brick rows with offset staggered pattern
+      const rowH = 4;
+      for (let row = 0; row < T / rowH; row++) {
+        const y = row * rowH;
+        const offset = (row % 2) * 4;
+        // mortar line (horizontal)
+        g.fillStyle = rgb([100, 95, 85]);
+        g.fillRect(0, y, T, 1);
+        // vertical mortar joints
+        for (let col = 0; col < T / 8; col++) {
+          const x = (col * 8 + offset) % T;
+          g.fillRect(x, y, 1, rowH);
+        }
+        // brick face shading
+        for (let col = 0; col < T / 8; col++) {
+          const x = (col * 8 + offset) % T;
+          const bw = 7;
+          const shade = randIn(12, v * 17 + row * 7 + col, v + row + col);
+          g.fillStyle = rgb([148 - shade, 142 - shade, 132 - shade]);
+          g.fillRect(x + 1, y + 1, bw, rowH - 1);
+          // top highlight on each brick
+          g.fillStyle = rgb([160, 154, 144]);
+          g.fillRect(x + 1, y + 1, bw, 1);
+        }
       }
       // darken top edge for depth
-      g.strokeStyle = rgb([90, 90, 90]);
-      g.lineWidth = 1; g.beginPath(); g.moveTo(0, 0); g.lineTo(T, 0); g.stroke();
+      g.fillStyle = rgb([80, 75, 65]); g.fillRect(0, 0, T, 1);
+      // bottom shadow
+      ctx_setAlpha(g, 0.25, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(0, T - 2, T, 2); });
       this.tileCache[`wall_${v}`] = c.canvas;
     }
 
-    // ROOF variants (2): red tiled roof
+    // ROOF variants (2): sloped roof with eaves and shadow
     for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([190, 45, 28]); g.fillRect(0, 0, T, T);
-      // tile rows
-      g.fillStyle = rgb([205, 55, 36]);
-      for (let i = 0; i < 5; i++) {
-        const ty = 3 + i * 4;
-        g.fillRect(0, ty, T, 2);
+      // base roof color
+      g.fillStyle = rgb([185, 42, 26]); g.fillRect(0, 0, T, T);
+      // sloped tile rows (overlapping shingles)
+      for (let row = 0; row < 6; row++) {
+        const y = row * 4;
+        // shingle highlight
+        g.fillStyle = rgb([210 + randIn(10, v * 13 + row, v), 58, 38]);
+        g.fillRect(0, y, T, 3);
+        // shingle shadow line
+        g.fillStyle = rgb([160, 34, 20]);
+        g.fillRect(0, y + 3, T, 1);
+        // vertical shingle joints (staggered)
+        const offset = (row % 2) * 6;
+        g.fillStyle = rgb([170, 38, 22]);
+        for (let col = 0; col < 4; col++) {
+          const x = (col * 8 + offset) % T;
+          g.fillRect(x, y, 1, 3);
+        }
       }
-      // darker ridges
-      g.strokeStyle = rgb([170, 40, 24]); g.lineWidth = 1;
-      g.beginPath(); g.moveTo(1, 1); g.lineTo(T - 2, 1); g.stroke();
-      // shadow
-      ctx_setAlpha(g, 0.2, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(0, T / 2, T, T / 2); });
+      // ridge cap at top
+      g.fillStyle = rgb([220, 60, 40]); g.fillRect(0, 0, T, 2);
+      g.fillStyle = rgb([235, 80, 55]); g.fillRect(0, 0, T, 1);
+      // eaves (overhang at bottom)
+      g.fillStyle = rgb([140, 28, 16]); g.fillRect(0, T - 3, T, 3);
+      g.fillStyle = rgb([120, 22, 12]); g.fillRect(0, T - 1, T, 1);
+      // eave support brackets
+      g.fillStyle = rgb([100, 20, 10]);
+      g.fillRect(2, T - 4, 2, 2);
+      g.fillRect(T - 4, T - 4, 2, 2);
+      // shadow on lower half for depth
+      ctx_setAlpha(g, 0.18, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(0, T / 2 + 2, T, T / 2 - 2); });
       this.tileCache[`roof_${v}`] = c.canvas;
     }
 
-    // HEAL: Pokecenter-style (red roof + white walls)
+    // HEAL: Pokemon Center (sloped roof, red cross, windows, arched door)
     {
       const c = this._cc(T, T), g = c;
-      // white walls
-      g.fillStyle = rgb([240, 240, 255]); g.fillRect(0, 0, T, T);
-      // red roof band at top
-      g.fillStyle = rgb([210, 40, 40]); g.fillRect(0, 0, T, 5);
-      // red cross
+      // white walls with subtle shading
+      g.fillStyle = rgb([238, 238, 248]); g.fillRect(0, 0, T, T);
+      // wall shading on right side
+      ctx_setAlpha(g, 0.08, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(T - 5, 8, 5, T - 8); });
+      // red trim at base
+      g.fillStyle = rgb([200, 38, 38]); g.fillRect(0, T - 2, T, 2);
+      // === SLOPED ROOF with eaves ===
+      // main roof body (trapezoid shape)
       g.fillStyle = rgb([210, 40, 40]);
-      g.fillRect(T / 2 - 3, T / 2 - 5, 6, 11);
-      g.fillRect(T / 2 - 5, T / 2 - 3, 11, 6);
-      // white cross center
-      g.fillStyle = rgb([255, 255, 255]);
-      g.fillRect(T / 2 - 1, T / 2 - 3, 2, 7);
-      g.fillRect(T / 2 - 3, T / 2 - 1, 7, 2);
-      // door
-      g.fillStyle = rgb([90, 60, 40]); g.fillRect(T / 2 - 2, T - 4, 4, 4);
-      // windows
-      g.fillStyle = rgb([160, 210, 255]);
-      g.fillRect(3, T - 6, 4, 3);
-      g.fillRect(T - 7, T - 6, 4, 3);
+      g.beginPath();
+      g.moveTo(0, 8); g.lineTo(T, 8); g.lineTo(T - 2, 2); g.lineTo(2, 2);
+      g.closePath(); g.fill();
+      // roof highlight
+      g.fillStyle = rgb([230, 55, 50]);
+      g.fillRect(2, 3, T - 4, 2);
+      // roof shadow
+      g.fillStyle = rgb([180, 32, 32]); g.fillRect(0, 7, T, 1);
+      // eaves overhang
+      g.fillStyle = rgb([170, 28, 28]); g.fillRect(0, 8, T, 2);
+      g.fillStyle = rgb([140, 22, 22]); g.fillRect(0, 10, T, 1);
+      // eave brackets
+      g.fillStyle = rgb([120, 18, 18]);
+      g.fillRect(1, 9, 2, 2); g.fillRect(T - 3, 9, 2, 2);
+      // === RED CROSS (medical symbol) ===
+      const cx = 12, cy = 14;
+      g.fillStyle = rgb([220, 42, 42]);
+      g.fillRect(cx - 2, cy - 5, 5, 11);   // vertical bar
+      g.fillRect(cx - 5, cy - 2, 11, 5);   // horizontal bar
+      // cross highlight
+      g.fillStyle = rgb([240, 70, 65]);
+      g.fillRect(cx - 1, cy - 4, 2, 4);
+      g.fillRect(cx - 4, cy - 1, 4, 2);
+      // === WINDOWS with frames ===
+      // left window
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(2, 17, 5, 5);   // frame
+      g.fillStyle = rgb([140, 195, 240]); g.fillRect(3, 18, 3, 3);   // glass
+      g.fillStyle = rgb([180, 220, 250]); g.fillRect(3, 18, 1, 1);   // glass highlight
+      // right window
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(T - 7, 17, 5, 5);
+      g.fillStyle = rgb([140, 195, 240]); g.fillRect(T - 6, 18, 3, 3);
+      g.fillStyle = rgb([180, 220, 250]); g.fillRect(T - 6, 18, 1, 1);
+      // === DOOR with arch ===
+      // door frame
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(7, 18, 10, 6);
+      // arched top
+      g.fillStyle = rgb([180, 180, 190]);
+      g.fillRect(8, 17, 8, 1);
+      g.fillRect(9, 16, 6, 1);
+      // door opening
+      g.fillStyle = rgb([70, 50, 35]); g.fillRect(8, 18, 8, 6);
+      // door arch interior
+      g.fillStyle = rgb([90, 65, 45]);
+      g.fillRect(9, 18, 6, 5);
+      // door handle
+      g.fillStyle = rgb([200, 180, 120]); g.fillRect(13, 21, 1, 2);
+      // door step
+      g.fillStyle = rgb([160, 160, 170]); g.fillRect(7, 23, 10, 1);
       this.tileCache.heal = c.canvas;
     }
 
-    // SHOP: Mart
+    // SHOP: Poke Mart (blue walls, awning, display windows, MART sign, cart)
     {
       const c = this._cc(T, T), g = c;
       // blue walls
-      g.fillStyle = rgb([50, 110, 220]); g.fillRect(0, 0, T, T);
-      // roof band
-      g.fillStyle = rgb([210, 180, 60]); g.fillRect(0, 0, T, 5);
-      // mart sign (white square + blue pole)
-      g.fillStyle = rgb([255, 255, 255]);
-      g.fillRect(3, 7, 6, 6);
-      g.strokeStyle = rgb([200, 200, 200]); g.lineWidth = 1;
-      g.strokeRect(3, 7, 6, 6);
-      // windows
-      g.fillStyle = rgb([160, 210, 255]);
-      g.fillRect(1, T - 5, 4, 3);
-      g.fillRect(T - 5, T - 5, 4, 3);
-      // door
-      g.fillStyle = rgb([90, 60, 40]); g.fillRect(T / 2 - 2, T - 5, 4, 5);
+      g.fillStyle = rgb([48, 105, 210]); g.fillRect(0, 0, T, T);
+      // wall shading
+      ctx_setAlpha(g, 0.1, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(T - 4, 10, 4, T - 10); });
+      // === ROOF ===
+      g.fillStyle = rgb([35, 80, 180]); g.fillRect(0, 0, T, 6);
+      g.fillStyle = rgb([50, 100, 200]); g.fillRect(0, 0, T, 2);
+      g.fillStyle = rgb([25, 60, 140]); g.fillRect(0, 5, T, 1);
+      // === MART SIGN ===
+      // sign background
+      g.fillStyle = rgb([255, 255, 255]); g.fillRect(4, 7, 16, 5);
+      g.strokeStyle = rgb([48, 105, 210]); g.lineWidth = 1; g.strokeRect(4, 7, 16, 5);
+      // "MART" text (pixel font style)
+      g.fillStyle = rgb([48, 105, 210]);
+      g.font = "bold 5px monospace"; g.textAlign = "center";
+      g.fillText("MART", 12, 11);
+      g.textAlign = "left";
+      // === AWNING over door ===
+      // awning stripes
+      for (let i = 0; i < 6; i++) {
+        g.fillStyle = i % 2 === 0 ? rgb([255, 220, 60]) : rgb([255, 255, 255]);
+        g.fillRect(4 + i * 3, 13, 3, 3);
+      }
+      // awning bottom edge
+      g.fillStyle = rgb([220, 180, 40]); g.fillRect(4, 16, 16, 1);
+      // awning scalloped edge
+      g.fillStyle = rgb([255, 220, 60]);
+      for (let i = 0; i < 6; i++) g.fillRect(4 + i * 3, 16, 2, 1);
+      // === DISPLAY WINDOWS ===
+      // left display window
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(1, 18, 5, 5);
+      g.fillStyle = rgb([140, 195, 240]); g.fillRect(2, 19, 3, 3);
+      // items in left window
+      g.fillStyle = rgb([255, 100, 100]); g.fillRect(2, 20, 1, 2);
+      g.fillStyle = rgb([100, 255, 100]); g.fillRect(4, 20, 1, 2);
+      // right display window
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(T - 6, 18, 5, 5);
+      g.fillStyle = rgb([140, 195, 240]); g.fillRect(T - 5, 19, 3, 3);
+      // items in right window
+      g.fillStyle = rgb([100, 100, 255]); g.fillRect(T - 5, 20, 1, 2);
+      g.fillStyle = rgb([255, 255, 100]); g.fillRect(T - 3, 20, 1, 2);
+      // === DOOR ===
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(8, 18, 8, 6);
+      g.fillStyle = rgb([70, 50, 35]); g.fillRect(9, 19, 6, 5);
+      g.fillStyle = rgb([200, 180, 120]); g.fillRect(13, 21, 1, 2);
+      // === SHOPPING CART detail (bottom-left) ===
+      // cart body
+      g.fillStyle = rgb([180, 180, 190]); g.fillRect(1, 22, 5, 2);
+      g.fillStyle = rgb([160, 160, 170]); g.fillRect(1, 22, 5, 1);
+      // cart handle
+      g.fillStyle = rgb([140, 140, 150]); g.fillRect(0, 21, 2, 1);
+      // cart items
+      g.fillStyle = rgb([255, 150, 50]); g.fillRect(2, 21, 2, 1);
+      // cart wheels
+      g.fillStyle = rgb([80, 80, 90]); g.fillRect(1, 23, 1, 1); g.fillRect(4, 23, 1, 1);
       this.tileCache.shop = c.canvas;
     }
 
-    // GYM:
+    // GYM: Dramatic building with badge emblem and grand entrance
     {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([200, 170, 40]); g.fillRect(0, 0, T, T);
-      g.fillStyle = rgb([220, 190, 50]);
-      const cx = T / 2, cy = T / 2;
-      g.beginPath();
-      for (let i = 0; i < 5; i++) {
-        const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
-        if (i === 0) g.moveTo(cx + Math.cos(a) * 7, cy + Math.sin(a) * 7); else g.lineTo(cx + Math.cos(a) * 7, cy + Math.sin(a) * 7);
-      }
-      g.closePath(); g.fill();
-      g.fillStyle = rgb([180, 155, 35]);
-      g.beginPath();
-      for (let i = 0; i < 5; i++) {
-        const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
-        if (i === 0) g.moveTo(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3); else g.lineTo(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3);
-      }
-      g.closePath(); g.fill();
-      // accent spokes
-      g.strokeStyle = rgb([255, 220, 60]); g.lineWidth = 1;
-      for (let i = 0; i < 5; i++) {
-        const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
-        g.beginPath(); g.moveTo(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5); g.lineTo(cx + Math.cos(a) * 2, cy + Math.sin(a) * 2); g.stroke();
-      }
+      // dark stone walls
+      g.fillStyle = rgb([80, 75, 85]); g.fillRect(0, 0, T, T);
+      // wall texture (large stone blocks)
+      g.fillStyle = rgb([90, 85, 95]);
+      g.fillRect(1, 10, 10, 7); g.fillRect(13, 10, 10, 7);
+      g.fillRect(1, 18, 10, 5); g.fillRect(13, 18, 10, 5);
+      // mortar lines
+      g.fillStyle = rgb([60, 55, 65]);
+      g.fillRect(0, 9, T, 1); g.fillRect(0, 17, T, 1);
+      g.fillRect(11, 10, 1, 7); g.fillRect(12, 18, 1, 5);
+      // === IMPOSING ROOF (dark with gold trim) ===
+      g.fillStyle = rgb([50, 45, 55]); g.fillRect(0, 0, T, 8);
+      g.fillStyle = rgb([65, 58, 68]); g.fillRect(0, 0, T, 3);
+      // gold roof trim
+      g.fillStyle = rgb([200, 170, 50]); g.fillRect(0, 7, T, 1);
+      g.fillStyle = rgb([220, 190, 60]); g.fillRect(0, 0, T, 1);
+      // roof peak accent
+      g.fillStyle = rgb([200, 170, 50]);
+      g.fillRect(10, 0, 4, 2);
+      // === BADGE/EMBLEM on front ===
+      const bx = 12, by = 13;
+      // outer ring
+      g.fillStyle = rgb([200, 170, 50]);
+      g.beginPath(); g.arc(bx, by, 5, 0, Math.PI * 2); g.fill();
+      // inner circle
+      g.fillStyle = rgb([240, 220, 80]);
+      g.beginPath(); g.arc(bx, by, 3, 0, Math.PI * 2); g.fill();
+      // star/emblem center
+      g.fillStyle = rgb([180, 140, 30]);
+      g.fillRect(bx - 1, by - 2, 2, 4);
+      g.fillRect(bx - 2, by - 1, 4, 2);
+      // === DRAMATIC ENTRANCE ===
+      // pillars
+      g.fillStyle = rgb([100, 95, 105]); g.fillRect(4, 14, 3, 10);
+      g.fillStyle = rgb([100, 95, 105]); g.fillRect(17, 14, 3, 10);
+      // pillar capitals
+      g.fillStyle = rgb([200, 170, 50]); g.fillRect(3, 13, 5, 2);
+      g.fillStyle = rgb([200, 170, 50]); g.fillRect(16, 13, 5, 2);
+      // dark doorway
+      g.fillStyle = rgb([30, 25, 35]); g.fillRect(8, 16, 8, 8);
+      // door glow (inviting)
+      g.fillStyle = rgb([60, 50, 70]); g.fillRect(9, 17, 6, 7);
+      // entrance steps
+      g.fillStyle = rgb([70, 65, 75]); g.fillRect(6, 22, 12, 2);
+      g.fillStyle = rgb([85, 80, 90]); g.fillRect(7, 22, 10, 1);
       this.tileCache.gym = c.canvas;
     }
 
-    // SIGN:
+    // SIGN: Wooden sign post with readable text area
     {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([139, 119, 73]);
-      g.fillRect(2, 4, T - 4, T - 6);
-      // board darker border
-      g.strokeStyle = rgb([110, 95, 55]); g.lineWidth = 1; g.strokeRect(2, 4, T - 4, T - 6);
-      g.strokeStyle = rgb([90, 80, 45]); g.strokeRect(3, 5, T - 6, T - 8);
-      // post
-      g.fillStyle = rgb([80, 70, 50]);
-      g.fillRect(T - 3, 0, 3, T - 1);
-      // pole lines
-      g.strokeStyle = rgb([60, 55, 40]);
-      g.beginPath(); g.moveTo(T - 2, 0); g.lineTo(T - 2, T - 1); g.stroke();
+      // === SIGN POST ===
+      g.fillStyle = rgb([100, 80, 55]); g.fillRect(10, 8, 4, 16);
+      // post shading
+      g.fillStyle = rgb([80, 62, 40]); g.fillRect(12, 8, 2, 16);
+      // post highlight
+      g.fillStyle = rgb([120, 98, 68]); g.fillRect(10, 8, 1, 16);
+      // === SIGN BOARD ===
+      // board background
+      g.fillStyle = rgb([160, 130, 80]); g.fillRect(1, 2, 22, 10);
+      // board frame (outer)
+      g.fillStyle = rgb([100, 75, 45]); g.fillRect(0, 1, 24, 12);
+      g.fillStyle = rgb([160, 130, 80]); g.fillRect(1, 2, 22, 10);
+      // board inner border
+      g.strokeStyle = rgb([120, 90, 55]); g.lineWidth = 1; g.strokeRect(2, 3, 20, 8);
+      // === TEXT AREA (readable lines) ===
+      // text background
+      g.fillStyle = rgb([220, 200, 160]); g.fillRect(3, 4, 18, 6);
+      // text lines (simulating readable text)
+      g.fillStyle = rgb([80, 60, 30]);
+      g.fillRect(4, 5, 12, 1);   // line 1
+      g.fillRect(4, 7, 16, 1);   // line 2
+      g.fillRect(4, 9, 8, 1);    // line 3 (shorter)
+      // === DECORATIVE elements ===
+      // nail heads on board
+      g.fillStyle = rgb([80, 60, 35]);
+      g.fillRect(2, 3, 1, 1); g.fillRect(21, 3, 1, 1);
+      g.fillRect(2, 10, 1, 1); g.fillRect(21, 10, 1, 1);
+      // grass at base
+      g.fillStyle = rgb([60, 120, 50]); g.fillRect(8, 22, 8, 2);
+      g.fillStyle = rgb([70, 140, 55]); g.fillRect(9, 21, 2, 1); g.fillRect(13, 21, 2, 1);
       this.tileCache.sign = c.canvas;
+    }
+
+    // DOOR: Framed door with mat and handle
+    {
+      const c = this._cc(T, T), g = c;
+      // floor/ground around door
+      g.fillStyle = rgb([196, 168, 132]); g.fillRect(0, 0, T, T);
+      // === DOOR FRAME ===
+      // outer frame
+      g.fillStyle = rgb([120, 90, 55]); g.fillRect(4, 2, 16, 22);
+      // frame shading
+      g.fillStyle = rgb([100, 72, 42]); g.fillRect(18, 2, 2, 22);
+      // frame highlight
+      g.fillStyle = rgb([140, 108, 68]); g.fillRect(4, 2, 2, 22);
+      // === DOOR ===
+      g.fillStyle = rgb([85, 60, 38]); g.fillRect(6, 4, 12, 20);
+      // door panels
+      g.fillStyle = rgb([95, 68, 44]); g.fillRect(7, 5, 10, 8);
+      g.fillStyle = rgb([95, 68, 44]); g.fillRect(7, 15, 10, 8);
+      // panel insets
+      g.fillStyle = rgb([75, 52, 32]); g.fillRect(8, 6, 8, 6);
+      g.fillStyle = rgb([75, 52, 32]); g.fillRect(8, 16, 8, 6);
+      // panel highlights
+      g.fillStyle = rgb([105, 78, 52]); g.fillRect(8, 6, 8, 1);
+      g.fillRect(8, 16, 8, 1);
+      // === DOOR HANDLE ===
+      g.fillStyle = rgb([200, 180, 120]); g.fillRect(15, 12, 3, 2);
+      g.fillStyle = rgb([220, 200, 140]); g.fillRect(15, 12, 1, 1);
+      // === DOOR MAT ===
+      g.fillStyle = rgb([140, 100, 60]); g.fillRect(5, 20, 14, 3);
+      g.fillStyle = rgb([120, 82, 48]); g.fillRect(6, 21, 12, 1);
+      // mat border
+      g.fillStyle = rgb([100, 68, 38]); g.fillRect(5, 20, 14, 1);
+      g.fillStyle = rgb([100, 68, 38]); g.fillRect(5, 22, 14, 1);
+      // === ARROW indicator above door ===
+      g.fillStyle = rgb([100, 200, 100]);
+      g.beginPath();
+      g.moveTo(12, 0); g.lineTo(10, 3); g.lineTo(14, 3);
+      g.closePath(); g.fill();
+      this.tileCache.door = c.canvas;
     }
 
     // BRIDGE variants (2)
@@ -386,12 +576,13 @@ class Renderer {
     else if (tile === TILE_BRIDGE) key = `bridge_${v % 2}`;
     else if (tile === TILE_ROCK) key = `rock_${v % 2}`;
     else if (tile === TILE_GROUND) key = `ground_${v % 2}`;
+    else if (tile === TILE_DOOR) key = "door";
     else key = null;
     if (key && this.tileCache[key]) { this.ctx.drawImage(this.tileCache[key], sx, sy); return true; }
     return false;
   }
 
-  townMap(m, px, py, t) {
+  townMap(m, px, py, t, playerFacing, playerFrame) {
     const ctx = this.ctx;
     if (!this.tileCache) this.buildTileCache();
     const seededRand = this._sr;
@@ -457,26 +648,12 @@ class Renderer {
           this._drawCachedTile(TILE_ROOF, sx, sy, variant);
         } else if (tile === TILE_HEAL) {
           this._drawCachedTile(TILE_HEAL, sx, sy, 0);
-          // Red cross marker
-          ctx.fillStyle = rgb([210, 40, 40]);
-          ctx.fillRect(sx + 10, sy + 6, 4, 12);
-          ctx.fillRect(sx + 6, sy + 10, 12, 4);
         } else if (tile === TILE_SHOP) {
           this._drawCachedTile(TILE_SHOP, sx, sy, 0);
-          // Blue roof marker
-          ctx.fillStyle = rgb([50, 110, 220]);
-          ctx.fillRect(sx + 4, sy + 4, 16, 4);
         } else if (tile === TILE_GYM) {
           this._drawCachedTile(TILE_GYM, sx, sy, 0);
-          // Badge marker
-          ctx.fillStyle = rgb([220, 180, 50]);
-          ctx.beginPath(); ctx.arc(sx + 12, sy + 12, 6, 0, Math.PI * 2); ctx.fill();
         } else if (tile === TILE_SIGN) {
           this._drawCachedTile(TILE_SIGN, sx, sy, 0);
-          // Exclamation mark
-          ctx.fillStyle = rgb([255, 255, 100]);
-          ctx.fillRect(sx + 11, sy + 4, 2, 8);
-          ctx.fillRect(sx + 11, sy + 14, 2, 2);
         } else if (tile === TILE_ROCK) {
           const variant = seededRand(x * 31, y * 47);
           this._drawCachedTile(TILE_ROCK, sx, sy, variant);
@@ -494,25 +671,7 @@ class Renderer {
           ctx.fillStyle = rgb([200, 110, 50]);
           ctx.fillRect(sx + 6, sy + 8, TILE - 12, 2);
         } else if (tile === TILE_DOOR) {
-          // Clear doorway - lighter path with door frame
-          ctx.fillStyle = rgb([196, 168, 132]);
-          ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
-          // Door frame
-          ctx.strokeStyle = rgb([100, 70, 40]); ctx.lineWidth = 2;
-          ctx.strokeRect(sx + 2, sy + 2, TILE - 5, TILE - 5);
-          // Door
-          ctx.fillStyle = rgb([80, 55, 35]);
-          ctx.fillRect(sx + 5, sy + 6, TILE - 10, TILE - 10);
-          // Door knob
-          ctx.fillStyle = rgb([180, 150, 100]);
-          ctx.fillRect(sx + TILE - 8, sy + TILE / 2 - 1, 2, 2);
-          // Arrow indicator above door
-          ctx.fillStyle = rgb([100, 200, 100]);
-          ctx.beginPath();
-          ctx.moveTo(sx + 12, sy - 2);
-          ctx.lineTo(sx + 10, sy + 2);
-          ctx.lineTo(sx + 14, sy + 2);
-          ctx.closePath(); ctx.fill();
+          this._drawCachedTile(TILE_DOOR, sx, sy, 0);
         }
       }
     }
@@ -540,7 +699,7 @@ class Renderer {
     // Layer 4: Player (with shadow)
     ctx.fillStyle = rgba([0, 0, 0], 0.3);
     ctx.fillRect(px * TILE + 4, py * TILE + TILE - 2, TILE - 8, 3);
-    this.playerSprite(px * TILE, py * TILE, TILE);
+    this.playerSprite(px * TILE, py * TILE, TILE, playerFacing, playerFrame);
   }
 
   hud(player, mapName) {
@@ -893,7 +1052,7 @@ class Renderer {
 
     // Player info box (bottom-right, semi-transparent dark box)
     if (p) {
-      const boxX = 260, boxY = 340, boxW = 210, boxH = 78;
+      const boxX = 260, boxY = 340, boxW = 210, boxH = 92;
       this.rect(boxX, boxY, boxW, boxH, [20, 20, 40], 0.85);
       this.ctx.strokeStyle = rgb(COL_WHITE); this.ctx.lineWidth = 2;
       this.ctx.strokeRect(boxX, boxY, boxW, boxH);
@@ -919,8 +1078,13 @@ class Renderer {
       this.ctx.strokeRect(boxX + 10, boxY + 46, 190, 10);
       this.text(boxX + 10, boxY + 44, "HP", COL_LGRAY, 8);
       this.text(boxX + 210, boxY + 55, p.hp + "/" + p.maxHP, COL_WHITE, 10, true);
+      // EXP bar
+      const expRatio = p.xpNext > 0 ? (p.xp / p.xpNext) : 0;
+      this.rect(boxX + 10, boxY + 62, 190, 4, [40, 40, 50]);
+      this.rect(boxX + 10, boxY + 62, Math.floor(190 * Math.max(0, Math.min(1, expRatio))), 4, [80, 160, 255]);
+      this.text(boxX + 10, boxY + 60, "EXP", COL_LGRAY, 7);
       // Stat stages indicator
-      this.drawStatStages(ctx, boxX + 10, boxY + 68, p.statStages);
+      this.drawStatStages(ctx, boxX + 10, boxY + 78, p.statStages);
     }
 
     // Particles

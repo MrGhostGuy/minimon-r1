@@ -12,6 +12,7 @@ class BattleCreature {
     this.maxHP = this.stats[0]; this.hp = this.maxHP;
     this.statStages = [0, 0, 0, 0, 0, 0]; this.status = null;
     this.statusTurns = 0; this.confusionTurns = 0; this.protected = false;
+    this.pendingMoves = []; this.flinched = false;
     if (moves) {
       this.moves = moves.map(id => { const m = MOVES[id]; return m ? { id, pp: m.maxPP, maxPP: m.maxPP } : null; }).filter(Boolean);
     } else {
@@ -237,9 +238,9 @@ class BattleState {
       if (attacker.status === "freeze" && Math.random() < 0.8) { log.push(attacker.name + " is frozen solid!"); continue; }
       else if (attacker.status === "freeze") { attacker.status = null; log.push(attacker.name + " thawed out!"); }
       if (!moveData) continue;
-      if (move.pp > 0) move.pp--;
       const hit = moveData.accuracy === 0 || moveData.id === "swift" ? true : Math.random() * 100 <= moveData.accuracy;
       if (!hit) { log.push("The attack missed!"); continue; }
+      if (move.pp > 0) move.pp--;
       const [damage, effect] = calcDamage(attacker, defender, moveData);
       this._lastEffect = effect;
       if (moveData.category !== STATUS) {
@@ -321,12 +322,6 @@ class BattleState {
       if (c && !c.isAlive() && !this.battleOver) {
         this.messageQueue.push(c.name + " fainted!");
         if (c === this.enemy) {
-          const baseXP = calcXP(c, this.playerParty.length);
-          for (const m of this.playerParty) {
-            if (!m.isAlive()) continue;
-            const xp = m === this.player ? Math.floor(baseXP * 1.5) : baseXP;
-            if (xp > 0) { const lv = m.gainXP(xp); this.messageQueue.push(m.name + " gained " + xp + " XP!"); if (lv) this.messageQueue.push(m.name + " grew to level " + m.level + "!"); }
-          }
           if (!this.nextEnemy()) { this.playerWon = true; this.battleOver = true; this.messageQueue.push("You defeated " + this.trainerName + "!"); }
         } else {
           if (!this.nextPlayer()) { this.playerWon = false; this.battleOver = true; this.messageQueue.push("No more Minis!"); }
