@@ -591,6 +591,21 @@ class Renderer {
     const maxX = Math.min(m.width, MAP_X);
     const maxY = Math.min(m.height, MAP_Y);
 
+    // Interiors are smaller than the viewport; centre them and fill the void
+    // with a dark surround instead of leaving raw canvas showing.
+    const mapW = maxX * TILE, mapH = maxY * TILE;
+    const offX = Math.max(0, Math.floor((SCREEN_W - mapW) / 2));
+    const offY = Math.max(0, Math.floor((SCREEN_H - mapH) / 2));
+    ctx.fillStyle = rgb(COL_BG);
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    if (offX || offY) {
+      // subtle vignette so the room reads as sitting in darkness
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    }
+    ctx.save();
+    ctx.translate(offX, offY);
+
     // Layer 1: Ground tiles (grass, water, path, ground)
     for (let y = 0; y < maxY; y++) {
       for (let x = 0; x < maxX; x++) {
@@ -700,6 +715,7 @@ class Renderer {
     ctx.fillStyle = rgba([0, 0, 0], 0.3);
     ctx.fillRect(px * TILE + 4, py * TILE + TILE - 2, TILE - 8, 3);
     this.playerSprite(px * TILE, py * TILE, TILE, playerFacing, playerFrame);
+    ctx.restore();
   }
 
   hud(player, mapName) {
@@ -1050,41 +1066,39 @@ class Renderer {
       this.text(boxX + 10, boxY + 42, "HP", COL_LGRAY, 8);
     }
 
-    // Player info box (bottom-right, semi-transparent dark box)
+    // Player info box (bottom-right) — sits ABOVE the battle menu (y 400+)
     if (p) {
-      const boxX = 260, boxY = 340, boxW = 210, boxH = 92;
+      const boxX = 260, boxY = 328, boxW = 210, boxH = 68;
       this.rect(boxX, boxY, boxW, boxH, [20, 20, 40], 0.85);
       this.ctx.strokeStyle = rgb(COL_WHITE); this.ctx.lineWidth = 2;
       this.ctx.strokeRect(boxX, boxY, boxW, boxH);
-      this.text(boxX + 10, boxY + 18, p.name, COL_WHITE, 14);
-      this.text(boxX + 10, boxY + 34, "Lv." + p.level, COL_LGRAY, 11);
-      // Type badge
-      this.text(boxX + 70, boxY + 34, p.types[0], TYPE_COLORS[p.types[0]] || COL_GRAY, 10);
-      // Status badge
+      this.text(boxX + 10, boxY + 15, p.name, COL_WHITE, 13);
+      this.text(boxX + 10, boxY + 29, "Lv." + p.level, COL_LGRAY, 11);
+      this.text(boxX + 66, boxY + 29, p.types[0], TYPE_COLORS[p.types[0]] || COL_GRAY, 10);
       if (p.status) {
         const sCol2 = {burn:[255,120,20],poison:[180,60,200],paralyze:[255,240,60],freeze:[150,220,255],sleep:[160,160,200]}[p.status]||COL_RED;
         const sTxt2 = {burn:"BRN",poison:"PSN",paralyze:"PAR",freeze:"FRZ",sleep:"SLP"}[p.status]||"";
         if (sTxt2) {
-          this.rect(boxX + 130, boxY + 24, 38, 14, [30, 30, 50]);
-          this.text(boxX + 149, boxY + 35, sTxt2, sCol2, 9, true);
+          this.rect(boxX + 132, boxY + 19, 38, 13, [30, 30, 50]);
+          this.text(boxX + 151, boxY + 29, sTxt2, sCol2, 9, true);
         }
       }
       // HP bar
       const hpRatio2 = p.hp / Math.max(1, p.maxHP);
       const hpCol2 = hpRatio2 > 0.5 ? COL_HPG : hpRatio2 > 0.2 ? COL_HPY : COL_HPR;
-      this.rect(boxX + 10, boxY + 46, 190, 10, [40, 40, 50]);
-      this.rect(boxX + 10, boxY + 46, Math.floor(190 * Math.max(0, Math.min(1, hpRatio2))), 10, hpCol2);
+      this.rect(boxX + 10, boxY + 34, 150, 9, [40, 40, 50]);
+      this.rect(boxX + 10, boxY + 34, Math.floor(150 * Math.max(0, Math.min(1, hpRatio2))), 9, hpCol2);
       this.ctx.strokeStyle = rgb(COL_LGRAY); this.ctx.lineWidth = 1;
-      this.ctx.strokeRect(boxX + 10, boxY + 46, 190, 10);
-      this.text(boxX + 10, boxY + 44, "HP", COL_LGRAY, 8);
-      this.text(boxX + 210, boxY + 55, p.hp + "/" + p.maxHP, COL_WHITE, 10, true);
+      this.ctx.strokeRect(boxX + 10, boxY + 34, 150, 9);
+      this.text(boxX + 10, boxY + 32, "HP", COL_LGRAY, 8);
+      this.text(boxX + 204, boxY + 42, p.hp + "/" + p.maxHP, COL_WHITE, 9, true);
       // EXP bar
       const expRatio = p.xpNext > 0 ? (p.xp / p.xpNext) : 0;
-      this.rect(boxX + 10, boxY + 62, 190, 4, [40, 40, 50]);
-      this.rect(boxX + 10, boxY + 62, Math.floor(190 * Math.max(0, Math.min(1, expRatio))), 4, [80, 160, 255]);
-      this.text(boxX + 10, boxY + 60, "EXP", COL_LGRAY, 7);
+      this.text(boxX + 8, boxY + 51, "EXP", COL_LGRAY, 8);
+      this.rect(boxX + 28, boxY + 47, 132, 5, [40, 40, 50]);
+      this.rect(boxX + 28, boxY + 47, Math.floor(132 * Math.max(0, Math.min(1, expRatio))), 5, [80, 160, 255]);
       // Stat stages indicator
-      this.drawStatStages(ctx, boxX + 10, boxY + 78, p.statStages);
+      this.drawStatStages(ctx, boxX + 10, boxY + 62, p.statStages);
     }
 
     // Particles
@@ -2055,7 +2069,7 @@ class Renderer {
     this.text(240, 460, "Scroll = Select | Right-click = Cancel", COL_GRAY, 11, true);
   }
 
-  shopMenu(items, sel, money) {
+  shopMenu(items, sel, money, inv) {
     const ctx = this.ctx;
     const bx = 10, by = 30, bw = 460, bh = 420;
 
@@ -2103,7 +2117,7 @@ class Renderer {
 
       this.text(bx + bw - 80, y + 18, "$" + price, isSel ? COL_YELLOW : (canBuy ? [200, 200, 100] : COL_RED), 11);
 
-      const owned = player.inventory[item] || 0;
+      const owned = (inv && inv[item]) || 0;
       this.text(bx + bw - 20, y + 18, "x" + owned, COL_GRAY, 10, true);
 
       if (isSel) this.menuCursor(bx + 12, y + 8, 0);

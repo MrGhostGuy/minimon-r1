@@ -1298,7 +1298,7 @@ function gameLoop(timestamp) {
   else if (state === S_BAG_CAT) R.bagCatMenu(player.inventory, bagTab, cursor, time);
   else if (state === S_MAP) R.worldMapScreen(player, currentMap ? currentMap.name : "", cursor, time);
   else if (state === S_MOVES && pendingMoveLearn) R.moveMenu(pendingMoveLearn.creature.moves, cursor, pendingMoveLearn.creature, MOVES[pendingMoveLearn.newMove.id]?.name);
-  else if (state === S_SHOP) R.shopMenu(SHOP_ITEMS, shopCursor, player.money);
+  else if (state === S_SHOP) R.shopMenu(SHOP_ITEMS, shopCursor, player.money, player.inventory);
   else if (state === S_EVOLUTION && pendingEvolution) R.evolveScreen(pendingEvolution[0], pendingEvolution[1], time);
   else if (state === S_TM && pendingTM) R.tmSelectMenu(pendingTM.compatible, cursor, MOVES[TM_MOVES[pendingTM.itemName]]?.name, pendingTM.itemName);
   else if (state === "pokedex") renderPokedex();
@@ -1659,23 +1659,8 @@ function renderBattle() {
     }
     const cx = 20 + (cursor % 2) * 230, cy = 413 + Math.floor(cursor / 2) * 28;
     R.menuCursor(cx, cy, time);
-    // Enemy info
-    if (battleState.enemy) {
-      const eHpPct = Math.ceil(battleState.enemy.hp/Math.max(1,battleState.enemy.maxHP)*100);
-      R.text(350, 445, battleState.enemy.name + " HP:" + eHpPct + "%", COL_GRAY, 10);
-      if (battleState.enemy.status) {
-        const sTxt = {burn:"BRN",poison:"PSN",paralyze:"PAR",freeze:"FRZ",sleep:"SLP"}[battleState.enemy.status]||"";
-        if (sTxt) R.text(440, 445, sTxt, COL_RED, 10, true);
-      }
-    }
-    // Player info
-    if (battleState.player) {
-      R.text(20, 445, battleState.player.name + " HP:" + battleState.player.hp + "/" + battleState.player.maxHP, COL_LGRAY, 10);
-      if (battleState.player.status) {
-        const sTxt2 = {burn:"BRN",poison:"PSN",paralyze:"PAR",freeze:"FRZ",sleep:"SLP"}[battleState.player.status]||"";
-        if (sTxt2) R.text(200, 445, sTxt2, COL_RED, 10);
-      }
-    }
+    // HP/status is already shown in the info boxes above; nothing else here so
+    // the labels can't collide with the Fight/Bag/Party/Run text.
   } else if (battlePhase === "moves") R.moveMenu(battleState.player.moves, cursor, battleState.player);
   else if (battlePhase === "party") R.partyMenu(player.party, cursor);
   else if (battlePhase === "bag") {
@@ -1839,7 +1824,20 @@ if (location.hash === "#test") {
     nextMsg: () => nextBattleMsg(),
     giveXp: (n) => { if (player.party[0]) player.party[0].gainXP(n); },
     warp: (i, x, y) => changeMap(i, x, y),
-    interact: () => interact()
+    interact: () => interact(),
+    setState: (s, extra) => {
+      if (s === 'party') partyMode = extra && extra.mode || 'select';
+      if (s === 'bag_cat') { bagTab = extra && extra.tab || 0; }
+      if (s === 'pokedex') { const px = pokedex; for (const k in (extra && extra.seen || {})) px[k] = extra.seen[k]; }
+      if (s === 'choose_starter') pendingStarter = extra && extra.starter || [1, 2, 3];
+      if (s === 'shop') shopCursor = extra && extra.cursor || 0;
+      if (s === 'name_input') { nameInput = extra && extra.name || 'HERO'; nameCursor = 0; }
+      state = s;
+      cursor = extra && extra.cursor != null ? extra.cursor : 0;
+    },
+    setParty: (list) => { player.party = list.map(a => new BattleCreature(a[0], a[1])); },
+    setInventory: (o) => { Object.assign(player.inventory, o); },
+    setBattlePhase: (ph, cur) => { battlePhase = ph; if (cur != null) cursor = cur; }
   };
 }
 
