@@ -1056,14 +1056,14 @@ class Renderer {
           this.text(boxX + 119, boxY + 35, sTxt, sCol, 9, true);
         }
       }
-      // HP bar
+      // HP bar (narrower so the numeric readout stays inside the box)
       const hpRatio = e.hp / Math.max(1, e.maxHP);
       const hpCol = hpRatio > 0.5 ? COL_HPG : hpRatio > 0.2 ? COL_HPY : COL_HPR;
-      this.rect(boxX + 10, boxY + 44, 180, 10, [40, 40, 50]);
-      this.rect(boxX + 10, boxY + 44, Math.floor(180 * Math.max(0, Math.min(1, hpRatio))), 10, hpCol);
+      this.rect(boxX + 10, boxY + 44, 120, 10, [40, 40, 50]);
+      this.rect(boxX + 10, boxY + 44, Math.floor(120 * Math.max(0, Math.min(1, hpRatio))), 10, hpCol);
       this.ctx.strokeStyle = rgb(COL_LGRAY); this.ctx.lineWidth = 1;
-      this.ctx.strokeRect(boxX + 10, boxY + 44, 180, 10);
-      this.text(boxX + 10, boxY + 42, "HP", COL_LGRAY, 8);
+      this.ctx.strokeRect(boxX + 10, boxY + 44, 120, 10);
+      this.text(boxX + 166, boxY + 53, e.hp + "/" + e.maxHP, COL_WHITE, 9, true);
     }
 
     // Player info box (bottom-right) — sits ABOVE the battle menu (y 400+)
@@ -1083,22 +1083,21 @@ class Renderer {
           this.text(boxX + 151, boxY + 29, sTxt2, sCol2, 9, true);
         }
       }
-      // HP bar
+// HP bar
       const hpRatio2 = p.hp / Math.max(1, p.maxHP);
       const hpCol2 = hpRatio2 > 0.5 ? COL_HPG : hpRatio2 > 0.2 ? COL_HPY : COL_HPR;
-      this.rect(boxX + 10, boxY + 34, 150, 9, [40, 40, 50]);
-      this.rect(boxX + 10, boxY + 34, Math.floor(150 * Math.max(0, Math.min(1, hpRatio2))), 9, hpCol2);
+      this.rect(boxX + 10, boxY + 34, 138, 9, [40, 40, 50]);
+      this.rect(boxX + 10, boxY + 34, Math.floor(138 * Math.max(0, Math.min(1, hpRatio2))), 9, hpCol2);
       this.ctx.strokeStyle = rgb(COL_LGRAY); this.ctx.lineWidth = 1;
-      this.ctx.strokeRect(boxX + 10, boxY + 34, 150, 9);
-      this.text(boxX + 10, boxY + 32, "HP", COL_LGRAY, 8);
-      this.text(boxX + 204, boxY + 42, p.hp + "/" + p.maxHP, COL_WHITE, 9, true);
+      this.ctx.strokeRect(boxX + 10, boxY + 34, 138, 9);
+      this.text(boxX + 180, boxY + 42, p.hp + "/" + p.maxHP, COL_WHITE, 9, true);
       // EXP bar
       const expRatio = p.xpNext > 0 ? (p.xp / p.xpNext) : 0;
-      this.text(boxX + 8, boxY + 51, "EXP", COL_LGRAY, 8);
-      this.rect(boxX + 28, boxY + 47, 132, 5, [40, 40, 50]);
-      this.rect(boxX + 28, boxY + 47, Math.floor(132 * Math.max(0, Math.min(1, expRatio))), 5, [80, 160, 255]);
+      this.text(boxX + 8, boxY + 50, "EXP", COL_LGRAY, 8);
+      this.rect(boxX + 32, boxY + 46, 126, 5, [40, 40, 50]);
+      this.rect(boxX + 32, boxY + 46, Math.floor(126 * Math.max(0, Math.min(1, expRatio))), 5, [80, 160, 255]);
       // Stat stages indicator
-      this.drawStatStages(ctx, boxX + 10, boxY + 62, p.statStages);
+      this.drawStatStages(ctx, boxX + 10, boxY + 64, p.statStages);
     }
 
     // Particles
