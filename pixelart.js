@@ -2064,21 +2064,25 @@ const CR_BODIES = {
     crRect(g,7,14,7,15,'6');                     // tail
     o.eyeY = 5; o.eyeL = 5; o.eyeR = 8;
   },
-  /* coiled serpent */
+  /* coiled serpent — raised head, clear S-curve */
   serpent(g,o){
-    crEllipse(g,5,5,3.5,3,'2');                  // head
-    crEllipse(g,9,10,4,3,'2');                   // upper coil
-    crEllipse(g,6,13,4,2.5,'2');                 // lower coil
-    crRect(g,11,12,13,13,'2');
-    o.eyeY = 5; o.eyeL = 3; o.eyeR = 6; o.serpent = true;
+    crEllipse(g,4,12,4,2.5,'2');                  // lower coil
+    crEllipse(g,10,10,3.5,3,'2');                 // upper coil
+    crRect(g,9,5,11,11,'2');                      // rising neck
+    crEllipse(g,6,4,3.5,3,'2');                   // head
+    crRect(g,3,3,9,6,'2');
+    crTri(g,2,5,0,4,2,7,'6');                     // forked tongue
+    crTri(g,0,13,3,11,1,15,'2');                  // tail tip
+    o.eyeY = 4; o.eyeL = 4; o.eyeR = 7; o.serpent = true;
   },
   /* aquatic */
   aquatic(g,o){
     crEllipse(g,6,8,5,4,'2');
     crTri(g,10,8,14,4,14,12,'6');                // tail fin
-    crTri(g,1,8,-2,4,-2,12,'6');                 // head fin
-    crRect(g,5,4,6,5,'2');                       // top fin
-    crRect(g,2,12,12,13,'3');
+    crTri(g,2,8,0,4,0,12,'6');                   // head fin (in-bounds)
+    crTri(g,6,3,4,1,8,3,'6');                    // dorsal fin
+    crRect(g,3,11,10,13,'3');                    // belly
+    crTri(g,12,12,15,14,11,14,'6');              // pelvic fin
     o.eyeY = 7; o.eyeL = 3; o.eyeR = 6;
   },
   /* round slime */
@@ -2090,48 +2094,71 @@ const CR_BODIES = {
   },
   /* insect */
   insect(g,o){
-    crEllipse(g,7,8,4,4,'2');
-    crEllipse(g,7,4,2.5,2.5,'2');
-    crEllipse(g,2,6,3,2.2,'6'); crEllipse(g,12,6,3,2.2,'6'); // wings
-    crRect(g,3,12,4,14,'3'); crRect(g,9,12,10,14,'3');
-    crRect(g,2,1,3,3,'2'); crRect(g,11,1,12,3,'2');  // antennae
+    crEllipse(g,7,9,3.5,3.5,'2');                // body
+    crEllipse(g,7,4,2.5,2.5,'2');                // head
+    crEllipse(g,3,7,3,2.2,'6'); crEllipse(g,11,7,3,2.2,'6'); // wings (in-bounds)
+    crRect(g,2,7,14,8,'6');                      // wing seam
+    crRect(g,4,12,5,14,'3'); crRect(g,9,12,10,14,'3'); // legs
+    crTri(g,2,2,0,0,3,3,'2'); crTri(g,11,2,13,0,10,3,'2'); // antennae
     o.eyeY = 5; o.eyeL = 5; o.eyeR = 8; o.insect = true;
   },
-  /* blocky armored */
+  /* armored colossus — pauldrons, chest core, visor */
   golem(g,o){
-    crRect(g,3,4,12,13,'2');
-    crRect(g,3,3,12,5,'2');
-    crRect(g,2,6,3,12,'3'); crRect(g,12,6,13,12,'3');
-    crRect(g,4,13,6,15,'3'); crRect(g,9,13,11,15,'3');
-    o.eyeY = 6; o.eyeL = 5; o.eyeR = 9;
+    crEllipse(g,4,13,2.5,2.5,'2'); crEllipse(g,11,13,2.5,2.5,'2');  // legs
+    crEllipse(g,7,9,4.5,3.5,'2');                   // torso
+    crRect(g,4,7,11,12,'2');
+    crEllipse(g,7,9,1.5,1.5,'6');                  // chest core
+    crTri(g,0,8,3,7,3,10,'3'); crTri(g,15,8,12,7,12,10,'3'); // pauldrons
+    crRect(g,1,9,3,12,'2'); crRect(g,12,9,14,12,'2');          // arms
+    crEllipse(g,7,4,3.5,3,'2');                    // head
+    crRect(g,4,3,10,6,'2');
+    crRect(g,4,2,10,2,'3');                       // brow ridge
+    crRect(g,5,6,9,7,'3');                        // jaw
+    o.eyeY = 5; o.eyeL = 5; o.eyeR = 9; o.golem = true;
   },
-  /* floating ghost */
+  /* floating ghost — domed head, 3-point wispy tail */
   wisp(g,o){
-    crEllipse(g,7,7,5,4.5,'2');
-    crTri(g,3,9,5,15,7,9,'2');
-    crTri(g,8,9,10,15,11,9,'2');
-    crRect(g,2,10,3,11,'2'); crRect(g,12,10,13,11,'2');
+    crEllipse(g,7,7,4.5,4,'2');                   // dome
+    crRect(g,3,7,11,10,'2');                      // body
+    crTri(g,3,9,5,14,7,9,'2');                    // tail left
+    crTri(g,9,9,11,14,13,9,'2');                  // tail right
+    crRect(g,6,9,9,14,'2');                       // tail centre
+    crTri(g,2,8,2,12,4,11,'2');                   // side tendrils (in-bounds)
+    crTri(g,13,8,13,12,11,11,'2');
     o.eyeY = 7; o.eyeL = 5; o.eyeR = 8; o.wisp = true;
   },
-  /* big legendary wyrm */
+  /* legendary wyrm — swept wings, horned head, long tail */
   wyrm(g,o){
-    crTri(g,2,10,-3,3,6,12,'6');                 // huge left wing
-    crTri(g,13,10,18,3,9,12,'6');                // huge right wing
-    crEllipse(g,7,9,5,4,'2');                    // body
-    crEllipse(g,7,4,3.5,3,'2');                  // head
-    crRect(g,5,13,9,14,'2');
-    crRect(g,4,1,5,4,'6'); crRect(g,9,1,10,4,'6'); // horns
-    o.eyeY = 4; o.eyeL = 5; o.eyeR = 8; o.legendary = true;
+    // wings swept back and fully inside the grid
+    crTri(g,5,8,0,2,3,12,'6');
+    crTri(g,5,9,1,6,4,13,'6');
+    crTri(g,10,8,15,2,12,12,'6');
+    crTri(g,10,9,14,6,11,13,'6');
+    crEllipse(g,7,10,3.5,3,'2');                   // body
+    crRect(g,5,8,10,12,'2');
+    crTri(g,8,12,13,15,5,13,'2');                  // tail
+    crEllipse(g,7,5,3,2.5,'2');                    // head
+    crRect(g,4,4,10,7,'2');
+    crTri(g,4,4,3,1,7,4,'6');                      // horns
+    crTri(g,9,4,11,1,7,4,'6');
+    o.eyeY = 5; o.eyeL = 5; o.eyeR = 8; o.legendary = true;
   }
 };
 
-/* ── type features (added after the body) ── */
+/* ── type features (added after the body) ──
+   Only the PRIMARY type drives the silhouette; the secondary type can add at
+   most one small accent. Previously every type in a dual-type drew its full
+   feature set, which made compound legendaries cluttered and unreadable.  */
 function crTypeFeatures(g, types, o){
   const t = types[0];
+  const t2 = types[1] || null;
+  /* small signature accents that read well even when stacked */
+  const ACCENT = { Dark:'6', Spirit:'6', Light:'6', Ice:'6', Dragon:'6' };
   if(t==='Fire'){
-    crTri(g,12,11,16,7,12,6,'6');                // flame tail from the body's rear
-    crTri(g,13,12,16,9,13,8,'6');
-    crTri(g,11,10,15,8,11,7,'6');
+    crTri(g,11,11,15,7,11,6,'6');                // flame licking up from the tail
+    crTri(g,12,12,15,9,12,8,'6');
+    crTri(g,10,10,14,8,10,7,'6');
+    crSet(g,15,10,'6'); crSet(g,14,6,'6');
   }
   if(t==='Water'){
     crTri(g,12,12,15,14,12,15,'6');              // fin
@@ -2148,14 +2175,16 @@ function crTypeFeatures(g, types, o){
     crTri(g,1,6,3,4,2,7,'6');
   }
   if(t==='Ice'){
-    crTri(g,4,0,7,3,10,0,'6');                   // ice shards on head
-    crTri(g,6,3,8,0,10,3,'1');
+    crTri(g,5,4,7,1,9,4,'6');                    // shards sprouting from the crown
+    crTri(g,7,4,9,1,11,4,'6');
+    crTri(g,3,5,4,3,5,6,'6');
+    crTri(g,12,5,11,3,10,6,'6');
   }
   if(t==='Wind'){
-    crTri(g,4,3,0,1,5,2,'6');                    // wing tufts attached at the shoulders
-    crTri(g,11,3,15,1,10,2,'6');
-    crTri(g,4,4,1,3,5,4,'6');
-    crTri(g,11,4,14,3,10,4,'6');
+    crTri(g,4,6,1,3,6,5,'6');                    // tufts spring from the shoulders
+    crTri(g,11,6,14,3,9,5,'6');
+    crTri(g,4,8,2,5,6,7,'6');
+    crTri(g,11,8,13,5,9,7,'6');
   }
   if(t==='Dark'){
     crTri(g,3,4,1,1,6,3,'1');                    // pointed dark ears
@@ -2183,6 +2212,16 @@ function crTypeFeatures(g, types, o){
   if(t==='Normal' && o.big){
     crRect(g,4,10,9,11,'3');                     // chest fluff
   }
+  // Secondary type: only a restrained marking, never a second full feature set
+  if(t2 && t2!==t){
+    const a = ACCENT[t2];
+    if(a){
+      crSet(g,1,9,a); crSet(g,14,9,a);           // flank studs
+      crSet(g,7,13,a);                            // tail tip spark
+    }
+    if(t2==='Dark'){ crTri(g,3,4,1,2,6,4,'3'); crTri(g,12,4,15,2,9,4,'3'); }
+    if(t2==='Ice'){  crSet(g,4,3,'6'); crSet(g,11,3,'6'); }
+  }
 }
 
 /* ── signature creatures: hand-authored spec overrides ── */
@@ -2209,7 +2248,7 @@ const CR_SPECS = {
   20:{body:'golem', size:1},
   21:{body:'aquatic'},                           // Pondling
   22:{body:'aquatic', wisp:true, size:1},        // Nessiel
-  23:{body:'wisp', flame:true},                  // Wispflame
+  23:{body:'wisp', flame:true, small:true},     // Wispflame - small flame spirit
   24:{body:'wisp', flame:true, size:1},
   25:{body:'biped', thorn:true},                 // Thornling
   26:{body:'biped', thorn:true, size:1},
@@ -2282,7 +2321,8 @@ const CR_SPECS = {
 };
 
 /* extra decorative props keyed by spec flag */
-function crProps(g, spec){
+function crProps(g, spec, types){
+  const tt = (types && types[0]) || '';
   if(spec.flame==='big' || spec.flame){ crTri(g,13,11,16,7,13,6,'6'); crTri(g,14,12,16,9,14,8,'6'); }
   if(spec.fin==='big'){ crTri(g,11,11,15,13,11,15,'6'); }
   if(spec.leaf==='big'){ crEllipse(g,7,1,2.5,2,'1'); crTri(g,5,4,7,0,9,4,'1'); }
@@ -2298,8 +2338,23 @@ function crProps(g, spec){
   if(spec.coral){ crTri(g,2,13,3,16,4,13,'6'); crTri(g,11,13,12,16,13,13,'6'); }
   if(spec.drill){ crTri(g,12,12,16,13,12,14,'6'); }
   if(spec.iron){ crRect(g,2,11,13,12,'3'); crRect(g,3,2,12,3,'3'); }
-  if(spec.big){ crRect(g,2,10,13,13,'2'); }
-  if(spec.dig){ crRect(g,4,14,5,15,'3'); crRect(g,10,14,11,15,'3'); }
+  if(spec.big){                       // legendaries: floating crown + trailing motes
+    crEllipse(g,7,1,3,1.8,'6');
+    crRect(g,6,1,9,2,'6');
+    crSet(g,2,4,'6'); crSet(g,13,4,'6'); crSet(g,1,9,'6'); crSet(g,14,10,'6');
+    crSet(g,3,14,'6'); crSet(g,12,13,'6');
+  }
+  if(spec.dig){ crRect(g,4,14,5,15,'3'); crRect(g,10,14,11,15,'3'); }  // digging claws
+  if(spec.small){ crEllipse(g,7,14,2,1.5,'2'); }   // small: puddle base
+  // Fire spirits: licking flames instead of a plain body
+  // Fire spirits: flames behind the body so the face stays readable
+  if(spec.flame && tt==='Fire'){
+    const sv=g.map(r=>r.slice());          // snapshot of what's drawn so far
+    crTri(g,3,8,4,1,11,8,'6');
+    crTri(g,5,7,7,0,9,7,'6');
+    crTri(g,8,7,10,0,13,8,'6');
+    for(let y=0;y<16;y++)for(let x=0;x<16;x++)if(sv[y][x]!=='.')g[y][x]=sv[y][x];
+  }
   if(spec.wisp){ crTri(g,5,12,6,16,7,12,'2'); crTri(g,8,12,9,16,10,12,'2'); }
   if(spec.water){ crTri(g,12,13,15,15,12,16,'6'); }
   if(spec.spirit){ crEllipse(g,7,1,4,1.4,'1'); }
@@ -2345,7 +2400,7 @@ function genMinimonGrid(dex){
   const body=(CR_BODIES[spec.body]||CR_BODIES[crInferBody(c)]);
   body(g,o);
   crTypeFeatures(g,c?c.types:[TYPE_NORMAL],o);
-  crProps(g,spec);
+  crProps(g,spec,c?c.types:null);
   const big=o.big;
   const eyes = big?crEyesSmall:crEyes;
   if(!o.wisp) eyes(g,o.eyeY,o.eyeL,o.eyeR);
