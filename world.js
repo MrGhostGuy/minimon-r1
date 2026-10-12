@@ -258,6 +258,7 @@ function createStormSpire(){
   for(let y=5;y<=14;y++){ setT(m,10,y,TILE_PATH); setT(m,11,y,TILE_PATH); }
   const pc = placeBuilding(m, 5, 5, 4, 3, 1, TILE_HEAL);
   const gym = placeBuilding(m, 12, 5, 4, 3, 2, TILE_GYM);
+  const mart = placeBuilding(m, 12, 15, 4, 3, 1, TILE_SHOP);
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:4,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:4,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:6,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:6,destX:11,destY:1});
   setT(m,8,13,TILE_SIGN); m.signs.push({x:8,y:13,text:"Storm Spire - Power of Thunder"});
@@ -266,6 +267,7 @@ function createStormSpire(){
   // Placeholder to keep PC/Gym doors
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:22,destX:5,destY:8});
   m.doors.push({x:gym.doorX,y:gym.doorY,dest:24,destX:6,destY:11});
+  m.doors.push({x:mart.doorX,y:mart.doorY,dest:23,destX:5,destY:8});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Volt",dialog:["I am Volt, Storm Spire Leader!","Welcome, {name}!","Feel the power of lightning!"],facing:"down",defeated:false,party:[[23,28],[33,26]],badge:"Storm Badge",reward:6000,rematchParty:[[12,44],[46,43],[64,42],[28,41]],rematchDialog:["Lightning strikes twice, {name}!"],aiLevel:AI_GYM});
   m.npcs.push({x:10,y:11,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"up"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Sparky",dialog:["My Electric moves are shocking!"],facing:"right",defeated:false,party:[[23,20],[33,19]],rematchParty:[[23,38],[33,37],[63,36]],rematchDialog:["Voltage cranked to maximum!"],aiLevel:AI_GYM});
@@ -289,12 +291,12 @@ function createCrystalCavern(){
   setT(m,7,13,TILE_WATER); setT(m,14,13,TILE_WATER);
   // Buildings inside cavern
   const pc = placeBuilding(m, 5, 5, 4, 3, 1, TILE_HEAL);
-  const gym = placeBuilding(m, 12, 5, 4, 3, 2, TILE_GYM);
+  const mart = placeBuilding(m, 12, 5, 4, 3, 2, TILE_SHOP);
   setT(m,8,15,TILE_SIGN); m.signs.push({x:8,y:15,text:"Crystal Cavern - Ice shines eternal"});
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:5,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:5,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:7,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:7,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:25,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:25,destX:5,destY:8});
+  m.doors.push({x:mart.doorX,y:mart.doorY,dest:26,destX:5,destY:8});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Frostbane",dialog:["I am Frostbane, Crystal Cavern Leader!","Welcome, {name}!","Feel the chill of eternity!"],facing:"down",defeated:false,party:[[24,32],[34,30]],badge:"Crystal Badge",reward:7000,rematchParty:[[14,46],[38,45],[48,44],[66,43]],rematchDialog:["Eternal frost awaits, {name}!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Frosty",dialog:["My Ice moves are freezing!"],facing:"right",defeated:false,party:[[24,24],[34,23]],rematchParty:[[24,40],[34,39],[66,38]],rematchDialog:["Feel the absolute zero!"],aiLevel:AI_GYM});
@@ -314,12 +316,12 @@ function createShadowGate(){
   for(let y=5;y<=7;y++){ setT(m,5,y,TILE_WALL); setT(m,15,y,TILE_WALL); }
   setT(m,6,5,TILE_ROCK); setT(m,14,5,TILE_ROCK);
   const pc = placeBuilding(m, 5, 8, 4, 3, 1, TILE_HEAL);
-  const gym = placeBuilding(m, 12, 8, 4, 3, 2, TILE_GYM);
+  const mart = placeBuilding(m, 12, 8, 4, 3, 2, TILE_SHOP);
   setT(m,8,15,TILE_SIGN); m.signs.push({x:8,y:15,text:"Shadow Gate - Darkness dwells"});
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:6,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:6,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:8,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:8,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:27,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:27,destX:5,destY:8});
+  m.doors.push({x:mart.doorX,y:mart.doorY,dest:28,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Nyx",dialog:["I am Nyx, Shadow Gate Leader!","Embrace the darkness!"],facing:"down",defeated:false,party:[[25,36],[35,34]],badge:"Shadow Badge",reward:8000,rematchParty:[[16,48],[58,47],[68,46],[87,45]],rematchDialog:["Darkness knows no limits!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:14,y:14,type:"trainer",name:"Team Shadow Boss",dialog:["I am the Boss!","You dare challenge?"],facing:"up",defeated:false,party:[[25,35],[35,34],[45,33],[55,32]],evil:true,evil_enc:3,rematchParty:[[58,52],[68,51],[46,50],[36,49]],rematchDialog:["Never falls!"],aiLevel:AI_ELITE});
@@ -341,12 +343,12 @@ function createSolarSanctum(){
   for(let x=9;x<=12;x++){ setT(m,x,7,TILE_WALL); setT(m,x,10,TILE_WALL); }
   for(let y=8;y<=9;y++){ setT(m,9,y,TILE_WALL); setT(m,12,y,TILE_WALL); }
   const pc = placeBuilding(m, 5, 5, 4, 3, 1, TILE_HEAL);
-  const gym = placeBuilding(m, 12, 5, 4, 3, 2, TILE_GYM);
+  const mart = placeBuilding(m, 12, 5, 4, 3, 2, TILE_SHOP);
   setT(m,8,15,TILE_SIGN); m.signs.push({x:8,y:15,text:"Solar Sanctum - Light is born"});
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:7,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:7,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:9,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:9,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:29,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:29,destX:5,destY:8});
+  m.doors.push({x:mart.doorX,y:mart.doorY,dest:30,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Lux",dialog:["I am Lux, Solar Sanctum Leader!","Behold the light!"],facing:"down",defeated:false,party:[[26,40],[36,38]],badge:"Solar Badge",reward:9000,rematchParty:[[50,50],[72,49],[48,48],[8,47]],rematchDialog:["Dawn shines brighter!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Dawn",dialog:["My Light moves shine!"],facing:"right",defeated:false,party:[[26,32],[36,31]],rematchParty:[[26,48],[36,47],[72,46]],rematchDialog:["Light blinds all!"],aiLevel:AI_ELITE});
@@ -367,12 +369,12 @@ function createGrandColosseum(){
   for(let y=13;y<=15;y++){ setT(m,5,y,TILE_WALL); setT(m,15,y,TILE_WALL); }
   setT(m,6,5,TILE_ROCK); setT(m,14,5,TILE_ROCK);
   const pc = placeBuilding(m, 5, 8, 4, 3, 1, TILE_HEAL);
-  const gym = placeBuilding(m, 12, 8, 4, 3, 2, TILE_GYM);
+  const mart = placeBuilding(m, 12, 8, 4, 3, 2, TILE_SHOP);
   setT(m,8,15,TILE_SIGN); m.signs.push({x:8,y:15,text:"Grand Colosseum - Legends clash"});
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR); m.doors.push({x:10,y:0,dest:8,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:8,destX:11,destY:18});
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:10,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:10,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:31,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:31,destX:5,destY:8});
+  m.doors.push({x:mart.doorX,y:mart.doorY,dest:32,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Drakon",dialog:["I am Drakon!","Witness the might of dragons!"],facing:"down",defeated:false,party:[[27,44],[37,42]],badge:"Dragon Badge",reward:10000,rematchParty:[[40,54],[60,53],[72,52],[58,51]],rematchDialog:["Dragon's soul burns eternal!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:6,y:11,type:"trainer",name:"Wyvern",dialog:["Dragon moves are fierce!"],facing:"right",defeated:false,party:[[27,36],[37,35]],rematchParty:[[27,52],[37,51],[58,50]],rematchDialog:["Fury is absolute!"],aiLevel:AI_ELITE});
