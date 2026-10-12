@@ -81,10 +81,11 @@ function saveGame() {
         statStages: c.statStages, confusionTurns: c.confusionTurns })),
       money: player.money, badges: player.badges, storyFlags: player.storyFlags,
       rivalName: player.rivalName, rivalStarter: player.rivalStarter, starterChoice: player.starterChoice,
-      inventory: player.inventory, stepCounter: player.stepCounter, playTime: player.playTime },
+      inventory: player.inventory, stepCounter: player.stepCounter, playTime: player.playTime,
+      defeatedTrainers: player.defeatedTrainers || []
+    },
     mapIdx: mapIdx,
-    pokedex: pokedex,
-    defeatedTrainers: currentMap ? currentMap.npcs.filter(n => n.defeated).map(n => n.name) : []
+    pokedex: pokedex
   };
   try { localStorage.setItem("minimon_save", JSON.stringify(data)); lastSaveMsg=Date.now()/1000; return true; } catch(e) { return false; }
 }
@@ -99,6 +100,7 @@ function loadGame() {
     player.money = p.money; player.badges = p.badges || []; player.storyFlags = p.storyFlags || {};
     player.rivalName = p.rivalName || "Luna"; player.rivalStarter = p.rivalStarter; player.starterChoice = p.starterChoice;
     player.inventory = p.inventory || {}; player.stepCounter = p.stepCounter || 0; player.playTime = p.playTime || 0;
+    player.defeatedTrainers = p.defeatedTrainers || [];
     player.party = (p.party || []).map(c => {
       const bc = new BattleCreature(c.dex, c.level);
       bc.xp = c.xp; bc.hp = c.hp; bc.moves = c.moves; bc.status = c.status || null;
@@ -107,11 +109,7 @@ function loadGame() {
     });
     pokedex = data.pokedex || {};
     currentMap = MAP_CREATORS[data.mapIdx || 0]();
-    if (data.defeatedTrainers) {
-      for (const npc of currentMap.npcs) {
-        if (data.defeatedTrainers.includes(npc.name)) npc.defeated = true;
-      }
-    }
+    applyTrainerFlags(currentMap, data.mapIdx || 0);
     return true;
   } catch(e) { return false; }
 }
@@ -135,9 +133,38 @@ const SHOP_ITEMS = [
 const player = {
   x:10, y:10, facing:"down", name:"Hero", party:[], money:3000, badges:[], storyFlags:{},
   rivalName:"Luna", rivalStarter:null, starterChoice:null, stepCounter:0, playTime:0,
+  defeatedTrainers:[],
   inventory:{[I_POTION]:5,[I_SPHERE]:10,[I_GSPHERE]:0,[I_USPHERE]:0,[I_MSPHERE]:0,
     [I_FHEAL]:1,[I_REVIVE]:0,[I_XATK]:0,[I_XDEF]:0}
 };
+
+/* ── Defeated trainers ─────────────────────────────────────────────────────
+   Maps are rebuilt from MAP_CREATORS every time you enter one, so a beaten
+   trainer would otherwise respawn the instant you left their map. We keep a
+   permanent record on the player instead, keyed by map + position because
+   several trainers share a name ("Gym Trainer" appears six times).
+   ───────────────────────────────────────────────────────────────────────── */
+function trainerKey(mapIdx, npc){
+  return mapIdx + "|" + (npc.name||"") + "|" + npc.x + "," + npc.y;
+}
+function currentMapIndex(){
+  if(!currentMap) return 0;
+  for(let i=0;i<MAP_CREATORS.length;i++){
+    if(MAP_CREATORS[i]().name === currentMap.name) return i;
+  }
+  return -1;
+}
+function applyTrainerFlags(map, mapIdx){
+  if(!map || !map.npcs || !player.defeatedTrainers) return;
+  for(const npc of map.npcs){
+    if(player.defeatedTrainers.indexOf(trainerKey(mapIdx, npc)) >= 0) npc.defeated = true;
+  }
+}
+function markTrainerDefeated(map, npc){
+  const idx = currentMapIndex();
+  const key = trainerKey(idx < 0 ? 0 : idx, npc);
+  if(player.defeatedTrainers.indexOf(key) < 0) player.defeatedTrainers.push(key);
+}
 function hasItem(it){return(player.inventory[it]||0)>0;}
 function addItem(it,n){player.inventory[it]=(player.inventory[it]||0)+(n||1);}
 function removeItem(it,n){if((player.inventory[it]||0)>=(n||1)){player.inventory[it]-=(n||1);return true;}return false;}
@@ -176,6 +203,7 @@ function useOverworldItem(itemName) {
     for(let i=0;i<MAP_CREATORS.length;i++){ const mm=MAP_CREATORS[i](); if(mm.name.includes('Village')||mm.name.includes('Town')){ centerMap=i; cx=10; cy=10; break; } }
     // find nearest center door position from current map
     currentMap = MAP_CREATORS[0](); player.x=10; player.y=10;
+  applyTrainerFlags(currentMap, 0);
     if(removeItem(itemName)) return "Used Escape Rope! Returned to Starter Village!";
     return "No Escape Rope!";
   }
@@ -275,6 +303,7 @@ function changeMap(idx, x, y) {
   if (idx >= 0 && idx < MAP_CREATORS.length) {
     R.triggerMapTransition();
     currentMap = MAP_CREATORS[idx](); player.x = x; player.y = y;
+    applyTrainerFlags(currentMap, idx);
   }
 }
 
@@ -473,6 +502,7 @@ function useBattleMove() {
         for (const npc of currentMap.npcs) {
           if (npc.name === battleState.trainerName) {
             npc.defeated = true;
+            markTrainerDefeated(currentMap, npc);   // survive leaving + reloading
             const reward = npc.isRematch ? Math.floor((npc.reward || 3000) * 1.5) : (npc.reward || 0);
             if (reward) { player.money += reward; battleState.addMsg("Got $" + reward + "!"); }
             if (npc.badge && !player.badges.includes(npc.badge)) {
@@ -1149,7 +1179,9 @@ function initGame() {
   player.x = 10; player.y = 10; player.facing = "down"; player.party = [];
   player.money = 3000; player.badges = []; player.storyFlags = {}; player.stepCounter = 0;
   player.inventory = {[I_POTION]:3,[I_SPHERE]:3,[I_GSPHERE]:0,[I_USPHERE]:0,[I_MSPHERE]:0,[I_FHEAL]:1,[I_REVIVE]:0,[I_XATK]:0,[I_XDEF]:0,[I_REPEL]:1};
+  player.defeatedTrainers = [];
   currentMap = MAP_CREATORS[0]();
+  applyTrainerFlags(currentMap, 0);
 }
 
 // === EVENT LISTENERS ===
