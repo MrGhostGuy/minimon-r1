@@ -37,6 +37,29 @@ function xpForLv(lv,r){return lv<=1?0:Math.floor(lv*lv*r/4)}
 function calcStat(b,lv){return Math.max(1,Math.floor(b*lv/50+5))}
 function calcHp(b,lv){return Math.max(1,Math.floor(b*2*lv/100+lv+10))}
 
+/* ── IVs and Shinies ────────────────────────────────────────────────────────
+   Every creature rolls 0-31 for each of the 6 stats. Shinies are decided by
+   those IVs, the way the real games do it: rare, but findable. Set
+   window.MM_FORCE_IVS / window.MM_FORCE_SHINY to make tests deterministic.
+   ─────────────────────────────────────────────────────────────────────────── */
+const IV_MAX = 31;
+const SHINY_ODDS = 1 / 512;
+
+function _mmRnd(){ return (typeof window !== "undefined" && window.MM_RNG) ? window.MM_RNG() : Math.random(); }
+function rollIVs(){
+  const f = (typeof window !== "undefined" && window.MM_FORCE_IVS);
+  const ivs = [];
+  for(let i=0;i<6;i++) ivs.push(f ? (f[i] == null ? IV_MAX : f[i]) : Math.floor(_mmRnd() * (IV_MAX + 1)));
+  return ivs;
+}
+// A shiny is a creature whose IVs line up; 31s in every slot is the classic look.
+function isShinyFromIVs(ivs){
+  const forced = (typeof window !== "undefined" && window.MM_FORCE_SHINY);
+  if(forced !== undefined && forced !== null) return !!forced;
+  if(!ivs || ivs.length !== 6) return false;
+  return _mmRnd() < SHINY_ODDS;
+}
+
 const SPHERE_NORMAL=1,SPHERE_GREAT=1.5,SPHERE_ULTRA=2,SPHERE_MASTER=255;
 
 // Items

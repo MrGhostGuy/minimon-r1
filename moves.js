@@ -2,9 +2,21 @@
 const PHYSICAL="physical",SPECIAL="special",STATUS="status";
 const MOVES={};
 
+/* NOTE on the argument order: most moves list their effect name in the 8th slot
+   (e.g. _m("ember",...,"burn",10) means "burn, 10% of the time"). Real move
+   priority is always a number, so a string here is an effect name, not a priority.
+   Without this split every status/stat/secondary effect in the game was dead. */
 function _m(id,nm,type,cat,power,acc,pp,pri,eff,effch){
+  let priority = 0, effect = null, effectChance = effch || 100;
+  if (typeof pri === "string" && pri) {
+    effect = pri;                    // 8th slot is the effect name
+    effectChance = (typeof eff === "number" && eff > 0) ? eff : 100;   // 9th is its chance
+  } else {
+    priority = pri || 0;             // genuinely a priority move
+    effect = (typeof eff === "string") ? eff : null;
+  }
   MOVES[id]={id,name:nm,type,category:cat,power,accuracy:acc,maxPP:pp,
-  priority:pri||0,effect:eff||null,effectChance:effch||100};
+  priority,effect,effectChance};
 }
 
 // NORMAL

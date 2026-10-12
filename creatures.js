@@ -458,3 +458,91 @@ addC(100,"Glolslime",[TYPE_NORMAL,TYPE_LIGHT],90,55,85,45,60,80,
   [[1,"body_slam"],[1,"recover"],[25,"dazzling_gleam"],[30,"moonlight"],
    [35,"hyper_beam"],[40,"flash"]],
   null,45,GROWTH_MEDIUM,[160,160,180],[200,200,220]);
+
+/* ═════════════ ABILITIES ═════════════ */
+const ABILITIES = {
+  Blaze:      { desc: 'Powers up FIRE moves when HP is low.',       tags: ['type_boost'] },
+  Torrent:    { desc: 'Powers up WATER moves when HP is low.',      tags: ['type_boost'] },
+  Overgrow:   { desc: 'Powers up GRASS moves when HP is low.',      tags: ['type_boost'] },
+  Guts:       { desc: 'Boosts ATTACK if a status problem occurs.',  tags: ['stat_boost'] },
+  HugePower:  { desc: 'Boosts the ATTACK stat.',                    tags: ['stat_boost'] },
+  ThickFat:   { desc: 'Halves FIRE and ICE damage.',               tags: ['defend'] },
+  Levitate:   { desc: 'Gives full immunity to EARTH moves.',       tags: ['immunity'] },
+  FlashFire:  { desc: 'FIRE moves are absorbed and power up.',     tags: ['immunity'] },
+  WaterAbsorb:{ desc: 'WATER moves heal instead of damage.',        tags: ['absorb'] },
+  VoltAbsorb: { desc: 'ELECTRIC moves heal instead of damage.',     tags: ['absorb'] },
+  Static:     { desc: 'Contact may paralyse the foe.',            tags: ['contact'] },
+  FlameBody:  { desc: 'Contact may burn the foe.',                 tags: ['contact'] },
+  RoughSkin:  { desc: 'Hurts a foe that makes contact.',           tags: ['contact_hurt'] },
+  Intimidate: { desc: 'Lowers the foe\'s ATTACK on entry.',        tags: ['switch_in'] },
+  Sturdy:     { desc: 'Cannot be KO\'d in one hit at full HP.',    tags: ['survive'] },
+  SwiftSwim:  { desc: 'Doubles SPEED in rain.',                    tags: ['weather_speed'] },
+  Chlorophyll:{ desc: 'Doubles SPEED in sunshine.',                 tags: ['weather_speed'] },
+  ClearBody:  { desc: 'Prevents foe\'s stat-lowering.',            tags: ['guard'] },
+  Immunity:   { desc: 'Cannot be poisoned.',                        tags: ['status_immune'] },
+  Limber:     { desc: 'Cannot be paralysed.',                       tags: ['status_immune'] },
+  Insomnia:   { desc: 'Cannot fall asleep.',                        tags: ['status_immune'] },
+  WaterVeil:  { desc: 'Cannot be burned.',                          tags: ['status_immune'] },
+  MagmaArmor: { desc: 'Cannot be frozen.',                          tags: ['status_immune'] },
+  OwnTempo:   { desc: 'Cannot be confused.',                        tags: ['status_immune'] },
+  Oblivious:  { desc: 'Cannot be infatuated.',                      tags: ['status_immune'] },
+  Pressure:   { desc: 'Foe uses more PP.',                          tags: ['pressure'] },
+  Synchronize:{ desc: 'Passes a status problem back.',              tags: ['sync'] },
+};
+
+// ---- 2. per-species assignment ----
+// Iconic hand-picked ones first; everything else gets a type-appropriate ability
+// so all 100 species have one (a creature with no ability is a hole in the dex).
+const CREATURE_ABILITIES = {
+  1:'Blaze', 2:'Torrent', 3:'Overgrow',
+  4:'Blaze', 5:'Torrent', 6:'Overgrow',
+  8:'KeenEye', 9:'SandVeil', 10:'SandVeil', 11:'Static', 12:'Static',
+  13:'SnowCloak', 14:'SnowCloak', 15:'Insomnia', 16:'Insomnia',
+  17:'Illuminate', 18:'Illuminate', 19:'Sturdy', 20:'Sturdy',
+  21:'SwiftSwim', 22:'WaterAbsorb', 23:'FlashFire', 24:'FlashFire',
+  25:'RoughSkin', 26:'RoughSkin', 27:'VoltAbsorb', 28:'VoltAbsorb',
+  29:'SandVeil', 30:'SandVeil', 31:'WaterAbsorb', 32:'WaterAbsorb',
+  33:'ShieldDust', 34:'ShieldDust', 35:'Sturdy', 36:'Sturdy',
+  37:'SnowCloak', 38:'SnowCloak', 39:'Blaze', 40:'Blaze',
+  41:'SwiftSwim', 42:'SwiftSwim', 43:'Chlorophyll', 44:'Chlorophyll',
+  45:'VoltAbsorb', 46:'VoltAbsorb', 47:'SnowCloak', 48:'SnowCloak',
+  49:'FlashFire', 50:'FlashFire', 51:'ThickFat', 52:'ThickFat',
+  53:'Levitate', 54:'Levitate', 55:'MagmaArmor', 56:'MagmaArmor',
+  57:'Hustle', 58:'Hustle', 59:'Levitate', 60:'Levitate',
+  61:'Sturdy', 62:'Sturdy', 63:'VoltAbsorb', 64:'VoltAbsorb',
+  65:'SnowCloak', 66:'SnowCloak', 67:'Levitate', 68:'Levitate',
+  69:'FlashFire', 70:'FlashFire', 71:'Levitate', 72:'Levitate',
+  73:'ThickFat', 74:'ThickFat',
+  75:'Pressure', 76:'Pressure', 77:'Pressure', 78:'Pressure',
+  79:'Pressure', 80:'Pressure',
+  86:'Pressure', 87:'Pressure', 88:'Pressure', 89:'Pressure', 90:'Pressure',
+  95:'KeenEye', 96:'KeenEye', 97:'FlashFire', 98:'FlashFire',
+  99:'StickyHold', 100:'StickyHold'
+};
+
+// a few extra abilities referenced above, defined in the same registry
+ABILITIES.KeenEye     = { desc: 'Accuracy cannot be lowered.', tags: ['guard'] };
+ABILITIES.SandVeil    = { desc: 'Evasion rises in a sandstorm.', tags: ['weather_evasion'] };
+ABILITIES.SnowCloak   = { desc: 'Evasion rises in a hailstorm.', tags: ['weather_evasion'] };
+ABILITIES.Illuminate  = { desc: 'Encounter rate goes up.', tags: ['overworld'] };
+ABILITIES.StickyHold  = { desc: 'Items cannot be removed.', tags: ['hold'] };
+ABILITIES.Hustle      = { desc: 'ATTACK is raised but accuracy falls.', tags: ['stat_boost'] };
+ABILITIES.ShieldDust  = { desc: 'Blocks added effects of moves.', tags: ['block_extra'] };
+ABILITIES.QuickFeet   = { desc: 'SPEED rises with a status problem.', tags: ['weather_speed'] };
+ABILITIES.VitalSpirit = { desc: 'Cannot fall asleep.', tags: ['status_immune'] };
+
+// fallback pool by primary type
+const TYPE_ABILITY = {
+  Fire:'Blaze', Water:'Torrent', Grass:'Overgrow', Electric:'VoltAbsorb',
+  Ice:'SnowCloak', Earth:'Sturdy', Dark:'Insomnia', Light:'KeenEye',
+  Wind:'Levitate', Spirit:'Levitate', Dragon:'RoughSkin', Normal:'Guts',
+};
+
+function abilityFor(dex){
+  const t = (typeof CREATURES !== 'undefined') ? CREATURES[dex] : null;
+  if (CREATURE_ABILITIES[dex]) return CREATURE_ABILITIES[dex];
+  if (!t || !t.types || !t.types.length) return 'Guts';
+  return TYPE_ABILITY[t.types[0]] || 'Guts';
+}
+
+// Every one of the 100 species has an ability; the type fallback fills the gaps.

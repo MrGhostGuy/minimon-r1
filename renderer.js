@@ -75,8 +75,8 @@ class Renderer {
     this.ctx.beginPath(); this.ctx.moveTo(x + off, y); this.ctx.lineTo(x + 8 + off, y + 4); this.ctx.lineTo(x + off, y + 8); this.ctx.fill();
   }
 
-  creatureSprite(x, y, size, dex, level, isEnemy) {
-    drawCreature(this.ctx, x, y, size, dex, isEnemy);
+  creatureSprite(x, y, size, dex, level, isEnemy, shiny) {
+    drawCreature(this.ctx, x, y, size, dex, isEnemy, shiny);
     if (level !== undefined) this.text(x + size / 2, y + size + 12, "Lv." + level, COL_WHITE, 11, true);
   }
 
@@ -1014,7 +1014,7 @@ class Renderer {
       if (CREATURES[e.dex] && e.dex >= 75) {
         drawLegendaryCreature(ctx, ex - 5, ey - 5, 80, e.dex, t);
       } else {
-        this.creatureSprite(ex, ey, 70, e.dex);
+        this.creatureSprite(ex, ey, 70, e.dex, undefined, false, e.shiny);
       }
       this.drawStatusGlow(ctx, ex + 35, ey + 35, e.status, t);
     }
@@ -1034,7 +1034,7 @@ class Renderer {
       if (p.dex >= 75) {
         drawLegendaryCreature(ctx, px2 - 5, py2 - 5, 105, p.dex, t);
       } else {
-        this.creatureSprite(px2, py2, 90, p.dex);
+        this.creatureSprite(px2, py2, 90, p.dex, undefined, false, p.shiny);
       }
       this.drawStatusGlow(ctx, px2 + 45, py2 + 45, p.status, t);
     }
@@ -1925,7 +1925,7 @@ class Renderer {
         ctx.globalAlpha = 0.5;
       }
 
-      this.creatureSprite(bx + 14, y + 4, 46, c.dex);
+      this.creatureSprite(bx + 14, y + 4, 46, c.dex, undefined, false, c.shiny);
 
       this.text(bx + 70, y + 16, c.name, sel2 ? COL_WHITE : COL_LGRAY, 13);
       this.text(bx + 70, y + 32, "Lv." + c.level, COL_LGRAY, 11);
@@ -2057,7 +2057,7 @@ class Renderer {
       const c = compatible[i]; const y = 65 + i * 65;
       if (i === sel) this.rect(16, y, 448, 60, COL_SELECT, 0.3);
       this.box(16, y, 448, 60, i === sel ? COL_SELECT : COL_WHITE);
-      this.creatureSprite(24, y + 5, 50, c.dex, c.level);
+      this.creatureSprite(24, y + 5, 50, c.dex, c.level, false, c.shiny);
       this.text(85, y + 20, c.name, COL_WHITE, 14);
       this.text(85, y + 36, "Lv." + c.level, COL_GRAY, 11);
       this.text(85, y + 50, c.types.join("/"), TYPE_COLORS[c.types[0]] || COL_GRAY, 11);

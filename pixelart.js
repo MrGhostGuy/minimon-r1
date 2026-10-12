@@ -3219,23 +3219,55 @@ function drawGrid(ctx,x,y,size,grid,palette){
   }
 }
 
-function drawCreature(ctx,x,y,size,dex,isEnemy){
+function drawCreature(ctx,x,y,size,dex,isEnemy,shiny){
   const grid=CREATURE_SPRITES[dex];
   if(!grid)return;
   const c=CREATURES[dex];
   if(!c)return;
-  const tc=TYPE_COLORS[c.types[0]]||[200,200,200];
-  const ac=CREATURE_ACCENT[dex]||tc;
-  const palette=[
-    [0,0,0],
-    [Math.min(255,tc[0]+80),Math.min(255,tc[1]+80),Math.min(255,tc[2]+80)],
-    tc,
-    [Math.max(0,tc[0]-60),Math.max(0,tc[1]-60),Math.max(0,tc[2]-60)],
-    [255,255,255],
-    [20,20,30],
-    ac
-  ];
+  const ac=CREATURE_ACCENT[dex]||[255,255,100];
+  let palette;
+  if(shiny){
+    // alternate scheme: gold body, crimson accent - instantly reads as special
+    const gold=[255,203,72], goldHi=[255,236,158], goldLo=[186,128,26];
+    palette=[
+      [0,0,0], goldHi, gold, goldLo, [255,255,255], [30,22,10], [214,42,52]
+    ];
+  } else {
+    const tc=TYPE_COLORS[c.types[0]]||[200,200,200];
+    const a=CREATURE_ACCENT[dex]||tc;
+    palette=[
+      [0,0,0],
+      [Math.min(255,tc[0]+80),Math.min(255,tc[1]+80),Math.min(255,tc[2]+80)],
+      tc,
+      [Math.max(0,tc[0]-60),Math.max(0,tc[1]-60),Math.max(0,tc[2]-60)],
+      [255,255,255],
+      [20,20,30],
+      a
+    ];
+  }
   drawGrid(ctx,x,y,size,grid,palette);
+  if(shiny) drawShinySparkle(ctx,x,y,size);
+}
+
+function drawShinySparkle(ctx,x,y,size){
+  // a four-point star, twinkling
+  const t=performance.now()/1000;
+  const cx=x+size/2, cy=y+size*0.34;
+  const big=size*0.30, small=size*0.052;
+  const alpha=0.45+0.45*Math.sin(t*4.2);
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle='rgba(255,255,235,.95)';
+  ctx.shadowColor='rgba(255,240,150,.95)';
+  ctx.shadowBlur=size*0.22;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-big); ctx.lineTo(cx+small,cy-small);
+  ctx.lineTo(cx+big,cy);   ctx.lineTo(cx+small,cy+small);
+  ctx.lineTo(cx,cy+big);   ctx.lineTo(cx-small,cy+small);
+  ctx.lineTo(cx-big,cy);   ctx.lineTo(cx-small,cy-small);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawLegendaryCreature(ctx,x,y,size,dex,t){

@@ -1,16 +1,22 @@
 // Minimon - Battle System
 class BattleCreature {
-  constructor(dex, level, moves, isWild) {
+  constructor(dex, level, moves, isWild, opts) {
     const t = CREATURES[dex];
     this.dex = dex; this.name = t.name; this.types = [...t.types]; this.level = level;
     this.xp = 0; this.xpNext = xpForLv(level + 1, t.growthRate);
     this.baseStats = [...t.baseStats]; this.catchRate = t.catchRate;
     this.growthRate = t.growthRate; this.color = t.color;
-    this.stats = [calcHp(t.baseStats[0], level), calcStat(t.baseStats[1], level),
-      calcStat(t.baseStats[2], level), calcStat(t.baseStats[3], level),
-      calcStat(t.baseStats[4], level), calcStat(t.baseStats[5], level)];
-    this.maxHP = this.stats[0]; this.hp = this.maxHP;
-    this.statStages = [0, 0, 0, 0, 0, 0]; this.status = null;
+    this.ability = (opts && opts.ability) ? opts.ability : abilityFor(dex);
+    // IVs (0-31 per stat) make individuals differ; shininess is decided by them.
+    this.ivs = (opts && opts.ivs) ? opts.ivs.slice() : rollIVs();
+    this.shiny = (opts && opts.shiny !== undefined) ? !!opts.shiny : isShinyFromIVs(this.ivs);
+    const iv = this.ivs;
+    this.stats = [calcHp(t.baseStats[0] + iv[0], level), calcStat(t.baseStats[1] + iv[1], level),
+      calcStat(t.baseStats[2] + iv[2], level), calcStat(t.baseStats[3] + iv[3], level),
+      calcStat(t.baseStats[4] + iv[4], level), calcStat(t.baseStats[5] + iv[5], level)];
+    this.maxHP = this.stats[0]; this.hp = (opts && opts.hp !== undefined) ? opts.hp : this.maxHP;
+    this.statStages = (opts && opts.statStages) ? opts.statStages.slice() : [0, 0, 0, 0, 0, 0];
+    this.status = (opts && opts.status !== undefined) ? opts.status : null;
     this.statusTurns = 0; this.confusionTurns = 0; this.protected = false;
     this.pendingMoves = []; this.flinched = false;
     if (moves) {
@@ -38,9 +44,9 @@ class BattleCreature {
   }
   levelUp() {
     const t = CREATURES[this.dex]; this.level++;
-    this.stats = [calcHp(t.baseStats[0], this.level), calcStat(t.baseStats[1], this.level),
-      calcStat(t.baseStats[2], this.level), calcStat(t.baseStats[3], this.level),
-      calcStat(t.baseStats[4], this.level), calcStat(t.baseStats[5], this.level)];
+    this.stats = [calcHp(t.baseStats[0] + this.ivs[0], this.level), calcStat(t.baseStats[1] + this.ivs[1], this.level),
+      calcStat(t.baseStats[2] + this.ivs[2], this.level), calcStat(t.baseStats[3] + this.ivs[3], this.level),
+      calcStat(t.baseStats[4] + this.ivs[4], this.level), calcStat(t.baseStats[5] + this.ivs[5], this.level)];
     const oldMax = this.maxHP; this.maxHP = this.stats[0]; this.hp += this.maxHP - oldMax;
     this.xpNext = xpForLv(this.level + 1, this.growthRate);
     for (const [lv, mid] of t.moves) {
@@ -91,7 +97,31 @@ function calcDamage(atk, def, mvData) {
   let crit = 1; let critChance = 0.0625; if (mv.effect === "crit_boost") critChance = 0.25;
   if (Math.random() < critChance) crit = 1.5;
   const rnd = 0.85 + Math.random() * 0.15;
-  let total = Math.floor(base * stab * eff * crit * rnd);
+  // ── ability modifiers ──────────────────────────────────────────────────
+  let abilityMod = 1, absorbHeal = 0, immune = false;
+  const aAb = atk.ability, dAb = def.ability;
+
+  // attacker-side type boosts when HP is low
+  const lowHP = atk.hp > 0 && atk.hp <= Math.floor(atk.maxHP / 3);
+  if (lowHP) {
+    if (aAb === "Blaze" && mv.type === "Fire") abilityMod *= 1.5;
+    else if (aAb === "Torrent" && mv.type === "Water") abilityMod *= 1.5;
+    else if (aAb === "Overgrow" && mv.type === "Grass") abilityMod *= 1.5;
+  }
+  // Guts / Huge Power
+  if (aAb === "Guts" && atk.status && mv.category === PHYSICAL) abilityMod *= 1.5;
+  if (aAb === "HugePower" && mv.category === PHYSICAL) abilityMod *= 2;
+
+  // defender-side: immunities and halving
+  if (mv.type === "Earth" && dAb === "Levitate") immune = true;
+  if (mv.type === "Fire" && dAb === "FlashFire") immune = true;
+  if (mv.type === "Water" && dAb === "WaterAbsorb") { immune = true; absorbHeal = Math.floor(def.maxHP / 4); }
+  if (mv.type === "Electric" && dAb === "VoltAbsorb") { immune = true; absorbHeal = Math.floor(def.maxHP / 4); }
+  if (dAb === "ThickFat" && (mv.type === "Fire" || mv.type === "Ice")) abilityMod *= 0.5;
+
+  if (immune) return [absorbHeal, absorbHeal > 0 ? "ability_absorb" : "ability_immune"];
+
+  let total = Math.floor(base * stab * eff * crit * rnd * abilityMod);
   if (eff === 0) total = 0; else total = Math.max(1, total);
   let desc = "";
   if (eff > 1) desc = "super_effective"; else if (eff > 0 && eff < 1) desc = "not_effective"; else if (eff === 0) desc = "no_effect";
@@ -99,8 +129,27 @@ function calcDamage(atk, def, mvData) {
   return [total, desc];
 }
 
+/** Speed after ability + weather, the way abilities like Swift Swim actually
+ *  change turn order. `weather` is the field state passed in by the caller. */
+function effectiveSpeed(c, weather){
+  let spd = c.getStat(STAT_SPD);
+  if (c.ability === "SwiftSwim" && weather === "rain") spd *= 2;
+  else if (c.ability === "Chlorophyll" && weather === "sun") spd *= 2;
+  else if (c.ability === "QuickFeet" && c.status) spd *= 1.5;
+  return Math.floor(spd);
+}
+
 function applyStatus(atk, def, mv) {
   if (!mv.effect) return null;
+  const ab = def.ability;
+  // status immunities from abilities
+  if (mv.effect === "burn" && (ab === "WaterVeil" || def.types.indexOf("Fire") >= 0)) return null;
+  if (mv.effect === "poison" && ab === "Immunity") return null;
+  if (mv.effect === "toxic" && ab === "Immunity") return null;
+  if ((mv.effect === "paralyze" || mv.effect === "thunder_wave") && ab === "Limber") return null;
+  if (mv.effect === "sleep" && (ab === "Insomnia" || ab === "VitalSpirit")) return null;
+  if (mv.effect === "freeze" && ab === "MagmaArmor") return null;
+  if ((mv.effect === "confuse_ray" || mv.effect === "confuse") && ab === "OwnTempo") return null;
   if (mv.effect === "recover") { const h = Math.floor(atk.maxHP / 2); atk.heal(h); return "recovered " + h + " HP"; }
   if (mv.effect === "leech") { if (!def.status && Math.random() * 100 <= mv.effectChance) { def.status = "leech_seed"; def.statusTurns = 5; return "leech_active"; } return null; }
   if (mv.effect === "atk_spd_up") { atk.statStages[1] = Math.min(6, atk.statStages[1] + 1); atk.statStages[3] = Math.min(6, atk.statStages[3] + 1); return "atk_spd_up"; }
@@ -209,7 +258,7 @@ class BattleState {
     const pMove = p.moves[playerMoveIdx], pMD = MOVES[pMove.id];
     const eMV = getAIMove(e, p, this.aiLevel !== undefined ? this.aiLevel : (this.isTrainer ? AI_TRAINER : AI_WILD));
     const eMD = MOVES[eMV.id];
-    const pSpd = p.getStat(STAT_SPD), eSpd = e.getStat(STAT_SPD);
+    const pSpd = effectiveSpeed(p), eSpd = effectiveSpeed(e);
     let first, second;
     if (pMD.priority > eMD.priority) { first = "player"; second = "enemy"; }
     else if (eMD.priority > pMD.priority) { first = "enemy"; second = "player"; }

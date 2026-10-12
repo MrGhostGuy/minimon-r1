@@ -78,7 +78,7 @@ function saveGame() {
   const data = {
     player: { x: player.x, y: player.y, facing: player.facing, name: player.name,
       party: player.party.map(c => ({ dex: c.dex, level: c.level, xp: c.xp, hp: c.hp, moves: c.moves, status: c.status,
-        statStages: c.statStages, confusionTurns: c.confusionTurns })),
+        statStages: c.statStages, confusionTurns: c.confusionTurns, ivs: c.ivs, shiny: c.shiny, ability: c.ability })),
       money: player.money, badges: player.badges, storyFlags: player.storyFlags,
       rivalName: player.rivalName, rivalStarter: player.rivalStarter, starterChoice: player.starterChoice,
       inventory: player.inventory, stepCounter: player.stepCounter, playTime: player.playTime,
@@ -102,9 +102,9 @@ function loadGame() {
     player.inventory = p.inventory || {}; player.stepCounter = p.stepCounter || 0; player.playTime = p.playTime || 0;
     player.defeatedTrainers = p.defeatedTrainers || [];
     player.party = (p.party || []).map(c => {
-      const bc = new BattleCreature(c.dex, c.level);
-      bc.xp = c.xp; bc.hp = c.hp; bc.moves = c.moves; bc.status = c.status || null;
-      bc.statStages = c.statStages || [0,0,0,0,0,0]; bc.confusionTurns = c.confusionTurns || 0;
+      const bc = new BattleCreature(c.dex, c.level, undefined, false,
+        { ivs: c.ivs, shiny: c.shiny, hp: c.hp, statStages: c.statStages, status: c.status, ability: c.ability });
+      if (c.moves) bc.moves = c.moves;
       return bc;
     });
     pokedex = data.pokedex || {};
