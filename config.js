@@ -1,6 +1,6 @@
 // Minimon - Config & Constants
 const SCREEN_W = 480, SCREEN_H = 480, FPS = 30, TILE = 24, MAP_X = 20, MAP_Y = 20;
-const STAT_HP=0,STAT_ATK=1,STAT_DEF=2,STAT_SPD=3,STAT_SATK=4,STAT_SDEF=5;
+const STAT_ATK=1,STAT_DEF=2,STAT_SPD=3,STAT_SATK=4,STAT_SDEF=5;
 
 // Virtual joystick & interact button (shared by main.js + renderer.js)
 const JOY_CX=78, JOY_CY=398, JOY_R=52, JOY_DEAD=14, JOY_ZONE=105, JOY_STEP=0.14;
@@ -9,9 +9,6 @@ const INTB_CX=240, INTB_CY=446, INTB_R=24;
 const TYPE_NORMAL="Normal",TYPE_FIRE="Fire",TYPE_WATER="Water",TYPE_GRASS="Grass",
 TYPE_ELECTRIC="Electric",TYPE_ICE="Ice",TYPE_DARK="Dark",TYPE_SPIRIT="Spirit",
 TYPE_DRAGON="Dragon",TYPE_EARTH="Earth",TYPE_WIND="Wind",TYPE_LIGHT="Light";
-
-const ALL_TYPES=[TYPE_NORMAL,TYPE_FIRE,TYPE_WATER,TYPE_GRASS,TYPE_ELECTRIC,TYPE_ICE,
-TYPE_DARK,TYPE_SPIRIT,TYPE_DRAGON,TYPE_EARTH,TYPE_WIND,TYPE_LIGHT];
 
 const TYPE_COLORS={Normal:[168,168,120],Fire:[240,128,48],Water:[104,144,240],Grass:[120,200,80],
 Electric:[248,208,48],Ice:[152,216,216],Dark:[112,88,72],Spirit:[160,96,192],
@@ -131,10 +128,7 @@ COL_LGRAY=[200,200,200],COL_RED=[220,50,50],COL_GREEN=[50,200,50],COL_BLUE=[50,1
 COL_YELLOW=[240,220,50],COL_HPG=[80,200,80],COL_HPY=[240,200,50],COL_HPR=[220,60,60],
 COL_MENUBG=[40,40,56],COL_SELECT=[80,120,200],COL_BBG=[48,48,64];
 
-const FLAG_STARTER="starter_chosen",FLAG_RIVAL="rival_met";
-const FLAG_GYM1="gym_1",FLAG_GYM2="gym_2",FLAG_GYM3="gym_3",FLAG_GYM4="gym_4",
-FLAG_GYM5="gym_5",FLAG_GYM6="gym_6",FLAG_GYM7="gym_7",FLAG_GYM8="gym_8";
-const FLAG_EVIL1="evil_1",FLAG_EVIL2="evil_2",FLAG_EVIL3="evil_3",FLAG_CHAMPION="champion";
+const FLAG_STARTER="starter_chosen";
 
 function rgb(c){return`rgb(${c[0]},${c[1]},${c[2]})`}
 function rgba(c,a){return`rgba(${c[0]},${c[1]},${c[2]},${a})`}

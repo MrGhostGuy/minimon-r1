@@ -21,10 +21,6 @@ S_TM="tm_select", S_NAME="name_input", S_ENCOUNTER="encounter",
 S_PAUSE="pause", S_BAG_CAT="bag_cat", S_PARTY_DETAIL="party_detail",
 S_MAP="map_screen";
 
-const FACING = ["down","left","up","right"];
-const FACING_CYCLE = {down:"left",left:"up",up:"right",right:"down"};
-const DPAD_CX=65, DPAD_CY=400, DPAD_R=32, DPAD_BS=26;
-
 // Virtual joystick & interact button constants live in config.js (global, shared with renderer.js)
 
 let state = S_TITLE, time = 0, cursor = 0, running = true;
@@ -42,21 +38,16 @@ let encounterTimer = 0, encounterData = null, encounterType = "wild";
 const NAME_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 let pokedex = {};
 let isSprinting = false;
-let stepTimer = 0;
 let walkPhase = 0;      // increments on every successful step -> drives walk animation
 let lastMoveTime = -10; // last time the player actually moved (for idle detection)
-const STEP_DELAY_NORMAL = 0.15;
-const STEP_DELAY_SPRINT = 0.08;
 // Pause menu state
 let bagTab = 0;
 let partyDetailIdx = 0;
 let partyMode = "select"; // "select" or "swap"
 let pendingUseItem = null; // item being used from overworld bag
-let pauseReturnState = S_OW;
 let repelUsedInStarter = false; // Easter egg flag
 let starterLegendaryOptions = [75, 76, 77]; // Default legendary starters
 let bagReturnState = S_OW; // Track where to return from bag
-let menuOpenTime = 0; // Relative time when menu was opened
 function pokedexSee(dex) { if (!pokedex[dex]) pokedex[dex] = { seen: true, caught: false }; else pokedex[dex].seen = true; }
 function pokedexCatch(dex) { pokedexSee(dex); if (pokedex[dex]) pokedex[dex].caught = true; }
 

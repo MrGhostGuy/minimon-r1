@@ -415,7 +415,6 @@ function createChampionArena(){
 }
 
 // ===== INTERIOR MAPS =====
-const INTERIOR_MAPS_START = 12;
 
 function createPokemonCenterInterior(exteriorMapIdx, exitX, exitY){
   const m=makeMap(12,10,"Pokémon Center",0.0);
