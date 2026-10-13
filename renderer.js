@@ -2326,22 +2326,30 @@ class Renderer {
       this.text(bxx + 18, byy + 10, badgeNames[i], has ? COL_BLACK : [80, 90, 110], 7, true);
     }
 
-    const opts = ["Party","Bag","Minidex","Save","Load","Map","Close"];
-    const menuStartY = by + 132;
-    const optH = 44;
+    const opts = ["Party","Bag","Minidex","Save","Load","Delete Save","Map","Close"];
+    const menuStartY = by + 128;
+    const optH = 38;          // 8 items must still clear the panel edge
+    const deleteDanger = opts.indexOf("Delete Save") === cursor;
 
     for (let i = 0; i < opts.length; i++) {
       const oy = menuStartY + i * optH;
       const sel = i === cursor;
 
+      const isDelete = opts[i] === "Delete Save";
       if (sel) {
         const selGrad = ctx.createLinearGradient(bx + 10, oy, bx + bw - 10, oy);
-        selGrad.addColorStop(0, rgba([200, 180, 40], 0.15));
-        selGrad.addColorStop(0.5, rgba([200, 180, 40], 0.3));
-        selGrad.addColorStop(1, rgba([200, 180, 40], 0.15));
+        if (isDelete) {
+          selGrad.addColorStop(0, rgba([200, 60, 50], 0.16));
+          selGrad.addColorStop(0.5, rgba([200, 60, 50], 0.32));
+          selGrad.addColorStop(1, rgba([200, 60, 50], 0.16));
+        } else {
+          selGrad.addColorStop(0, rgba([200, 180, 40], 0.15));
+          selGrad.addColorStop(0.5, rgba([200, 180, 40], 0.3));
+          selGrad.addColorStop(1, rgba([200, 180, 40], 0.15));
+        }
         ctx.fillStyle = selGrad;
         ctx.fillRect(bx + 10, oy + 2, bw - 20, optH - 6);
-        ctx.strokeStyle = rgb(COL_YELLOW); ctx.lineWidth = 2;
+        ctx.strokeStyle = rgb(isDelete ? [230, 110, 100] : COL_YELLOW); ctx.lineWidth = 2;
         ctx.strokeRect(bx + 10, oy + 2, bw - 20, optH - 6);
       }
 
@@ -2354,7 +2362,8 @@ class Renderer {
       ctx.fillStyle = rgb(sel ? COL_WHITE : COL_GRAY);
       ctx.beginPath(); ctx.arc(pokeX, pokeY, 2, 0, Math.PI * 2); ctx.fill();
 
-      this.text(bx + 46, oy + 22, opts[i], sel ? COL_YELLOW : COL_WHITE, 14);
+      this.text(bx + 46, oy + 22, opts[i],
+        sel ? (isDelete ? [230, 110, 100] : COL_YELLOW) : (isDelete ? [200, 120, 115] : COL_WHITE), 14);
 
       if (sel) this.menuCursor(bx + 14, oy + 12, t);
     }

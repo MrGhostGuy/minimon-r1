@@ -723,12 +723,17 @@ function selectTMCreature() {
 
 // Menu handlers
 function selectPauseMenu() {
-  const opts = ["Party","Bag","Minidex","Save","Load","Map","Close"];
+  const opts = ["Party","Bag","Minidex","Save","Load","Delete Save","Map","Close"];
   const choice = opts[cursor];
   if (choice === "Party") { state = S_PARTY; cursor = 0; partyMode = "select"; }
   else if (choice === "Bag") { bagReturnState = S_PAUSE; state = S_BAG_CAT; bagTab = 0; cursor = BAG_TABS.length; }
   else if (choice === "Save") { state = S_DIALOG; if (saveGame()) setDialog(["Game saved!"]); else setDialog(["Save failed!"]); }
   else if (choice === "Load") { if (loadGame()) { state = S_DIALOG; setDialog(["Game loaded!"]); } else { state = S_DIALOG; setDialog(["No save found!"]); } }
+  else if (choice === "Delete Save") {
+    deleteSave();
+    state = S_DIALOG;
+    setDialog(["Save deleted.", "Restart to play again."]);
+  }
   else if (choice === "Minidex") { state = "pokedex"; cursor = 0; }
   else if (choice === "Map") { state = S_MAP; cursor = 0; }
   else if (choice === "Close") { state = S_OW; }
@@ -899,10 +904,10 @@ function handleClick(button, mx, my) {
     }
   }
   else if (state === S_PAUSE && button === 1) {
-    const opts = ["Party","Bag","Minidex","Save","Load","Map","Close"];
+    const opts = ["Party","Bag","Minidex","Save","Load","Delete Save","Map","Close"];
     for (let i = 0; i < opts.length; i++) {
-      const oy = 142 + i * 44;
-      if (mx >= 40 && mx <= 440 && my >= oy && my <= oy + 44) { cursor = i; selectPauseMenu(); return; }
+      const oy = 128 + i * 38;
+      if (mx >= 40 && mx <= 440 && my >= oy && my <= oy + 38) { cursor = i; selectPauseMenu(); return; }
     }
   }
   else if (state === S_PAUSE && button === 3) { selectPauseMenu(); }
@@ -1100,6 +1105,31 @@ function handleKeyDown(key) {
     if (key === "Escape") state = S_OW;
     else if (key === "Enter" || key === " ") selectPauseMenu();
   } else if (state === "pokedex") { if (key === "Escape") { state = S_PAUSE; cursor = 1; } }
+  else if (state === S_PARTY && key === "Enter") {
+    if (partyMode === "use" && pendingUseItem) {
+      // pick this party member to use the item on
+      const c = player.party[cursor];
+      if (c) {
+        const isRevive = [I_REVIVE, I_FREVIVE].includes(pendingUseItem);
+        const isPotion = [I_POTION, I_SPOTION, I_HPOTION].includes(pendingUseItem);
+        if (isRevive && c.isAlive()) { state = S_DIALOG; setDialog([c.name + " isn't fainted!"]); pendingUseItem = null; partyMode = "select"; }
+        else if (isPotion && (!c.isAlive() || c.hp >= c.maxHP)) { state = S_DIALOG; setDialog([c.name + " doesn't need healing!"]); pendingUseItem = null; partyMode = "select"; }
+        else { const msg = applyOverworldItem(pendingUseItem, c); pendingUseItem = null; partyMode = "select"; if (msg) dialogLog.push(msg); }
+      }
+    } else if (partyMode === "swap") {
+      // swap the highlighted member with the one we came from
+      const from = partyDetailIdx;
+      if (cursor !== from && player.party[cursor] && player.party[from]) {
+        const t = player.party[from];
+        player.party[from] = player.party[cursor];
+        player.party[cursor] = t;
+        partyMode = "select";
+        saveGame();
+      }
+    } else {
+      selectParty();          // open the detail view
+    }
+  }
   else if (state === S_PARTY && key === "Escape") {
     if (partyMode === "use" || partyMode === "swap") partyMode = "select";
     else state = S_PAUSE;
