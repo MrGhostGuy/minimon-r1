@@ -166,7 +166,7 @@ function applyStatus(atk, def, mv) {
     const chance = mv.effectChance ? mv.effectChance : 30;
     if (Math.random() * 100 <= chance) {
       def.status = mv.effect;
-      const durations = { sleep: 1+Math.floor(Math.random()*3), freeze: 2+Math.floor(Math.random()*4), paralysis: 2+Math.floor(Math.random()*3), burn: 4, poison: 5 };
+      const durations = { sleep: 1+Math.floor(Math.random()*3), freeze: 2+Math.floor(Math.random()*4), paralyze: 2+Math.floor(Math.random()*3), paralysis: 2+Math.floor(Math.random()*3), burn: 4, poison: 5 };
       def.statusTurns = durations[mv.effect] || 1;
       return "status_" + mv.effect;
     }
@@ -180,10 +180,18 @@ function applyStatus(atk, def, mv) {
 function attemptCatch(def, sphereType, statusMultiplier) {
   const rate = def.catchRate;
   const hpF = (3 * def.maxHP - 2 * def.hp) / (3 * def.maxHP);
-  // Sphere multipliers: Normal=1, Great=1.5, Ultra=2, Master=255
-  const sphereMult = {normal: 1, great: 1.5, ultra: 2, master: 255}[sphereType] || 1;
-  // Status multipliers: None=1, Burn/Poison=1.5, Paralysis=2, Freeze=2, Sleep=2.5
-  const statusMod = {none: 1, burn: 1.5, poison: 1.5, paralysis: 2, freeze: 2, sleep: 2.5}[statusMultiplier] || 1;
+  // sphereType is usually the sphere's display name ("Great Sphere"), so key the
+  // table by that - a lowercase key or a raw numeric multiplier is also accepted.
+  const SPHERE_MULT = {
+    "soul sphere": 1, "great sphere": 1.5, "ultra sphere": 2, "master sphere": 255,
+    normal: 1, great: 1.5, ultra: 2, master: 255
+  };
+  const sphereMult = (typeof sphereType === "number")
+    ? sphereType
+    : (SPHERE_MULT[String(sphereType).toLowerCase()] || 1);
+  // Status multipliers, keyed by the status strings the battle engine sets
+  // (note: "paralyze", not "paralysis").
+  const statusMod = {none: 1, burn: 1.5, poison: 1.5, paralyze: 2, paralysis: 2, freeze: 2, sleep: 2.5}[statusMultiplier] || 1;
   let chance = rate * hpF * sphereMult * statusMod / 255;
   chance = Math.min(0.95, Math.max(0.05, chance));
   let shakes = 0;
@@ -349,7 +357,7 @@ class BattleState {
         c.statusTurns--;
         // Handle status removal after turns expire
         if (c.statusTurns <= 0) {
-          const w = { burn: "burned", freeze: "frozen", paralysis: "paralyzed", poison: "poisoned", sleep: "put to sleep" };
+          const w = { burn: "burned", freeze: "frozen", paralyze: "paralyzed", paralysis: "paralyzed", poison: "poisoned", sleep: "put to sleep" };
           this.messageQueue.push(c.name + " recovered from " + (w[c.status] || c.status) + "!"); c.status = null; c.statusTurns = 0;
         } else if (c.status === "burn") { const d = Math.max(1, Math.floor(c.maxHP / 16)); c.takeDamage(d); this.messageQueue.push(c.name + " is hurt by its burn!"); }
         else if (c.status === "poison") { const d = Math.max(1, Math.floor(c.maxHP / 8)); c.takeDamage(d); this.messageQueue.push(c.name + " is hurt by poison!"); }
