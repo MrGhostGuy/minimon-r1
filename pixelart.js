@@ -2410,9 +2410,45 @@ function genMinimonGrid(dex){
   return crRows(g);
 }
 // ===== MAP CREATURES TO SPRITES =====
+// Each hand-drawn sprite was authored row by row with its own leading/trailing
+// dot padding, so rows are NOT all the same length. The renderer frames a grid
+// by its first row's width, which would crop the wider rows, so first centre
+// every row within the widest row, then crop to the bounding box of non-blank
+// cells so the sprite fills its draw box at its true aspect ratio.
+function normaliseCreatureGrid(rows){
+  if(!Array.isArray(rows)||!rows.length)return rows;
+  let w=0; for(const r of rows) if(r.length>w)w=r.length;
+  const padded=rows.map(r=>{ const pad=w-r.length, l=pad>>1; return '.'.repeat(l)+r+'.'.repeat(pad-l); });
+  let minR=Infinity,maxR=-1,minC=Infinity,maxC=-1;
+  for(let r=0;r<padded.length;r++){
+    const line=padded[r];
+    for(let c=0;c<w;c++){
+      if(line[c]!=='.'){ if(r<minR)minR=r; if(r>maxR)maxR=r; if(c<minC)minC=c; if(c>maxC)maxC=c; }
+    }
+  }
+  if(maxR<0)return padded;
+  return padded.slice(minR,maxR+1).map(r=>r.slice(minC,maxC+1));
+}
+// dex 1-100, in order - the hand-drawn set that predates genMinimonGrid.
+const CREATURE_SPRITE_FNS=[null,
+  emberpup,aquapup,sproutling,infernash,tidaloom,terralith,flutterwisp,galewing,burrowmole,diggernaut,
+  sparkitten,voltraith,frostkit,glacius,shadeling,duskfang,lumibug,radiantis,pebblit,boulderon,
+  pondling,nessiel,wispflame,infernospirit,thornling,briarvain,zappling,voltvine,sandswirl,dustvortex,
+  coralbit,reefguard,gloomoth,dreadmoth,ironclad,titanforge,frosthorn,glacitaur,emberscale,drakonfire,
+  tidecrest,leviathorn,leafshade,spirifleur,sparkviper,voltsnake,crystalwing,auroragon,flametail,solarfox,
+  bulktank,megadrill,mistral,phantastorm,magmaclaw,infernolith,voidmaw,abyssaldrake,celestine,astraldrake,
+  stoneheart,golemsolar,tempestrix,stormwing,frostwyrm,cryodrake,nightmare,phantasmal,blazewolf,infernolf,
+  seraphwing,seraphdrake,warhammer,titanclash,solarius,lunara,terrageist,typhollow,stormheart,ignisoul,
+  aquafang,leafclaw,hydralisk,verdantmaw,mystery,celestior,abyssora,pyraxis,tidalon,mythos,
+  bugmoth,dreadwing,toxifin,scorpox,skylark,hawkreign,flamouse,pyromice,slickslime,glolslime
+];
 function initCreatureSprites(){
   const S=CREATURE_SPRITES;
-  for(let i=1;i<=100;i++){ if(CREATURES[i]) S[i]=genMinimonGrid(i); }
+  for(let i=1;i<=100;i++){
+    if(!CREATURES[i])continue;
+    const fn=CREATURE_SPRITE_FNS[i];
+    S[i]=(typeof fn==='function')?normaliseCreatureGrid(fn()):genMinimonGrid(i);
+  }
 }
 
 
