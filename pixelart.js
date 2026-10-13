@@ -2026,11 +2026,6 @@ function crEyesSmall(g,y,x1,x2){
   crSet(g,x1,y,'4'); crSet(g,x2,y,'4');
   crSet(g,x1,y+1,'5'); crSet(g,x2,y+1,'5');
 }
-function crSmile(g,y,x){
-  crSet(g,x,y,'3'); crSet(g,x+1,y,'3'); crSet(g,x+2,y,'3');
-  crSet(g,x-1,y-1,'3'); crSet(g,x+3,y-1,'3');
-}
-
 /* ── body archetypes ──
    Each draws the silhouette (no outline). Features are added afterwards.   */
 const CR_BODIES = {
@@ -2542,36 +2537,6 @@ function drawHead(grid, x, y, colorSkin, colorHair, isMale){
     fillRect(grid, x+6, y+4, 2, 4, colorHair);
     fillRect(grid, x+2, y+6, 4, 3, colorHair);
   }
-}
-
-// Draw torso
-function drawTorso(grid, x, y, w, h, colorShirt, colorAccent){
-  fillRect(grid, x, y, w, h, colorShirt);
-  // Buttons/designs on torso
-  for(let i=0;i<3;i++){
-    fillRect(grid, x+3+i*4, y+3, 3, 3, 6); // mid highlights
-  }
-}
-
-// Draw legs
-function drawLegs(grid, x, y, colorPants, colorShoes){
-  // Pants
-  fillRect(grid, x, y, 8, 12, colorPants);
-  // Shoes
-  fillRect(grid, x+1, y+12, 6, 4, colorShoes);
-  // Feet details
-  fillRect(grid, x+1, y+15, 2, 2, 6);
-  fillRect(grid, x+5, y+15, 2, 2, 6);
-}
-
-// Draw arms
-function drawArms(grid, x, y, colorSleeve, colorSkin){
-  // Upper arm
-  fillRect(grid, x, y, 4, 8, colorSleeve);
-  // Lower arm / hand
-  fillRect(grid, x+1, y+8, 3, 4, colorSkin);
-  // Hand
-  fillRect(grid, x+2, y+10, 2, 3, colorSkin);
 }
 
 // ====== PROCEDURAL NPC SPRITE GENERATION ======

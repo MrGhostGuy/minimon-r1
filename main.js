@@ -170,8 +170,6 @@ function addItem(it,n){player.inventory[it]=(player.inventory[it]||0)+(n||1);}
 function removeItem(it,n){if((player.inventory[it]||0)>=(n||1)){player.inventory[it]-=(n||1);return true;}return false;}
 function addCreature(c){if(player.party.length<6){player.party.push(c);return true;}return false;}
 function aliveParty(){return player.party.filter(c=>c.isAlive());}
-function bestSphere(){if(hasItem(I_MSPHERE))return[I_MSPHERE,SPHERE_MASTER];if(hasItem(I_USPHERE))return[I_USPHERE,SPHERE_ULTRA];if(hasItem(I_GSPHERE))return[I_GSPHERE,SPHERE_GREAT];if(hasItem(I_SPHERE))return[I_SPHERE,SPHERE_NORMAL];return[null,0];}
-
 // Bag tab definitions
 const BAG_TABS = [
   { name: "Medicine", items: ["Potion","Super Potion","Hyper Potion","Full Heal","Revive","Full Revive"] },
@@ -744,34 +742,6 @@ function selectParty() {
     partyDetailIdx = cursor;
     state = S_PARTY_DETAIL; cursor = 0;
   }
-}
-
-function useItem() {
-  const items = Object.entries(player.inventory).filter(([, v]) => v > 0);
-  if (cursor >= items.length) return;
-  const [name] = items[cursor];
-  if ([I_POTION,I_SPOTION,I_HPOTION].includes(name)) {
-    if (player.party.length) {
-      const amt = { [I_POTION]:20, [I_SPOTION]:60, [I_HPOTION]:200 }[name];
-      for (const c of player.party) {
-        if (c.hp < c.maxHP) {
-          if (removeItem(name)) { c.heal(amt); setDialog(["Used " + name + " on " + c.name + "! Healed " + amt + " HP!"]); }
-          else setDialog(["No " + name + " left!"]);
-          state = S_DIALOG; return;
-        }
-      }
-      setDialog(["All Minis are at full health!"]);
-    } else setDialog(["No Minis to heal!"]);
-  } else if (name === I_FHEAL) {
-    for (const c of player.party) { c.status = null; c.confusionTurns = 0; }
-    removeItem(name); setDialog(["All status conditions cured!"]);
-  } else if (ALL_TM.includes(name)) { useTM(name); return; }
-  else if ([I_REVIVE,I_FREVIVE].includes(name)) {
-    const fainted = player.party.filter(c => !c.isAlive());
-    if (fainted.length) { const hp = name === I_REVIVE ? 1 : fainted[0].maxHP; if (removeItem(name)) setDialog([fainted[0].name + " revived!"]); }
-    else setDialog(["No fainted Minis!"]);
-  }   else setDialog([name + " can only be used in battle!"]);
-  state = S_DIALOG;
 }
 
 function buyItem() {

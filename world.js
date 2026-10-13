@@ -24,11 +24,6 @@ function placeBuilding(m, bx, by, bw, bh, doorOff, topTile){
   const dx=bx+doorOff, dy=by+bh-1; setT(m,dx,dy,TILE_DOOR); return {doorX:dx, doorY:dy};
 }
 function decoFlowers(m, pts){ for(const [x,y] of pts){ if(getT(m,x,y)===TILE_GRASS) setT(m,x,y,TILE_TGRASS); } }
-function pathWithBorder(m, x1,y1,x2,y2){
-  fillRect(m,x1,y1,x2,y2,TILE_PATH);
-  // add grass border detail - leave as path, surrounding stays grass
-}
-
 // Seeded random for map generation
 let _seed=12345;
 function srand(s){_seed=s;}

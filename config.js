@@ -60,8 +60,6 @@ function isShinyFromIVs(ivs){
   return _mmRnd() < SHINY_ODDS;
 }
 
-const SPHERE_NORMAL=1,SPHERE_GREAT=1.5,SPHERE_ULTRA=2,SPHERE_MASTER=255;
-
 // Items
 const I_POTION="Potion",I_SPOTION="Super Potion",I_HPOTION="Hyper Potion",I_FHEAL="Full Heal",
 I_SPHERE="Soul Sphere",I_GSPHERE="Great Sphere",I_USPHERE="Ultra Sphere",I_MSPHERE="Master Sphere",
