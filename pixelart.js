@@ -2441,10 +2441,11 @@ function initCreatureSprites(){
   const S=CREATURE_SPRITES;
   for(let i=1;i<=100;i++){
     if(!CREATURES[i])continue;
+    // v2 hand-drawn sprites (Pokemon GB/DS style, validated 16x16) take priority
+    if(typeof MINIMON_SPRITES_V2!=="undefined"&&MINIMON_SPRITES_V2[i]){S[i]=MINIMON_SPRITES_V2[i];continue;}
     const fn=CREATURE_SPRITE_FNS[i];
     S[i]=(typeof fn==='function')?normaliseCreatureGrid(fn()):genMinimonGrid(i);
-  }
-}
+  }}
 
 
 

@@ -28,7 +28,7 @@ let currentMap = null, dialogQueue = [], dialogCurrent = "", dialogSpeaker = "";
 let pendingEvolution = null, pendingStarter = null, pendingTrainer = null, pendingGym = null;
 let pendingHealer = false, pendingTrade = null, pendingMoveLearn = null, pendingTM = null;
 let pendingNameInput = false;
-let battleState = null, battlePhase = "select";
+let battleState = null, battlePhase = "menu";
 let shopCursor = 0;
 let nameInput = "", nameCursor = 0;
 
@@ -751,7 +751,7 @@ function handleScroll(dir) {
   else if (state === S_NAME) { nameCursor = (nameCursor + dir + 29) % 29; }
   else if (state === S_BATTLE) {
     if (battlePhase === "message") nextBattleMsg();
-    else if (battlePhase === "select") cursor = Math.max(0, Math.min(3, cursor + dir));
+    else if (battlePhase === "menu") cursor = Math.max(0, Math.min(3, cursor + dir));
     else if (battlePhase === "moves") { const m = battleState.player.moves; cursor = Math.max(0, Math.min(m.length - 1, cursor + dir)); }
     else if (battlePhase === "party") cursor = Math.max(0, Math.min(player.party.length - 1, cursor + dir));
     else if (battlePhase === "bag") { const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE,I_XATK,I_XDEF].includes(k)); cursor = Math.max(0, Math.min(items.length - 1, cursor + dir)); }
@@ -826,13 +826,14 @@ function handleClick(button, mx, my) {
   else if (state === S_BATTLE) {
     if (button === 1) {
       if (battlePhase === "message") nextBattleMsg();
-      else if (battlePhase === "select") {
+      else if (battlePhase === "menu") {
         // Tap-to-select battle actions
         const acts = ["Fight","Bag","Party","Run"];
         for (let i = 0; i < 4; i++) {
           const ax = 30 + (i % 2) * 230, ay = 415 + Math.floor(i / 2) * 28;
           if (mx >= ax - 6 && mx <= ax + 96 && my >= ay - 4 && my <= ay + 20) { cursor = i; selectBattleAction(); return; }
         }
+        // Tapping the message/info area (not a button) also confirms the cursor
         selectBattleAction();
       }
       else if (battlePhase === "moves") {
@@ -858,7 +859,7 @@ function handleClick(button, mx, my) {
       }
     } else if (button === 3) {
       if (battlePhase === "message") nextBattleMsg();
-      else if (battlePhase === "select") selectBattleAction();
+      else if (battlePhase === "menu") selectBattleAction();
       else if (battlePhase === "moves") useBattleMove();
       else if (battlePhase === "party") switchBattleCreature();
       else if (battlePhase === "bag") useBattleItem();
@@ -1057,7 +1058,7 @@ function handleKeyDown(key) {
     if (key === "Escape") { if (["moves","party","bag"].includes(battlePhase)) { battlePhase = "menu"; cursor = 0; } }
     else if (key === "Enter" || key === " ") {
       if (battlePhase === "message") nextBattleMsg();
-      else if (battlePhase === "select") selectBattleAction();
+      else if (battlePhase === "menu") selectBattleAction();
       else if (battlePhase === "moves") useBattleMove();
       else if (battlePhase === "party") switchBattleCreature();
       else if (battlePhase === "bag") useBattleItem();
@@ -1181,7 +1182,7 @@ function screenToCanvas(clientX, clientY) {
   return { x: (clientX - r.left) / (r.width / SCREEN_W), y: (clientY - r.top) / (r.height / SCREEN_H) };
 }
 function onWheel(e) { e.preventDefault(); if (scrollCD <= 0) { handleScroll(e.deltaY > 0 ? 1 : -1); scrollCD = 0.15; } }
-function onMouseDown(e) { e.preventDefault(); const p = screenToCanvas(e.clientX, e.clientY); handleClick(e.button, p.x, p.y); }
+function onMouseDown(e) { e.preventDefault(); const p = screenToCanvas(e.clientX, e.clientY); handleClick(e.button === 0 ? 1 : e.button, p.x, p.y); }
 
 let touchStart = null;
 function joystickZone(x, y) {
