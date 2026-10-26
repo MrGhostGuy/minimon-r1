@@ -266,6 +266,7 @@ class BattleState {
     const pMove = p.moves[playerMoveIdx], pMD = MOVES[pMove.id];
     const eMV = getAIMove(e, p, this.aiLevel !== undefined ? this.aiLevel : (this.isTrainer ? AI_TRAINER : AI_WILD));
     const eMD = MOVES[eMV.id];
+    this._eMoveType = eMD ? eMD.type : null; // for enemy-attack FX
     const pSpd = effectiveSpeed(p), eSpd = effectiveSpeed(e);
     let first, second;
     if (pMD.priority > eMD.priority) { first = "player"; second = "enemy"; }
@@ -273,6 +274,7 @@ class BattleState {
     else if (pSpd >= eSpd) { first = "player"; second = "enemy"; }
     else { first = "enemy"; second = "player"; }
     const log = [];
+    const pHP0 = p.hp, eHP0 = e.hp; // for per-side damage FX
     p.flinched = false; e.flinched = false;
     p.protected = false; e.protected = false;
 
@@ -350,6 +352,8 @@ class BattleState {
       }
     }
     this.messageQueue.push(...log); this.turn++;
+    this._pDmg = Math.max(0, eHP0 - e.hp);   // damage the player dealt this turn
+    this._eDmg = Math.max(0, pHP0 - p.hp);   // damage the enemy dealt this turn
     // End-of-turn status
     for (const c of [this.player, this.enemy]) {
       if (c && c.isAlive() && c.status) {

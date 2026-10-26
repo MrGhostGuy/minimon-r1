@@ -463,23 +463,30 @@ function useBattleMove() {
   const p = battleState.player; const mv = p.moves[cursor];
   if (mv.pp <= 0) { battleState.addMsg("No PP left!"); battlePhase = "message"; return; }
   const e = battleState.enemy;
-  const eX = 370, eY = 130; // enemy position for effects
-  const pX = 90, pY = 220; // player position for effects
+  const eX = 360, eY = 115; // enemy sprite center for effects
+  const pX = 100, pY = 260; // player sprite center for effects
   // Store which move was used for effects
   const moveData = MOVES[mv.id];
   battleState._lastMoveType = moveData ? moveData.type : null;
   battleState._lastTarget = "enemy";
   battleState.executeTurn(cursor);
-  // Trigger effects based on result
-  if (moveData && moveData.category !== STATUS) {
+  const allMsgs = battleState.messageQueue.join(" ");
+  // Player attack FX (with real damage number)
+  if (moveData && moveData.category !== STATUS && battleState._pDmg > 0) {
     const eff = typeEff(moveData.type, e.types);
-    const lastEffect = battleState.messageQueue.length > 0 ? battleState.messageQueue[battleState.messageQueue.length - 1] : "";
-    const isCrit = lastEffect.includes("Critical") || (battleState._lastEffect && battleState._lastEffect.includes("critical"));
-    R.triggerAttackFX(moveData.type, eX, eY, isCrit, eff);
-    R.addDamageNum(eX, eY - 20, "", eff > 1 ? "super_effective" : (eff < 1 ? "not_effective" : "normal"));
+    const isCrit = allMsgs.includes("Critical hit!") || (battleState._lastEffect && battleState._lastEffect.includes("critical"));
+    R.triggerAttackFX(moveData.type, eX, eY, isCrit, eff, battleState._pDmg);
     if (isCrit) { R.triggerFreeze(5); R.triggerCriticalHitText(); }
     if (eff > 1) { R.triggerCombo(); }
     else { R.comboCount = 0; }
+  } else if (moveData && moveData.category === STATUS) {
+    // Status moves get a gentle shimmer at the target
+    R.addParticles(eX, eY, "light", 4, R.tNow);
+  }
+  // Enemy attack FX - hits the player's side too
+  if (battleState._eDmg > 0 && battleState._eMoveType && p.isAlive()) {
+    const effE = typeEff(battleState._eMoveType, p.types);
+    R.triggerAttackFX(battleState._eMoveType, pX, pY, false, effE, battleState._eDmg);
   }
   if (!battleState.enemy.isAlive()) {
     R.triggerShake(8, 0.3);
@@ -1863,6 +1870,14 @@ if (location.hash === "#test") {
     setInventory: (o) => { Object.assign(player.inventory, o); },
     setBattlePhase: (ph, cur) => { battlePhase = ph; if (cur != null) cursor = cur; }
   };
+  window.__fx = () => ({
+    particles: R.particles.length, dmgNums: R.damageNums.length,
+    dmgTexts: R.damageNums.map(d => d.text), shake: R.shakeDur > 0,
+    pDmg: battleState ? battleState._pDmg : null, eDmg: battleState ? battleState._eDmg : null,
+    eMoveType: battleState ? battleState._eMoveType : null,
+    playerHp: battleState && battleState.player ? battleState.player.hp : null,
+    enemyHp: battleState && battleState.enemy ? battleState.enemy.hp : null
+  });
 }
 
 })();

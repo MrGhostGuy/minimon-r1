@@ -949,6 +949,7 @@ class Renderer {
   // ===== BATTLE SCENE - Minimon RSE/FRLG Style =====
   battleScene(p, e, t) {
     const ctx = this.ctx;
+    this.tNow = t; // safe time source for particle spawning outside this scope
     ctx.save();
     if (this.shakeDur > 0) {
       ctx.translate(this.shakeX, this.shakeY);
@@ -1010,7 +1011,9 @@ class Renderer {
 
     // Enemy Mini (top-right area)
     if (e) {
-      const bob = Math.sin(t * 2) * 3;
+      const floaty = e.types && (e.types[0] === TYPE_SPIRIT || e.types[0] === TYPE_WIND || e.types[0] === TYPE_LIGHT);
+      const heavy = e.types && e.types[0] === TYPE_EARTH;
+      const bob = Math.sin(t * (floaty ? 1.5 : 2)) * (floaty ? 5 : heavy ? 1.5 : 3);
       const ex = 325, ey = 80 + Math.floor(bob);
       // Shadow
       ctx.save();
@@ -1019,18 +1022,26 @@ class Renderer {
       ctx.beginPath(); ctx.ellipse(ex + 35, 168, 30, 8, 0, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.restore();
-      // Sprite
+      // Sprite (slimes jiggle)
       if (CREATURES[e.dex] && e.dex >= 75) {
         drawLegendaryCreature(ctx, ex - 5, ey - 5, 80, e.dex, t);
+      } else if (e.dex === 99 || e.dex === 100) {
+        const sq = 1 + Math.sin(t * 6) * 0.06, st = 1 - Math.sin(t * 6) * 0.06;
+        ctx.save(); ctx.translate(ex + 35, ey + 55); ctx.scale(sq, st); ctx.translate(-(ex + 35), -(ey + 55));
+        this.creatureSprite(ex, ey, 70, e.dex, undefined, false, e.shiny);
+        ctx.restore();
       } else {
         this.creatureSprite(ex, ey, 70, e.dex, undefined, false, e.shiny);
       }
       this.drawStatusGlow(ctx, ex + 35, ey + 35, e.status, t);
+      this.creatureAura(ctx, ex + 35, ey + 35, 70, e.dex, t);
     }
 
     // Player Mini (bottom-left area)
     if (p) {
-      const bob = Math.sin(t * 2 + 1) * 3;
+      const floaty = p.types && (p.types[0] === TYPE_SPIRIT || p.types[0] === TYPE_WIND || p.types[0] === TYPE_LIGHT);
+      const heavy = p.types && p.types[0] === TYPE_EARTH;
+      const bob = Math.sin(t * (floaty ? 1.5 : 2) + 1) * (floaty ? 5 : heavy ? 1.5 : 3);
       const px2 = 55, py2 = 215 + Math.floor(bob);
       // Shadow
       ctx.save();
@@ -1039,13 +1050,19 @@ class Renderer {
       ctx.beginPath(); ctx.ellipse(px2 + 45, 325, 40, 10, 0, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.restore();
-      // Sprite
+      // Sprite (slimes jiggle)
       if (p.dex >= 75) {
         drawLegendaryCreature(ctx, px2 - 5, py2 - 5, 105, p.dex, t);
+      } else if (p.dex === 99 || p.dex === 100) {
+        const sq = 1 + Math.sin(t * 6 + 1) * 0.06, st = 1 - Math.sin(t * 6 + 1) * 0.06;
+        ctx.save(); ctx.translate(px2 + 45, py2 + 70); ctx.scale(sq, st); ctx.translate(-(px2 + 45), -(py2 + 70));
+        this.creatureSprite(px2, py2, 90, p.dex, undefined, false, p.shiny);
+        ctx.restore();
       } else {
         this.creatureSprite(px2, py2, 90, p.dex, undefined, false, p.shiny);
       }
       this.drawStatusGlow(ctx, px2 + 45, py2 + 45, p.status, t);
+      this.creatureAura(ctx, px2 + 45, py2 + 45, 90, p.dex, t);
     }
 
     // Enemy info box (top-left, semi-transparent dark box)
@@ -1129,6 +1146,106 @@ class Renderer {
   }
 
   // ===== BATTLE EFFECTS =====
+  // ===== CREATURE IDLE AURAS - unique per-type ambient effects + signature flourishes =====
+  creatureAura(ctx, cx, cy, size, dex, t) {
+    const c = CREATURES[dex]; if (!c) return;
+    if (dex >= 75) return; // legendaries already animate via drawLegendaryCreature
+    const primary = c.types[0];
+
+    // Ambient particles from the creature's primary type (throttled)
+    if (Math.random() < 0.10) {
+      const ax = cx + (Math.random() - 0.5) * size * 0.6;
+      const ay = cy + (Math.random() - 0.5) * size * 0.5;
+      if (primary === TYPE_FIRE) this.addParticles(ax, ay, "fire", 1, t);
+      else if (primary === TYPE_WATER) this.addParticles(ax, ay, "water", 1, t);
+      else if (primary === TYPE_ICE) this.addParticles(ax, ay, "ice", 1, t);
+      else if (primary === TYPE_GRASS) this.addParticles(ax, ay, "grass", 1, t);
+      else if (primary === TYPE_SPIRIT) this.addParticles(ax, ay, "spirit", 1, t);
+      else if (primary === TYPE_DARK) this.addParticles(ax, ay, "dark", 1, t);
+      else if (primary === TYPE_WIND) this.addParticles(ax, ay, "wind", 1, t);
+      else if (primary === TYPE_LIGHT) this.addParticles(ax, ay, "light", 1, t);
+      else if (primary === TYPE_ELECTRIC && Math.random() < 0.5) this.addParticles(ax, ay, "electric", 2, t);
+      else if (primary === TYPE_DRAGON && Math.random() < 0.5) this.addParticles(ax, ay, "dragon", 1, t);
+      else if (primary === TYPE_EARTH && Math.random() < 0.4) this.addParticles(ax, ay, "earth", 1, t);
+    }
+
+    // Signature flourishes for specific creatures
+    ctx.save();
+    if (dex === 75) { // Solarius: rotating sun rays
+      ctx.globalAlpha = 0.25 + Math.sin(t * 3) * 0.1;
+      ctx.strokeStyle = rgb([255, 220, 80]); ctx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const a = t * 0.8 + i * Math.PI / 4;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * size * 0.5, cy + Math.sin(a) * size * 0.5);
+        ctx.lineTo(cx + Math.cos(a) * size * 0.62, cy + Math.sin(a) * size * 0.62);
+        ctx.stroke();
+      }
+    } else if (dex === 76) { // Lunara: orbiting crescent moon
+      const ma = t * 1.2;
+      const mx = cx + Math.cos(ma) * size * 0.55, my = cy + Math.sin(ma) * size * 0.4;
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = rgb([200, 220, 255]); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(mx, my, 4, Math.PI * 0.25, Math.PI * 1.5); ctx.stroke();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = rgb([160, 180, 255]);
+      ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fill();
+    } else if (dex === 57 || dex === 58) { // Voidmaw/Abyssaldrake: dark vortex
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = rgb([120, 40, 180]); ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const va = t * 2 + i * 2.1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, size * (0.3 + i * 0.12), va, va + 1.6);
+        ctx.stroke();
+      }
+    } else if (dex === 59 || dex === 60) { // Celestine/Astraldrake: twinkling stars
+      for (let i = 0; i < 4; i++) {
+        const sa = t * 1.5 + i * Math.PI / 2;
+        const tw = Math.sin(t * 5 + i * 1.3);
+        if (tw > 0.3) {
+          const sx = cx + Math.cos(sa) * size * 0.55, sy = cy + Math.sin(sa) * size * 0.45;
+          ctx.globalAlpha = tw;
+          ctx.fillStyle = rgb([255, 255, 200]);
+          ctx.fillRect(sx - 1, sy - 1, 2, 2);
+          ctx.fillRect(sx - 3, sy - 0.5, 6, 1);
+          ctx.fillRect(sx - 0.5, sy - 3, 1, 6);
+        }
+      }
+    } else if (dex === 63 || dex === 64 || dex === 79) { // Storm birds: crackling arcs
+      if (Math.sin(t * 7) > 0.7) {
+        ctx.globalAlpha = 0.7;
+        ctx.strokeStyle = rgb([255, 255, 100]); ctx.lineWidth = 1;
+        ctx.beginPath();
+        let lx = cx - size * 0.4, ly = cy;
+        ctx.moveTo(lx, ly);
+        for (let i = 0; i < 3; i++) { lx += size * 0.3; ly += (Math.random() - 0.5) * 10; ctx.lineTo(lx, ly); }
+        ctx.stroke();
+      }
+    } else if (dex === 7 || dex === 18 || dex === 33 || dex === 91) { // Moths: wing shimmer
+      ctx.globalAlpha = 0.15 + Math.abs(Math.sin(t * 8)) * 0.2;
+      ctx.fillStyle = rgb(c.color || [200, 200, 255]);
+      ctx.beginPath(); ctx.ellipse(cx, cy, size * 0.55, size * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (dex === 23 || dex === 24 || dex === 80) { // Flame spirits: rising ember trail
+      for (let i = 0; i < 2; i++) {
+        const fy = (t * 40 + i * 25) % 40;
+        ctx.globalAlpha = 0.6 - fy / 60;
+        ctx.fillStyle = rgb([255, 140 + i * 40, 30]);
+        const fx = cx + Math.sin(t * 4 + i * 2) * 6;
+        ctx.fillRect(fx - 2, cy - fy, 4, 5);
+      }
+    } else if (dex === 11 || dex === 12) { // Sparkitten/Voltraith: cheek sparks
+      if (Math.sin(t * 6) > 0.6) {
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = rgb([255, 240, 100]);
+        ctx.fillRect(cx - size * 0.3, cy - size * 0.1, 3, 3);
+        ctx.fillRect(cx + size * 0.3 - 3, cy - size * 0.1, 3, 3);
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   drawStatusGlow(ctx, x, y, status, t) {
     if (!status) return;
     const pulse = 0.3 + Math.sin(t * 4) * 0.2;
@@ -1232,7 +1349,8 @@ class Renderer {
   }
 
   // Particle system
-  addParticles(x, y, type, count) {
+  addParticles(x, y, type, count, tVal) {
+    const t = tVal || this.tNow || 0; // safe time source (t is not in this scope otherwise)
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 1 + Math.random() * 3;
@@ -1398,12 +1516,14 @@ class Renderer {
 
   // Floating damage numbers
   addDamageNum(x, y, amount, type) {
-    let col = COL_WHITE;
-    if (type === "super_effective") col = COL_GREEN;
-    else if (type === "not_effective") col = COL_RED;
-    else if (type === "critical") col = COL_YELLOW;
-    else if (type === "heal") col = COL_HPG;
-    this.damageNums.push({ x, y, text: "" + amount, col, life: 1.0, vy: -2 });
+    let col = COL_WHITE, size = 16;
+    if (type === "super_effective") { col = [255, 220, 40]; size = 20; }
+    else if (type === "critical") { col = [255, 140, 30]; size = 20; }
+    else if (type === "not_effective") { col = [170, 170, 170]; size = 14; }
+    else if (type === "no_effect") { col = [120, 120, 120]; size = 13; }
+    else if (type === "heal") { col = COL_HPG; size = 16; }
+    else if (type === "normal") { col = COL_WHITE; size = 16; }
+    this.damageNums.push({ x, y, text: "" + amount, col, life: 1.0, vy: -2, size });
   }
 
   updateDamageNums(ctx, t) {
@@ -1414,9 +1534,12 @@ class Renderer {
       d.life -= dt;
       if (d.life <= 0) { this.damageNums.splice(i, 1); continue; }
       ctx.globalAlpha = Math.max(0, d.life);
-      ctx.fillStyle = rgb(d.col);
-      ctx.font = "bold 16px monospace";
+      ctx.font = "bold " + (d.size || 16) + "px monospace";
       ctx.textAlign = "center";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(0,0,0,0.8)";
+      ctx.strokeText(d.text, d.x, d.y);
+      ctx.fillStyle = rgb(d.col);
       ctx.fillText(d.text, d.x, d.y);
       ctx.textAlign = "left";
     }
@@ -1786,13 +1909,13 @@ class Renderer {
     }
   }
 
-  // Trigger attack animation effects
-  triggerAttackFX(moveType, targetX, targetY, isCrit, eff) {
-    const particleType = moveType.toLowerCase();
-    this.addParticles(targetX, targetY, particleType, isCrit ? 20 : 12);
-    this.addParticles(targetX, targetY, "hit", 6);
+  // Trigger attack animation effects (dmg optional - shown as floating damage number)
+  triggerAttackFX(moveType, targetX, targetY, isCrit, eff, dmg) {
+    const particleType = (moveType || "normal").toLowerCase();
+    this.addParticles(targetX, targetY, particleType, isCrit ? 20 : 12, this.tNow);
+    this.addParticles(targetX, targetY, "hit", 6, this.tNow);
     if (isCrit) {
-      this.addParticles(targetX, targetY, "crit", 10);
+      this.addParticles(targetX, targetY, "crit", 10, this.tNow);
       this.triggerFreeze(3 + Math.floor(Math.random() * 3));
       this.criticalHitText.active = true;
       this.criticalHitText.timer = 1.0;
@@ -1818,7 +1941,7 @@ class Renderer {
     } else {
       this.triggerFlash([255, 255, 255], 0.2);
     }
-    this.addDamageNum(targetX, targetY, "", eff > 1 ? "super_effective" : (isCrit ? "critical" : "normal"));
+    this.addDamageNum(targetX, targetY, (dmg !== undefined && dmg !== null) ? dmg : "", eff > 1 ? "super_effective" : (eff === 0 ? "no_effect" : (isCrit ? "critical" : (eff < 1 ? "not_effective" : "normal"))));
   }
 
   evolveScreen(oldDex, newDex, t) {
