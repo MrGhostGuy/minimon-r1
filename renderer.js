@@ -1563,6 +1563,11 @@ class Renderer {
     this.freezeFrames = Math.max(this.freezeFrames, frames || 4);
   }
 
+  triggerCriticalHitText() {
+    this.criticalHitText.active = true;
+    this.criticalHitText.timer = 1.0;
+  }
+
   triggerConfetti() {
     this.confettiParticles = [];
     for (let i = 0; i < 60; i++) {
