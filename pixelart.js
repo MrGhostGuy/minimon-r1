@@ -2437,6 +2437,299 @@ const CREATURE_SPRITE_FNS=[null,
   aquafang,leafclaw,hydralisk,verdantmaw,mystery,celestior,abyssora,pyraxis,tidalon,mythos,
   bugmoth,dreadwing,toxifin,scorpox,skylark,hawkreign,flamouse,pyromice,slickslime,glolslime
 ];
+
+/* Hand-drawn 24x24 sprites for the legendary and ultra-legendary
+   species - twice the pixel detail of the standard 16x16 grids,
+   applied over the template sprites in initCreatureSprites. */
+const LEGENDARY_SPRITES = {
+  75: [
+    "...0660..........0660...",
+    "..066620........026660..",
+    ".06622220......02222660.",
+    ".062222211....112222260.",
+    "0621111111....1111111260",
+    "062111111111111111111260",
+    "021111666666666666111120",
+    "021111666666666666111120",
+    "021145111111111111541120",
+    "021155111111111111551120",
+    "021111111111111111111120",
+    "062111111111111111111260",
+    "062111113311113311111260",
+    "..02111111111111111120..",
+    "..03333333333333333330..",
+    "..02111111111111111120..",
+    ".0211111112222111111120.",
+    ".0211166662222666611120.",
+    ".0211166662222666611120.",
+    ".0211111112222111111120.",
+    "..02222222222222222220..",
+    "..02333333222233333320..",
+    "..02100001222210000120..",
+    "..0210...122221...0120..",
+  ],
+  76: [
+    ".00..................00.",
+    ".0110..............0110.",
+    ".01110............01110.",
+    ".0111110........0111110.",
+    "..01111110....01111110..",
+    "..01166666666666666110..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "...011111333333111110...",
+    "...011111111111111110...",
+    "..01111111111111111110..",
+    ".0111111111111111111110.",
+    ".0110110111111110110110.",
+    ".0100110011111100110010.",
+    "..01111111111111111110..",
+    "..01111166666666111110..",
+    "..01111111111111111110..",
+    "...033333333333333330...",
+    "...011000111111000110...",
+    "..0100..01111110..0010..",
+  ],
+  77: [
+    "..00000000000000000000..",
+    ".0111111111111111111110.",
+    ".0122222222112222222210.",
+    ".0122222222112222222210.",
+    ".0133333333333333333310.",
+    ".0126666666666666666210.",
+    ".0122222222112222222210.",
+    ".0120220222112220220210.",
+    ".0122222222112222222210.",
+    "..01222222211222222210..",
+    "..03333333333333333330..",
+    ".0122222222112222222210.",
+    "012222222221122222222210",
+    "012222226666666622222210",
+    "012222666666666666222210",
+    "012222226666666622222210",
+    "012222222221122222222210",
+    ".0122222221111222222210.",
+    ".0133333331111333333310.",
+    ".0122222221111222222210.",
+    "..01222222111122222210..",
+    "..01111111111111111110..",
+    "..01000000111100000010..",
+    "..00......0000......00..",
+  ],
+  78: [
+    "...0660..........0660...",
+    "..066110........011660..",
+    "..06611110....01111660..",
+    ".0661111110..0111111660.",
+    ".0611111111111111111160.",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "..01641111111111114610..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "..04444444444444444440..",
+    "..04111111144111111140..",
+    "..03333333333333333330..",
+    "..01111111111111111110..",
+    ".0111111111111111111110.",
+    "601111111111111111111106",
+    "660111111111111111111066",
+    ".6001111111111111111006.",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "..01333333111133333310..",
+    "...01111110..01111110...",
+    "...00....00..00....00...",
+  ],
+  79: [
+    ".....0660......0660.....",
+    "....06660......06660....",
+    "....011110....011110....",
+    "...01111110..01111110...",
+    "..01111111111111111110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "...011111111111111110...",
+    "...044444444444444440...",
+    "...044444444444444440...",
+    "....0111111111111110....",
+    "..01111111111111111110..",
+    ".0111111111111111111110.",
+    "011111111111111111111110",
+    "011111111111111111111110",
+    "013111111111111111111310",
+    "012111111111111111111210",
+    "012211111111111111112210",
+    ".0121111111111111111210.",
+    "..01111111111111111110..",
+    "..01011101111110111010..",
+    "...066666666666666660...",
+    "...040000400004000040...",
+  ],
+  80: [
+    ".66..................66.",
+    ".6660..............0666.",
+    ".61110............01116.",
+    ".61111110......01111116.",
+    "..011111110..011111110..",
+    "..01111111111111111110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "...011111331133111110...",
+    "...011111111111111110...",
+    "...033333333333333330...",
+    "..01111111111111111110..",
+    ".0611111111111111111160.",
+    ".0061111111111111111600.",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    ".0661111111111111111660.",
+    ".0666011111111111106660.",
+    "..06001111111111110060..",
+    "...0..011111111110..0...",
+    "......001111111100......",
+    "........................",
+  ],
+  86: [
+    ".66..................66.",
+    ".6660..............0666.",
+    ".066660..........066660.",
+    "..0666660......0666660..",
+    "..01111110....01111110..",
+    "..01111666666666611110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "...011111111111111110...",
+    "...044444444444444440...",
+    "...041111114411111140...",
+    "....0333333333333330....",
+    "6...0111111111111110...6",
+    "....0111111111111110....",
+    "...011111111111111110...",
+    "..01111111111111111110..",
+    "..01166661111116666110..",
+    "..01111111111111111110..",
+    "..01333333111133333310..",
+    "...011111111111111110...",
+    "...010000011110000010...",
+    "..00......0000......00..",
+  ],
+  87: [
+    ".660................066.",
+    ".66660............06666.",
+    "..066660........066660..",
+    "...0666660....0666660...",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "..01161111111111116110..",
+    "..01165111111111156110..",
+    "..01111111111111111110..",
+    "..01111111111111111110..",
+    "...011111111111111110...",
+    "...044444444444444440...",
+    "...041111114411111140...",
+    "....0333333333333330....",
+    "..01111111111111111110..",
+    ".0111111111111111111110.",
+    ".0110661111111111660110.",
+    ".0116666111111116666110.",
+    ".0110661111111111660110.",
+    ".0111111111111111111110.",
+    "..01333333111133333310..",
+    "..01111111111111111110..",
+    "...010000011110000010...",
+    "..00......0000......00..",
+  ],
+  88: [
+    ".66..................66.",
+    ".6660..............0666.",
+    ".066000..........000660.",
+    "..01111110....01111110..",
+    "..01111111111111111110..",
+    "..01161111111111116110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "..01161111111111116110..",
+    "...011111111111111110...",
+    "...044444444444444440...",
+    "...041111114411111140...",
+    "....0333333333333330....",
+    "..01111111111111111110..",
+    ".0111111111111111111110.",
+    ".0116111111111111116110.",
+    ".0111111111111111111110.",
+    ".0111061111111111601110.",
+    "..01333333111133333310..",
+    "..01111111111111111110..",
+    "...011111111111111110...",
+    "...010000011110000010...",
+    "..00......0000......00..",
+  ],
+  89: [
+    ".6..6..............6..6.",
+    ".66.66............66.66.",
+    ".0666660........0666660.",
+    "..01111110....01111110..",
+    "..01111111111111111110..",
+    "..01144441111114444110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "...011111111111111110...",
+    "...044444444444444440...",
+    "...041111114411111140...",
+    "....0333333333333330....",
+    "..01111111111111111110..",
+    ".6011111111111111111106.",
+    ".6601111111111111111066.",
+    "..01111111111111111110..",
+    "..01166661111116666110..",
+    "..01111111111111111110..",
+    "..01333333111133333310..",
+    "...011111111111111110...",
+    "...010000011110000010...",
+    "..00......0000......00..",
+    "........................",
+  ],
+  90: [
+    ".6..66............66..6.",
+    ".6666660........0666666.",
+    ".06666660......06666660.",
+    "..01111110....01111110..",
+    "..01111111111111111110..",
+    "..01166661111116666110..",
+    "..01145111111111154110..",
+    "..01155111111111155110..",
+    "..01111111111111111110..",
+    "..01113111111111131110..",
+    "...011111111111111110...",
+    "...011111111111111110...",
+    "..01111111111111111110..",
+    ".0111111111111111111110.",
+    ".0111011111111111101110.",
+    ".0111111111111111111110.",
+    ".0111111111111111111110.",
+    ".0106111111111111116010.",
+    "..01111111111111111110..",
+    "..01333333111133333310..",
+    "..01111111111111111110..",
+    "...011111111111111110...",
+    "...010000011110000010...",
+    "..00......0000......00..",
+  ],
+};
+
 function initCreatureSprites(){
   const S=CREATURE_SPRITES;
   for(let i=1;i<=100;i++){
@@ -2445,7 +2738,10 @@ function initCreatureSprites(){
     if(typeof MINIMON_SPRITES_V2!=="undefined"&&MINIMON_SPRITES_V2[i]){S[i]=MINIMON_SPRITES_V2[i];continue;}
     const fn=CREATURE_SPRITE_FNS[i];
     S[i]=(typeof fn==='function')?normaliseCreatureGrid(fn()):genMinimonGrid(i);
-  }}
+  }
+  // Legendaries get their hand-drawn 24x24 sprites over the templates
+  for(const d in LEGENDARY_SPRITES){ if(CREATURES[d]) S[d]=LEGENDARY_SPRITES[d]; }
+}
 
 
 
@@ -2476,7 +2772,7 @@ function initAccentColors(){
   A[66]=[100,180,240];A[67]=[120,60,160];A[68]=[80,30,120];
   A[69]=[255,140,40];A[70]=[220,100,20];A[71]=[255,250,200];
   A[72]=[255,230,160];A[73]=[180,160,140];A[74]=[160,140,120];
-  A[75]=[255,240,100];A[76]=[160,180,255];A[77]=[180,140,100];
+  A[75]=[255,240,100];A[76]=[160,180,255];A[77]=[96,230,140];
   A[78]=[40,120,200];A[79]=[255,180,60];A[80]=[255,140,40];
   A[81]=[60,160,240];A[82]=[100,220,80];A[83]=[40,100,200];
   A[84]=[60,160,40];A[85]=[200,200,255];
@@ -3234,7 +3530,7 @@ const TYPE_BODY = {
   Dark: [98, 80, 88], Spirit: [156, 92, 196], Dragon: [106, 72, 226],
   Earth: [198, 158, 84], Wind: [116, 186, 226], Light: [246, 206, 72]
 };
-const CREATURE_BODY = {}; // per-species body-colour overrides (rare)
+const CREATURE_BODY = { 87: [96, 58, 150], 90: [216, 196, 226] }; // per-species body-colour overrides (rare)
 function creaturePalette(c, dex, shiny) {
   if (shiny) {
     const gold = [255, 203, 72];
@@ -3256,12 +3552,221 @@ function creaturePalette(c, dex, shiny) {
   ];
 }
 
+
+/* ── Elemental FX ────────────────────────────────────────────────────
+   Powerful creatures radiate their element: embers for Fire, glistening
+   frost for Ice, crackling sparks for Electric, and so on. Every
+   creature's pattern is seeded from its dex number and tinted with its
+   own accent colour, so no two species - even two Fire types - animate
+   alike. Tier 1: evolved mid-power. Tier 2: high power (aura + dense
+   particles). Tier 3: legendaries (aura, dense particles, orbiting
+   orbs in their accent colour). */
+const LEGENDARY_DEX = new Set([75, 76, 77, 78, 79, 80, 86, 87, 88, 89, 90]);
+function fxTierFor(dex, c) {
+  if (LEGENDARY_DEX.has(dex)) return 3;
+  const bst = (c.baseStats || []).reduce((a, b) => a + b, 0);
+  if (bst >= 480) return 2;
+  if (bst >= 380) return 1;
+  return 0;
+}
+function _fxR(seed) { let h = (seed * 2654435761) >>> 0; h ^= h >> 15; h = (h * 2246822519) >>> 0; h ^= h >> 13; return (h >>> 0) / 4294967296; }
+function _rgba(col, a) { return `rgba(${col[0]},${col[1]},${col[2]},${Math.max(0, Math.min(1, a)).toFixed(3)})`; }
+function _mixCol(a, b, amt) { return [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * amt)); }
+
+function drawAuraFX(ctx, x, y, size, dex, c, tier, t) {
+  const body = TYPE_BODY[c.types[0]] || [200, 200, 200];
+  const glow = _mixCol(body, CREATURE_ACCENT[dex] || body, 0.45);
+  const pulse = 0.82 + 0.18 * Math.sin(t * 2 + dex * 1.7);
+  const cx = x + size / 2, cy = y + size / 2, r = size * 0.74 * pulse;
+  const g = ctx.createRadialGradient(cx, cy, size * 0.1, cx, cy, r);
+  g.addColorStop(0, _rgba(glow, tier === 3 ? 0.34 : 0.24));
+  g.addColorStop(1, _rgba(glow, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+}
+
+function _sparkle(ctx, px, py, rad, col, alpha) {
+  ctx.fillStyle = _rgba(col, alpha);
+  ctx.beginPath();
+  ctx.moveTo(px, py - rad); ctx.lineTo(px + rad * 0.28, py - rad * 0.28); ctx.lineTo(px + rad, py);
+  ctx.lineTo(px + rad * 0.28, py + rad * 0.28); ctx.lineTo(px, py + rad); ctx.lineTo(px - rad * 0.28, py + rad * 0.28);
+  ctx.lineTo(px - rad, py); ctx.lineTo(px - rad * 0.28, py - rad * 0.28);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawParticleFX(ctx, x, y, size, dex, c, tier, t) {
+  const type = c.types[0];
+  const accent = CREATURE_ACCENT[dex] || [255, 255, 120];
+  const body = TYPE_BODY[type] || [200, 200, 200];
+  const variant = dex % 3;
+  const n = tier === 3 ? 10 : tier === 2 ? 8 : 5;
+  const cx = x + size / 2, cy = y + size / 2;
+  const seedBase = dex * 977;
+
+  if (type === 'Fire' || type === 'Dragon') {
+    // rising embers / violet dragon-flames, flickering as they climb
+    const cols = type === 'Fire' ? [[255, 110, 26], [255, 176, 66], [255, 84, 30]] : [[150, 92, 255], [96, 140, 255], [196, 120, 255]];
+    for (let i = 0; i < n; i++) {
+      const r1 = _fxR(seedBase + i * 7), r2 = _fxR(seedBase + i * 13 + 3);
+      const rise = (t * (0.10 + r2 * 0.13) + r1) % 1;
+      const sway = Math.sin(t * 2 + r1 * 9 + rise * (variant === 1 ? 6 : 2.5)) * size * 0.035;
+      const px = x + size * (0.16 + 0.68 * r2) + sway;
+      const py = y + size * (0.97 - rise * 0.88);
+      const rad = Math.max(0.8, size * 0.027 * (1 - rise * 0.6) * (0.7 + r1 * 0.7));
+      const flick = 0.72 + 0.28 * Math.sin(t * 9 + r1 * 40);
+      ctx.fillStyle = _rgba(i % 3 === 0 ? accent : cols[i % 3], (1 - rise) * flick * 0.9);
+      ctx.beginPath(); ctx.arc(px, py, rad, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (type === 'Ice') {
+    // slow snowfall + glistening crystal sparkles at fixed seeded points
+    for (let i = 0; i < n; i++) {
+      const r1 = _fxR(seedBase + i * 7), r2 = _fxR(seedBase + i * 13 + 3);
+      const fall = (t * 0.045 * (0.5 + r2) + r1) % 1;
+      const px = x + size * (0.1 + 0.8 * r2) + Math.sin(t * 1.2 + r1 * 8) * size * 0.02;
+      const py = y + size * fall;
+      ctx.fillStyle = _rgba([235, 250, 255], 0.35 + 0.3 * Math.sin(t * 3 + r1 * 20));
+      ctx.beginPath(); ctx.arc(px, py, Math.max(0.7, size * 0.014), 0, Math.PI * 2); ctx.fill();
+    }
+    for (let k = 0; k < 3 + tier; k++) {
+      const r1 = _fxR(seedBase + 500 + k * 17), r2 = _fxR(seedBase + 700 + k * 19);
+      const tw = Math.abs(Math.sin(t * 1.6 + r1 * 12));
+      if (tw > 0.25) _sparkle(ctx, x + size * (0.2 + 0.6 * r1), y + size * (0.15 + 0.55 * r2), size * 0.055 * tw, k % 2 ? [190, 240, 255] : [255, 255, 255], tw * 0.95);
+    }
+  } else if (type === 'Electric') {
+    // jittering sparks + the occasional crackling bolt
+    for (let i = 0; i < n; i++) {
+      const r1 = _fxR(seedBase + i * 7), r2 = _fxR(seedBase + i * 13 + 3);
+      const q = Math.floor(t * 9 + r1 * 10);
+      const jx = (_fxR(seedBase + q * 31 + i) - 0.5) * size * 0.07;
+      const jy = (_fxR(seedBase + q * 47 + i) - 0.5) * size * 0.07;
+      const px = x + size * (0.18 + 0.64 * r1) + jx, py = y + size * (0.15 + 0.65 * r2) + jy;
+      ctx.fillStyle = _rgba(i % 2 ? [255, 236, 130] : accent, 0.5 + 0.5 * _fxR(seedBase + q + i * 3));
+      ctx.fillRect(px, py, Math.max(1, size * 0.02), Math.max(1, size * 0.02));
+    }
+    const boltSeed = Math.floor(t * 2 + dex);
+    if (_fxR(seedBase + boltSeed * 91) > 0.7) {
+      const side = _fxR(seedBase + boltSeed * 13) > 0.5 ? 1 : -1;
+      let bx = cx + side * size * 0.34, by = y + size * 0.18;
+      ctx.strokeStyle = _rgba([255, 244, 160], 0.85); ctx.lineWidth = Math.max(1, size * 0.014);
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      for (let sgm = 0; sgm < 4; sgm++) { bx += side * size * 0.03 * (_fxR(seedBase + boltSeed * 7 + sgm) - 0.2); by += size * 0.09; ctx.lineTo(bx, by); }
+      ctx.stroke();
+    }
+  } else if (type === 'Water') {
+    // rising bubbles with a glint
+    for (let i = 0; i < n; i++) {
+      const r1 = _fxR(seedBase + i * 7), r2 = _fxR(seedBase + i * 13 + 3);
+      const rise = (t * (0.06 + r2 * 0.07) + r1) % 1;
+      const px = x + size * (0.18 + 0.64 * r2) + Math.sin(t * 1.6 + r1 * 7 + rise * 4) * size * 0.02;
+      const py = y + size * (0.95 - rise * 0.85);
+      const rad = Math.max(0.9, size * (0.016 + 0.02 * r1));
+      ctx.strokeStyle = _rgba([190, 230, 255], (1 - rise) * 0.75); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(px, py, rad, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = _rgba([255, 255, 255], (1 - rise) * 0.8);
+      ctx.fillRect(px - rad * 0.35, py - rad * 0.35, Math.max(1, rad * 0.4), Math.max(1, rad * 0.4));
+    }
+  } else if (type === 'Grass') {
+    // leaves drifting in a slow spiral + pollen glints
+    for (let i = 0; i < n; i++) {
+      const r1 = _fxR(seedBase + i * 7), r2 = _fxR(seedBase + i * 13 + 3);
+      const ang = t * (0.35 + r2 * 0.4) * (variant === 2 ? -1 : 1) + r1 * 6.28;
+      const rad = size * (0.3 + 0.2 * r2);
+      const px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad * 0.8 + Math.sin(t + r1 * 9) * size * 0.02;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(ang + t);
+      ctx.fillStyle = _rgba(i % 2 ? [120, 220, 90] : accent, 0.8);
+      ctx.fillRect(-size * 0.02, -size * 0.008, size * 0.04, size * 0.016);
+      ctx.restore();
+    }
+  } else if (type === 'Spirit' || type === 'Dark') {
+    // orbiting wisps with trailing tails (violet for Spirit, shadow for Dark)
+    const wispCol = type === 'Spirit' ? [188, 130, 255] : [86, 60, 130];
+    const orbs = tier === 3 ? 4 : 3;
+    for (let k = 0; k < orbs; k++) {
+      const r1 = _fxR(seedBase + k * 23);
+      const ang = t * (0.5 + k * 0.07) + k * (6.28 / orbs) + dex;
+      const rad = size * (0.4 + 0.05 * Math.sin(t * 0.9 + k * 2));
+      for (let tr = 0; tr < 3; tr++) {
+        const a2 = ang - tr * 0.22;
+        const px = cx + Math.cos(a2) * rad, py = cy + Math.sin(a2) * rad * 0.82 + Math.sin(t * 1.3 + k * 3) * size * 0.015;
+        ctx.fillStyle = _rgba(tr === 0 ? accent : wispCol, (0.75 - tr * 0.22) * (0.7 + 0.3 * r1));
+        ctx.beginPath(); ctx.arc(px, py, Math.max(0.7, size * 0.02 * (1 - tr * 0.25)), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  } else if (type === 'Light') {
+    // golden glints + (high tier) slowly rotating rays
+    if (tier >= 2) {
+      ctx.strokeStyle = _rgba([255, 224, 120], 0.28); ctx.lineWidth = Math.max(1, size * 0.016);
+      for (let k = 0; k < 6; k++) {
+        const ang = t * 0.35 + k * 1.047 + dex;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * size * 0.44, cy + Math.sin(ang) * size * 0.44);
+        ctx.lineTo(cx + Math.cos(ang) * size * 0.54, cy + Math.sin(ang) * size * 0.54);
+        ctx.stroke();
+      }
+    }
+    for (let k = 0; k < 3 + tier; k++) {
+      const r1 = _fxR(seedBase + 300 + k * 17), r2 = _fxR(seedBase + 900 + k * 19);
+      const tw = Math.abs(Math.sin(t * 1.9 + r1 * 12));
+      if (tw > 0.2) _sparkle(ctx, x + size * (0.15 + 0.7 * r1), y + size * (0.1 + 0.6 * r2), size * 0.05 * tw, k % 2 ? [255, 236, 150] : accent, tw * 0.9);
+    }
+  } else if (type === 'Earth') {
+    // dust motes shaking loose and drifting down at the base
+    for (let i = 0; i < n; i++) {
+      const r1 = _fxR(seedBase + i * 7), r2 = _fxR(seedBase + i * 13 + 3);
+      const fall = (t * 0.08 * (0.5 + r2) + r1) % 1;
+      const px = x + size * (0.15 + 0.7 * r2) + Math.sin(t * 1.4 + r1 * 8) * size * 0.015;
+      const py = y + size * (0.45 + fall * 0.5);
+      ctx.fillStyle = _rgba(i % 2 ? [214, 182, 128] : accent, (1 - fall) * 0.5);
+      ctx.beginPath(); ctx.arc(px, py, Math.max(0.7, size * 0.016), 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (type === 'Wind') {
+    // swirling wind streaks circling the sprite
+    ctx.lineWidth = Math.max(1, size * 0.018);
+    for (let k = 0; k < 3; k++) {
+      const rad = size * (0.37 + k * 0.075);
+      const a0 = t * (0.9 + k * 0.35) * (variant === 1 ? -1 : 1) + dex * 2 + k * 2.2;
+      ctx.strokeStyle = _rgba([240, 250, 255], 0.3 - k * 0.06);
+      ctx.beginPath(); ctx.arc(cx, cy, rad, a0, a0 + 1.5); ctx.stroke();
+    }
+    for (let i = 0; i < Math.floor(n / 2); i++) {
+      const r1 = _fxR(seedBase + i * 7);
+      const rise = (t * 0.14 + r1) % 1;
+      ctx.fillStyle = _rgba(accent, (1 - rise) * 0.5);
+      ctx.beginPath(); ctx.arc(x + size * (0.2 + 0.6 * r1), y + size * (0.9 - rise * 0.75), Math.max(0.6, size * 0.01), 0, Math.PI * 2); ctx.fill();
+    }
+  } else {
+    // Normal: faint warm glints for the powerful ones
+    for (let k = 0; k < 3; k++) {
+      const r1 = _fxR(seedBase + 300 + k * 17), r2 = _fxR(seedBase + 900 + k * 19);
+      const tw = Math.abs(Math.sin(t * 1.4 + r1 * 12));
+      if (tw > 0.35) _sparkle(ctx, x + size * (0.2 + 0.6 * r1), y + size * (0.15 + 0.55 * r2), size * 0.04 * tw, [255, 240, 200], tw * 0.6);
+    }
+  }
+
+  // Legendary signature: twin orbs in the creature's accent colour, orbiting
+  if (tier === 3) {
+    for (let k = 0; k < 2; k++) {
+      const ang = t * 1.15 + k * Math.PI + dex;
+      const px = cx + Math.cos(ang) * size * 0.47, py = cy + Math.sin(ang) * size * 0.4;
+      ctx.fillStyle = _rgba(accent, 0.9);
+      ctx.beginPath(); ctx.arc(px, py, Math.max(1, size * 0.022), 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = _rgba([255, 255, 255], 0.85);
+      ctx.beginPath(); ctx.arc(px - size * 0.006, py - size * 0.006, Math.max(0.6, size * 0.008), 0, Math.PI * 2); ctx.fill();
+    }
+    const tw = Math.abs(Math.sin(t * 2.2 + dex * 3));
+    if (tw > 0.3) _sparkle(ctx, cx, y + size * 0.02, size * 0.06 * tw, accent, tw * 0.9);
+  }
+}
+
 function drawCreature(ctx,x,y,size,dex,isEnemy,shiny){
   const grid=CREATURE_SPRITES[dex];
   if(!grid)return;
   const c=CREATURES[dex];
   if(!c)return;
   const pal = creaturePalette(c, dex, shiny);
+  const fxTier = fxTierFor(dex, c);
+  const fxT = performance.now() / 1000;
+  if (fxTier >= 2 && size >= 30) { ctx.save(); drawAuraFX(ctx, x, y, size, dex, c, fxTier, fxT); ctx.restore(); }
   if (!shiny) {
     // Some designs (golems, diggers, moles) were drawn light-dominant -
     // most of the body uses the highlight shade, so they rendered as pale
@@ -3274,6 +3779,7 @@ function drawCreature(ctx,x,y,size,dex,isEnemy,shiny){
     }
   }
   drawGrid(ctx,x,y,size,grid,pal);
+  if (fxTier >= 1 && size >= 30) { ctx.save(); drawParticleFX(ctx, x, y, size, dex, c, fxTier, fxT); ctx.restore(); }
   if(shiny) drawShinySparkle(ctx,x,y,size);
 }
 

@@ -82,3 +82,20 @@ The battle engine and overworld now follow the classic Nintendo DS games
 - Template touch-ups: cream bellies on quadrupeds and blobs (starters
   included), the golem template's body is main-colour now instead of all
   highlight, and serpents got a crest and a wider head
+
+**Elemental FX + legendary sprites**
+- Powerful creatures now radiate their element, animated live: rising
+  embers for Fire, glistening frost sparkles and snowfall for Ice,
+  crackling sparks and bolts for Electric, bubbles for Water, drifting
+  leaves for Grass, orbiting wisps for Spirit/Dark, violet dragon-flame
+  for Dragon, rays and glints for Light, dust for Earth, swirling
+  streaks for Wind. Every creature's pattern is seeded from its dex
+  number and tinted with its own accent colour, so two creatures of the
+  same element never animate alike. Effects scale with power (stat
+  total): gentle for mid-tier evolutions, a full pulsing aura for the
+  strongest, and legendaries add orbiting accent orbs and a crown glint.
+- All 11 legendary / ultra-legendary species (Solarius, Lunara,
+  Terrageist, Typhollow, Stormheart, Ignisoul, Celestior, Abyssora,
+  Pyraxis, Tidalon, Mythos) were hand-drawn at 24x24 - twice the pixel
+  detail of the standard 16x16 sprites - with crowns, antlers, fins,
+  glowing eyes/cores, teeth and chest gems.
