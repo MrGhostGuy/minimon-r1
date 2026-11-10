@@ -44,7 +44,7 @@ _m("leer","Leer",TYPE_NORMAL,STATUS,0,100,30,"def_down",100);
 _m("tail_whip","Tail Whip",TYPE_NORMAL,STATUS,0,100,30,"def_down",100);
 _m("harden","Harden",TYPE_NORMAL,STATUS,0,0,30,"def_up",100);
 _m("agility","Agility",TYPE_NORMAL,STATUS,0,0,30,"spd_up",100);
-_m("swords_dance","Swords Dance",TYPE_NORMAL,STATUS,0,0,20,"atk_up",100);
+_m("swords_dance","Swords Dance",TYPE_NORMAL,STATUS,0,0,20,"atk_up2",100);
 _m("iron_head","Iron Head",TYPE_NORMAL,PHYSICAL,80,100,15,"flinch",30);
 _m("iron_tail","Iron Tail",TYPE_NORMAL,PHYSICAL,100,75,15,"def_down",30);
 _m("metal_claw","Metal Claw",TYPE_NORMAL,PHYSICAL,50,95,35,"atk_up",10);
@@ -112,7 +112,7 @@ _m("spirit_break","Spirit Break",TYPE_SPIRIT,PHYSICAL,75,100,15,"satk_down",100)
 
 // EARTH
 _m("mud_slap","Mud Slap",TYPE_EARTH,SPECIAL,20,100,10,"atk_down",100);
-_m("sand_attack","Sand Attack",TYPE_EARTH,STATUS,0,100,15,"atk_down",100);
+_m("sand_attack","Sand Attack",TYPE_EARTH,STATUS,0,100,15,"acc_down",100);
 _m("dig","Dig",TYPE_EARTH,PHYSICAL,80,100,10);
 _m("rock_throw","Rock Throw",TYPE_EARTH,PHYSICAL,50,90,15);
 _m("rock_slide","Rock Slide",TYPE_EARTH,PHYSICAL,75,90,10,"flinch",30);
@@ -130,7 +130,7 @@ _m("brave_bird","Brave Bird",TYPE_WIND,PHYSICAL,120,100,15,"recoil",100);
 _m("confuse_ray","Confuse Ray",TYPE_WIND,STATUS,0,100,10,"confuse",100);
 
 // LIGHT
-_m("flash","Flash",TYPE_LIGHT,STATUS,0,100,20,"satk_down",100);
+_m("flash","Flash",TYPE_LIGHT,STATUS,0,100,20,"acc_down",100);
 _m("dazzling_gleam","Dazzling Gleam",TYPE_LIGHT,SPECIAL,80,100,10);
 _m("moonlight","Moonlight",TYPE_LIGHT,STATUS,0,0,5,"recover",100);
 _m("bug_buzz","Bug Buzz",TYPE_WIND,SPECIAL,80,100,10);
@@ -143,7 +143,7 @@ _m("dragon_dance","Dragon Dance",TYPE_DRAGON,STATUS,0,0,20,"atk_spd_up",100);
 _m("outrage","Outrage",TYPE_DRAGON,PHYSICAL,120,100,10);
 
 // STATUS
-_m("nasty_plot","Nasty Plot",TYPE_DARK,STATUS,0,0,20,"satk_up",100);
+_m("nasty_plot","Nasty Plot",TYPE_DARK,STATUS,0,0,20,"satk_up2",100);
 _m("recover","Recover",TYPE_NORMAL,STATUS,0,0,10,"recover",100);
 _m("sludge_bomb","Sludge Bomb",TYPE_DARK,SPECIAL,90,100,10,"poison",30);
 _m("protect","Protect",TYPE_NORMAL,STATUS,0,0,10);
@@ -167,7 +167,7 @@ _m("venoshock","Venoshock",TYPE_DARK,SPECIAL,65,100,10,"poison",50);
 
 // MORE STATUS
 _m("bulk_up","Bulk Up",TYPE_NORMAL,STATUS,0,0,20,"def_up",100);
-_m("calm_mind","Calm Mind",TYPE_SPIRIT,STATUS,0,0,20,"satk_up",100);
+_m("calm_mind","Calm Mind",TYPE_SPIRIT,STATUS,0,0,20,"satk_sdef_up",100);
 _m("rock_polish","Rock Polish",TYPE_EARTH,STATUS,0,0,20,"spd_up",100);
 
 // ===== LEGENDARY SIGNATURE MOVES =====

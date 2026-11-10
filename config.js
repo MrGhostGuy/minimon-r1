@@ -3,7 +3,7 @@ const SCREEN_W = 480, SCREEN_H = 480, FPS = 30, TILE = 24, MAP_X = 20, MAP_Y = 2
 const STAT_ATK=1,STAT_DEF=2,STAT_SPD=3,STAT_SATK=4,STAT_SDEF=5;
 
 // Virtual joystick & interact button (shared by main.js + renderer.js)
-const JOY_CX=78, JOY_CY=398, JOY_R=52, JOY_DEAD=14, JOY_ZONE=105, JOY_STEP=0.14;
+const JOY_CX=78, JOY_CY=398, JOY_R=52, JOY_DEAD=14, JOY_ZONE=105, JOY_STEP=0.22, JOY_STEP_RUN=0.11;
 const INTB_CX=240, INTB_CY=446, INTB_R=24;
 
 const TYPE_NORMAL="Normal",TYPE_FIRE="Fire",TYPE_WATER="Water",TYPE_GRASS="Grass",
@@ -31,8 +31,10 @@ Light:{Dark:2,Spirit:2,Normal:.5,Dragon:.5}
 
 const GROWTH_FAST=4,GROWTH_MEDIUM=8,GROWTH_SLOW=10;
 function xpForLv(lv,r){return lv<=1?0:Math.floor(lv*lv*r/4)}
-function calcStat(b,lv){return Math.max(1,Math.floor(b*lv/50+5))}
-function calcHp(b,lv){return Math.max(1,Math.floor(b*2*lv/100+lv+10))}
+/* DS-era (Gen IV) stat formulas: HP = floor((2*Base + IV) * Lv/100) + Lv + 10;
+   every other stat = floor((2*Base + IV) * Lv/100) + 5. (No EVs/natures in Minimon.) */
+function calcStat(b,iv,lv){return Math.max(1,Math.floor((2*b+(iv||0))*lv/100)+5)}
+function calcHp(b,iv,lv){return Math.max(1,Math.floor((2*b+(iv||0))*lv/100)+lv+10)}
 
 /* ── IVs and Shinies ────────────────────────────────────────────────────────
    Every creature rolls 0-31 for each of the 6 stats. Shinies are decided by

@@ -53,6 +53,9 @@ function pokedexCatch(dex) { pokedexSee(dex); if (pokedex[dex]) pokedex[dex].cau
 
 // QoL: Repel steps + auto-save feedback
 let repelSteps = 0;
+let spotted = null;        // trainer who has spotted the player: {npc, phase, t, stepT}
+let shiftHeld = false;     // keyboard sprint (joystick pushed to its rim also sprints)
+let lastHealSpot = { mapIdx: 0, x: 10, y: 17 }; // DS blackout return point: last place you healed
 let lastSaveMsg = 0;
 // Auto-save timer
 let autoSaveTimer = 0;
@@ -87,7 +90,7 @@ function loadGame() {
     if (!raw) return false;
     const data = JSON.parse(raw);
     const p = data.player;
-    player.x = p.x; player.y = p.y; player.facing = p.facing; player.name = p.name;
+    player.x = p.x; player.y = p.y; player.visX = p.x; player.visY = p.y; player.facing = p.facing; player.name = p.name;
     player.money = p.money; player.badges = p.badges || []; player.storyFlags = p.storyFlags || {};
     player.rivalName = p.rivalName || "Luna"; player.rivalStarter = p.rivalStarter; player.starterChoice = p.starterChoice;
     player.inventory = p.inventory || {}; player.stepCounter = p.stepCounter || 0; player.playTime = p.playTime || 0;
@@ -122,7 +125,7 @@ const SHOP_ITEMS = [
 ];
 
 const player = {
-  x:10, y:10, facing:"down", name:"Hero", party:[], money:3000, badges:[], storyFlags:{},
+  x:10, y:10, visX:10, visY:10, facing:"down", name:"Hero", party:[], money:3000, badges:[], storyFlags:{},
   rivalName:"Luna", rivalStarter:null, starterChoice:null, stepCounter:0, playTime:0,
   defeatedTrainers:[],
   inventory:{[I_POTION]:5,[I_SPHERE]:10,[I_GSPHERE]:0,[I_USPHERE]:0,[I_MSPHERE]:0,
@@ -191,7 +194,7 @@ function useOverworldItem(itemName) {
     let centerMap=0, cx=10, cy=10;
     for(let i=0;i<MAP_CREATORS.length;i++){ const mm=MAP_CREATORS[i](); if(mm.name.includes('Village')||mm.name.includes('Town')){ centerMap=i; cx=10; cy=10; break; } }
     // find nearest center door position from current map
-    currentMap = MAP_CREATORS[0](); player.x=10; player.y=10;
+    currentMap = MAP_CREATORS[0](); player.x=10; player.y=10; player.visX=10; player.visY=10;
   applyTrainerFlags(currentMap, 0);
     if(removeItem(itemName)) return "Used Escape Rope! Returned to Starter Village!";
     return "No Escape Rope!";
@@ -264,6 +267,7 @@ function advanceDialog() {
 }
 
 function healParty() {
+  lastHealSpot = { mapIdx: Math.max(0, currentMapIndex()), x: player.x, y: player.y };
   for (const c of player.party) { c.hp = c.maxHP; c.status = null; c.confusionTurns = 0; }
   state = S_DIALOG;
   setDialog(["Your team has been fully healed!"]);
@@ -271,19 +275,54 @@ function healParty() {
 
 function movePlayer(dx, dy, facing) {
   player.facing = facing;
+  if (spotted) return; // a trainer has eyes on you - you stand your ground, like the games
   const nx = player.x + dx, ny = player.y + dy;
   if (currentMap && walkable(currentMap, nx, ny)) {
+    // People are solid, the way the DS games treat them: you can't walk through an NPC
+    if (currentMap.npcs.some(n => n.x === nx && n.y === ny)) return;
     player.x = nx; player.y = ny; player.stepCounter++;
     walkPhase++; lastMoveTime = time;
     const tile = getT(currentMap, nx, ny);
     if (tile === TILE_DOOR) {
       for (const d of currentMap.doors) { if (d.x === nx && d.y === ny) { changeMap(d.dest, d.destX, d.destY); return; } }
     }
-    if (repelSteps>0){ repelSteps--; if(repelSteps===0) { /* repel wore off - could queue dialog but keep QoL silent */ } }
+    if (repelSteps>0){ repelSteps--; }
     if (tile === TILE_HEAL) healParty();
-    if (repelSteps<=0 && encTile(currentMap, nx, ny)) {
+    if (encTile(currentMap, nx, ny)) {
       const enc = getEnc(currentMap);
-      if (enc) startWildBattle(enc[0], enc[1]);
+      if (enc) {
+        // Wild levels vary a little around the table value, like real encounter slots
+        const lv = Math.max(2, enc[1] + Math.floor(Math.random() * 3) - 1);
+        // DS Repel rule: it only turns away wild Minis below your lead's level
+        const lead = player.party[0];
+        if (!(repelSteps > 0 && lead && lv < lead.level)) startWildBattle(enc[0], lv);
+      }
+    }
+    checkTrainerSight();
+  }
+}
+
+/* ── Trainer line-of-sight ───────────────────────────────────────────────────
+   The signature DS overworld moment: walk into a trainer's line of sight and
+   they spot you ("!"), then walk straight up to you and challenge you. Sight
+   runs in the trainer's facing direction (default 4 tiles, npc.sight can
+   override) and is blocked by trees, walls, water, rocks and roofs. */
+const SIGHT_SOLID = new Set([TILE_TREE, TILE_WALL, TILE_WATER, TILE_ROCK, TILE_ROOF]);
+function checkTrainerSight() {
+  if (spotted || state !== S_OW || !currentMap) return;
+  for (const npc of currentMap.npcs) {
+    if (npc.type !== "trainer" || npc.defeated) continue;
+    const range = npc.sight || 4;
+    const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[npc.facing || "down"];
+    for (let i = 1; i <= range; i++) {
+      const tx = npc.x + d[0] * i, ty = npc.y + d[1] * i;
+      if (tx === player.x && ty === player.y) {
+        spotted = { npc, phase: "alert", t: 0, stepT: 0 };
+        npc.visX = npc.x; npc.visY = npc.y;
+        window.__spottedNpc = npc; window.__spottedAlert = true;
+        return;
+      }
+      if (SIGHT_SOLID.has(getT(currentMap, tx, ty))) break;
     }
   }
 }
@@ -291,7 +330,8 @@ function movePlayer(dx, dy, facing) {
 function changeMap(idx, x, y) {
   if (idx >= 0 && idx < MAP_CREATORS.length) {
     R.triggerMapTransition();
-    currentMap = MAP_CREATORS[idx](); player.x = x; player.y = y;
+    spotted = null; window.__spottedNpc = null; window.__spottedAlert = false;
+    currentMap = MAP_CREATORS[idx](); player.x = x; player.y = y; player.visX = x; player.visY = y;
     applyTrainerFlags(currentMap, idx);
   }
 }
@@ -454,14 +494,26 @@ function selectBattleAction() {
   else if (action === "Bag") { battlePhase = "bag"; cursor = 0; }
   else if (action === "Party") { battlePhase = "party"; cursor = 0; }
   else if (action === "Run") {
-    if (battleState.canEscape) { battleState.fled = true; battleState.battleOver = true; battleState.message = "Got away safely!"; battlePhase = "message"; }
-    else { battleState.addMsg("Can't escape!"); battlePhase = "message"; }
+    if (!battleState.canEscape) { battleState.addMsg("Can't escape!"); battlePhase = "message"; return; }
+    // Gen IV escape formula: faster than the foe = certain; otherwise the odds
+    // grow with every failed attempt, and a failed attempt costs you your turn.
+    battleState.escapeAttempts = (battleState.escapeAttempts || 0) + 1;
+    const a = effectiveSpeed(battleState.player, battleState.weather);
+    const b = Math.max(1, effectiveSpeed(battleState.enemy, battleState.weather));
+    let escaped = a >= b;
+    if (!escaped) {
+      const f = Math.floor((a * 128) / b + 30 * battleState.escapeAttempts) % 256;
+      escaped = Math.floor(Math.random() * 256) < f;
+    }
+    if (escaped) { battleState.fled = true; battleState.battleOver = true; battleState.message = "Got away safely!"; battlePhase = "message"; }
+    else { battleState.addMsg("Couldn't get away!"); battleState.enemyTurnOnly(); battlePhase = "message"; }
   }
 }
 
 function useBattleMove() {
   const p = battleState.player; const mv = p.moves[cursor];
-  if (mv.pp <= 0) { battleState.addMsg("No PP left!"); battlePhase = "message"; return; }
+  if (mv.pp <= 0 && p.moves.some(m => m.pp > 0)) { battleState.addMsg("No PP left!"); battlePhase = "message"; return; }
+  // every move at 0 PP: executeTurn substitutes Struggle, like the real games
   const e = battleState.enemy;
   const eX = 360, eY = 115; // enemy sprite center for effects
   const pX = 100, pY = 260; // player sprite center for effects
@@ -525,6 +577,7 @@ function switchBattleCreature() {
   if (target === battleState.player) { battleState.addMsg(target.name + " is already out!"); battlePhase = "message"; return; }
   const old = battleState.player.name;
   battleState.playerIdx = cursor;
+  battleState.participants.add(cursor); // a Mini that enters the fight shares in the XP
   battleState.addMsg(old + ", come back! Go, " + target.name + "!");
   // Enemy attacks after switch
   const e = battleState.enemy;
@@ -557,19 +610,23 @@ function useBattleItem() {
   const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE].includes(k));
   if (cursor >= items.length) return;
   const [name] = items[cursor];
+  let usedItem = false; // using an item spends your turn - the foe still gets its move
   if ([I_POTION,I_SPOTION,I_HPOTION].includes(name)) {
     const amt = { [I_POTION]:20, [I_SPOTION]:60, [I_HPOTION]:200 }[name];
     if (removeItem(name)) {
+      usedItem = true;
       battleState.player.heal(amt);
       battleState.addMsg("Used " + name + "! Healed " + amt + " HP!");
       R.addParticles(90, 220, "light", 8);
       R.addDamageNum(90, 200, "+" + amt, "heal");
     }
   } else if (name === I_FHEAL) {
-    if (removeItem(name)) { battleState.player.status = null; battleState.player.confusionTurns = 0; battleState.addMsg("Status healed!"); }
+    if (removeItem(name)) { usedItem = true; battleState.player.status = null; battleState.player.confusionTurns = 0; battleState.addMsg("Status healed!"); }
   } else if ([I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE].includes(name)) {
     const sphereName = { [I_SPHERE]:"Soul Sphere", [I_GSPHERE]:"Great Sphere", [I_USPHERE]:"Ultra Sphere", [I_MSPHERE]:"Master Sphere" }[name];
-    if (removeItem(name)) {
+    if (!battleState.canCatch) {
+      battleState.addMsg("You can't catch a trainer's Mini!"); // sphere stays in the bag - and so does your turn
+    } else if (removeItem(name)) {
       battleState.addMsg("You threw a " + sphereName + "!");
       const statusMult = battleState.enemy.status || "none";
       const [caught, shakes, chance] = attemptCatch(battleState.enemy, sphereName, statusMult);
@@ -578,28 +635,31 @@ function useBattleItem() {
         R.triggerFlash([255, 255, 100], 0.4);
         if (caught) {
           R.triggerConfetti();
+          // The actual Mini joins you: its remaining HP, status, IVs and shine carry over
+          const foe = battleState.enemy;
+          battleState.enemyParty.splice(battleState.enemyIdx, 1);
+          pokedexCatch(foe.dex);
           if (player.party.length >= 6) {
-            battleState.addMsg("Gotcha! But your team is full! " + battleState.enemy.name + " got away!");
-            if (!battleState.nextEnemy()) { battleState.playerWon = true; battleState.battleOver = true; }
+            battleState.addMsg("Gotcha! But your team is full! " + foe.name + " was released!");
           } else {
-            battleState.addMsg("Gotcha! " + battleState.enemy.name + " was caught!");
-            const c = new BattleCreature(battleState.enemy.dex, battleState.enemy.level);
-            pokedexCatch(battleState.enemy.dex);
-            addCreature(c);
-            if (!battleState.nextEnemy()) { battleState.playerWon = true; battleState.battleOver = true; }
+            foe.statStages = [0,0,0,0,0,0,0,0]; foe.confusionTurns = 0; foe.flinched = false;
+            addCreature(foe);
+            battleState.addMsg("Gotcha! " + foe.name + " was caught!");
           }
-        } else battleState.addMsg("Oh no! It broke free!");
+          if (!battleState.nextEnemy()) { battleState.playerWon = true; battleState.battleOver = true; }
+        } else { battleState.addMsg("Oh no! It broke free!"); battleState.enemyTurnOnly(); }
       });
     }
   } else if ([I_REVIVE,I_FREVIVE].includes(name)) {
     const fainted = player.party.filter(c => !c.isAlive() && c !== battleState.player);
-    if (fainted.length) { const hp = name === I_REVIVE ? 1 : fainted[0].maxHP; if (removeItem(name)) { fainted[0].hp = hp; battleState.addMsg(fainted[0].name + " revived!"); R.addParticles(90, 220, "light", 10); } }
+    if (fainted.length) { const hp = name === I_REVIVE ? 1 : fainted[0].maxHP; if (removeItem(name)) { usedItem = true; fainted[0].hp = hp; battleState.addMsg(fainted[0].name + " revived!"); R.addParticles(90, 220, "light", 10); } }
     else battleState.addMsg("No fainted Minis!");
   } else if (name === I_XATK) {
-    if (removeItem(name)) { battleState.player.statStages[1] = Math.min(6, battleState.player.statStages[1] + 1); battleState.addMsg(battleState.player.name + "'s ATK rose!"); R.triggerFlash([255, 100, 100], 0.2); }
+    if (removeItem(name)) { usedItem = true; battleState.player.statStages[1] = Math.min(6, battleState.player.statStages[1] + 1); battleState.addMsg(battleState.player.name + "'s ATK rose!"); R.triggerFlash([255, 100, 100], 0.2); }
   } else if (name === I_XDEF) {
-    if (removeItem(name)) { battleState.player.statStages[2] = Math.min(6, battleState.player.statStages[2] + 1); battleState.addMsg(battleState.player.name + "'s DEF rose!"); R.triggerFlash([100, 100, 255], 0.2); }
+    if (removeItem(name)) { usedItem = true; battleState.player.statStages[2] = Math.min(6, battleState.player.statStages[2] + 1); battleState.addMsg(battleState.player.name + "'s DEF rose!"); R.triggerFlash([100, 100, 255], 0.2); }
   }
+  if (usedItem && !battleState.battleOver) battleState.enemyTurnOnly();
   battlePhase = "message";
 }
 
@@ -609,7 +669,16 @@ function nextBattleMsg() {
   if (battleState.battleOver) {
     if (battleState.fled) state = S_OW;
     else if (battleState.playerWon) { checkEvolution(); if (state !== S_EVOLUTION && state !== S_MOVES && state !== S_DIALOG) state = S_OW; }
-    else state = S_GAMEOVER;
+    else {
+      // DS blackout: you come to back where you last healed, team restored,
+      // out some money for the trouble - not a full game over.
+      const lost = Math.floor(player.money * 0.1);
+      player.money -= lost;
+      for (const c of player.party) { c.hp = c.maxHP; c.status = null; c.confusionTurns = 0; c.statStages = [0, 0, 0, 0, 0, 0, 0, 0]; }
+      changeMap(lastHealSpot.mapIdx, lastHealSpot.x, lastHealSpot.y);
+      state = S_DIALOG;
+      setDialog(["You have no Minis left that can fight!", "You blacked out! Someone rushed you back and your team was healed." + (lost > 0 ? " You dropped $" + lost + " in the panic." : "")]);
+    }
   } else { battlePhase = "menu"; cursor = 0; }
 }
 
@@ -1047,7 +1116,7 @@ function handleClick(button, mx, my) {
 
 function handleKeyDown(key) {
   if (state === S_ENCOUNTER) return;
-  if (key === "Shift") isSprinting = true;
+  if (key === "Shift") shiftHeld = true;
   if (state === S_TITLE) {
     if (key === "Enter" || key === " " || key === "Escape") {
       if (key === "Escape" && tryHasSave()) { if (loadGame()) state = S_OW; }
@@ -1175,7 +1244,8 @@ function advanceIntro() {
 
 // === GAME INIT ===
 function initGame() {
-  player.x = 10; player.y = 10; player.facing = "down"; player.party = [];
+  player.x = 10; player.y = 10; player.visX = 10; player.visY = 10; player.facing = "down"; player.party = [];
+  spotted = null; window.__spottedNpc = null; window.__spottedAlert = false; lastHealSpot = { mapIdx: 0, x: 10, y: 17 };
   player.money = 3000; player.badges = []; player.storyFlags = {}; player.stepCounter = 0;
   player.inventory = {[I_POTION]:3,[I_SPHERE]:3,[I_GSPHERE]:0,[I_USPHERE]:0,[I_MSPHERE]:0,[I_FHEAL]:1,[I_REVIVE]:0,[I_XATK]:0,[I_XDEF]:0,[I_REPEL]:1};
   player.defeatedTrainers = [];
@@ -1260,7 +1330,7 @@ document.addEventListener("touchstart", function(e) { if (e.target !== canvas) o
 document.addEventListener("touchend", function(e) { if (e.target !== canvas) onTouchEnd(e); }, { passive: false });
 document.addEventListener("contextmenu", e => e.preventDefault());
 document.addEventListener("keydown", e => { handleKeyDown(e.key); });
-document.addEventListener("keyup", e => { if (e.key === "Shift") isSprinting = false; });
+document.addEventListener("keyup", e => { if (e.key === "Shift") shiftHeld = false; });
 document.addEventListener("mousedown", e => { if (e.target !== canvas && e.button === 0) { const p = screenToCanvas(e.clientX, e.clientY); handleClick(1, p.x, p.y); } });
 
 // === GAME LOOP ===
@@ -1277,14 +1347,50 @@ function gameLoop(timestamp) {
   // Update effects
   R.updateEffects(dt);
 
-  // Virtual joystick movement (overworld only)
+  // Virtual joystick movement (overworld only). Pushing the stick to its rim
+  // sprints (Shift works too) - sprinting doubles your step speed, DS-style.
+  const joySprint = joystick.active && Math.hypot(joystick.tx - joystick.cx, joystick.ty - joystick.cy) > JOY_R * 0.98;
+  isSprinting = shiftHeld || joySprint;
   if (joystick.active && joystick.dir && state === S_OW) {
     joystick.moveCD -= dt;
     if (joystick.moveCD <= 0) {
       const [mx, my] = joystick.dir;
       const fc = mx > 0 ? "right" : mx < 0 ? "left" : my > 0 ? "down" : "up";
       movePlayer(mx, my, fc);
-      joystick.moveCD = JOY_STEP;
+      joystick.moveCD = isSprinting ? JOY_STEP_RUN : JOY_STEP;
+    }
+  }
+
+  // DS-style smooth glide: the sprite eases tile to tile instead of teleporting
+  {
+    const stepInt = isSprinting ? JOY_STEP_RUN : JOY_STEP;
+    const mv = dt / stepInt;
+    player.visX = (player.visX === undefined) ? player.x : player.visX + Math.max(-mv, Math.min(mv, player.x - player.visX));
+    player.visY = (player.visY === undefined) ? player.y : player.visY + Math.max(-mv, Math.min(mv, player.y - player.visY));
+  }
+
+  // A trainer who spotted you: "!" pause, then they walk straight up to you
+  if (spotted && state === S_OW && currentMap) {
+    const npc = spotted.npc;
+    // ease the trainer's sprite toward its tile while it walks up
+    const nmv = dt / 0.16;
+    if (npc.visX !== undefined) npc.visX += Math.max(-nmv, Math.min(nmv, npc.x - npc.visX));
+    if (npc.visY !== undefined) npc.visY += Math.max(-nmv, Math.min(nmv, npc.y - npc.visY));
+    spotted.t += dt;
+    if (spotted.phase === "alert" && spotted.t >= 0.6) { spotted.phase = "walk"; spotted.stepT = 0; window.__spottedAlert = false; }
+    else if (spotted.phase === "walk") {
+      spotted.stepT += dt;
+      const dist = Math.abs(player.x - npc.x) + Math.abs(player.y - npc.y);
+      if (dist <= 1) {
+        spotted = null; window.__spottedNpc = null; window.__spottedAlert = false; window.__spottedAlert = false;
+        npc.facing = player.x < npc.x ? "left" : player.x > npc.x ? "right" : player.y < npc.y ? "up" : "down";
+        npc.visX = npc.x; npc.visY = npc.y;
+        interactNPC(npc);
+      } else if (spotted.stepT >= 0.16) {
+        spotted.stepT = 0;
+        if (npc.facing === "left" || npc.facing === "right") npc.x += Math.sign(player.x - npc.x);
+        else npc.y += Math.sign(player.y - npc.y);
+      }
     }
   }
 
@@ -1632,8 +1738,9 @@ function renderStarter() {
 
 function renderOverworld() {
   if (currentMap) {
-    const walkFrame = (time - lastMoveTime) < 0.14 ? (walkPhase % 4) : 0;
-    R.townMap(currentMap, player.x, player.y, time, player.facing, walkFrame);
+    const gliding = Math.abs((player.visX ?? player.x) - player.x) > 0.02 || Math.abs((player.visY ?? player.y) - player.y) > 0.02;
+    const walkFrame = (gliding || (time - lastMoveTime) < (isSprinting ? JOY_STEP_RUN : JOY_STEP)) ? Math.floor(time * (isSprinting ? 12 : 9)) % 4 : 0;
+    R.townMap(currentMap, player.visX ?? player.x, player.visY ?? player.y, time, player.facing, walkFrame);
     R.hud(player, currentMap.name);
     R.pauseButton(time);
     const info = getInteractableInfo();
@@ -1868,7 +1975,15 @@ if (location.hash === "#test") {
     },
     setParty: (list) => { player.party = list.map(a => new BattleCreature(a[0], a[1])); },
     setInventory: (o) => { Object.assign(player.inventory, o); },
-    setBattlePhase: (ph, cur) => { battlePhase = ph; if (cur != null) cursor = cur; }
+    setBattlePhase: (ph, cur) => { battlePhase = ph; if (cur != null) cursor = cur; },
+    // DS-overhaul QA: raw handles + the exact actions the input handlers call
+    raw: () => ({ player, battleState, R, spotted, currentMap, dialogQueue, repelSteps }),
+    act: () => selectBattleAction(),
+    useMove: () => useBattleMove(),
+    useItem: () => useBattleItem(),
+    setCursor: (n) => { cursor = n; },
+    setRepel: (n) => { repelSteps = n; },
+    finishTransition: () => finishBattleTransition()
   };
   window.__fx = () => ({
     particles: R.particles.length, dmgNums: R.damageNums.length,

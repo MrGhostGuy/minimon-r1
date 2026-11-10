@@ -703,11 +703,19 @@ class Renderer {
     // Layer 3: NPCs (drawn from bottom to top for proper overlap)
     const npcsSorted = [...m.npcs].sort((a, b) => a.y - b.y);
     for (const npc of npcsSorted) {
+      const nvx = (npc.visX !== undefined ? npc.visX : npc.x), nvy = (npc.visY !== undefined ? npc.visY : npc.y);
       // Shadow
       ctx.fillStyle = rgba([0, 0, 0], 0.3);
-      ctx.fillRect(npc.x * TILE + 4, npc.y * TILE + TILE - 2, TILE - 8, 3);
+      ctx.fillRect(nvx * TILE + 4, nvy * TILE + TILE - 2, TILE - 8, 3);
       // NPC sprite
-      this.npcSprite(npc.x * TILE, npc.y * TILE, TILE, npc.type, npc.facing);
+      this.npcSprite(nvx * TILE, nvy * TILE, TILE, npc.type, npc.facing);
+      // The DS moment: a trainer who just spotted you gets a big "!"
+      if (typeof window !== "undefined" && window.__spottedNpc === npc && window.__spottedAlert) {
+        ctx.fillStyle = rgb([255, 220, 50]);
+        ctx.font = "bold 17px monospace"; ctx.textAlign = "center";
+        ctx.fillText("!", nvx * TILE + TILE / 2, nvy * TILE - 4);
+        ctx.textAlign = "left";
+      }
       // Exclamation if interactable and not defeated trainer
       if (INTERACTABLE.has(npc.type) || (npc.type === "trainer" && !npc.defeated) || (npc.type === "rival" && !npc.defeated)) {
         const bob = Math.sin(t * 4) * 3;
