@@ -2730,6 +2730,367 @@ const LEGENDARY_SPRITES = {
   ],
 };
 
+/* ── Generated creature sprites ──────────────────────────────────────
+   Every species gets its own 24x24 sprite, generated deterministically
+   from its dex seed: body plan from its family, its OWN colour pair
+   (color / color2 from the species data), asymmetric markings, a face
+   style, and an element feature from its type. Evolution stage scales
+   the build and adds features. Legendaries keep their hand-drawn art. */
+const CREATURE_PLAN = {1:'quad',2:'quad',3:'plant',4:'quad',5:'serpent',6:'golem',7:'moth',8:'bird',9:'quad',10:'quad',11:'quad',12:'quad',13:'quad',14:'quad',15:'ghost',16:'quad',17:'blob',18:'moth',19:'blob',20:'golem',21:'blob',22:'serpent',23:'ghost',24:'ghost',25:'blob',26:'quad',27:'plant',28:'plant',29:'blob',30:'blob',31:'fish',32:'golem',33:'moth',34:'moth',35:'blob',36:'golem',37:'quad',38:'golem',39:'dragon',40:'dragon',41:'dragon',42:'serpent',43:'ghost',44:'plant',45:'serpent',46:'serpent',47:'bird',48:'dragon',49:'quad',50:'quad',51:'golem',52:'golem',53:'ghost',54:'ghost',55:'golem',56:'golem',57:'dragon',58:'dragon',59:'dragon',60:'dragon',61:'golem',62:'golem',63:'bird',64:'bird',65:'serpent',66:'dragon',67:'ghost',68:'ghost',69:'quad',70:'quad',71:'bird',72:'dragon',73:'golem',74:'golem',81:'quad',82:'plant',83:'serpent',84:'dragon',85:'blob',91:'moth',92:'bird',93:'fish',94:'moth',95:'bird',96:'bird',97:'blob',98:'blob',99:'blob',100:'blob'};
+
+function _dexRng(dex) {
+  let a = (dex * 2654435761) >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function _GB() {
+  const g = Array.from({ length: 24 }, () => Array(24).fill('.'));
+  const api = {
+    g,
+    set(x, y, ch) { x = Math.round(x); y = Math.round(y); if (x >= 0 && x < 24 && y >= 0 && y < 24) g[y][x] = ch; },
+    get(x, y) { return (x >= 0 && x < 24 && y >= 0 && y < 24) ? g[y][x] : '.'; },
+    disc(cx, cy, rx, ry, ch) {
+      for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+        const dx = (x - cx) / rx, dy = (y - cy) / ry;
+        if (dx * dx + dy * dy <= 1) api.set(x, y, ch);
+      }
+    },
+    // disc that only paints over cells already holding `only`
+    discM(cx, cy, rx, ry, ch, only) {
+      for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+        const dx = (x - cx) / rx, dy = (y - cy) / ry;
+        if (dx * dx + dy * dy <= 1 && api.get(x, y) === only) api.set(x, y, ch);
+      }
+    },
+    rect(x0, y0, x1, y1, ch) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) api.set(x, y, ch); },
+    // cel shading over '2' cells: warm light upper-left, shade along the bottom
+    cel(cx, cy, rx, ry) {
+      api.discM(cx - rx * 0.18, cy - ry * 0.3, rx * 0.8, ry * 0.78, '1', '2');
+      api.discM(cx, cy + ry * 0.72, rx * 0.92, ry * 0.55, '3', '2');
+    },
+    outline() {
+      const snap = g.map(r => r.slice());
+      for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
+        if (snap[y][x] !== '.') continue;
+        if ((x > 0 && snap[y][x - 1] !== '.') || (x < 23 && snap[y][x + 1] !== '.') ||
+            (y > 0 && snap[y - 1][x] !== '.') || (y < 23 && snap[y + 1][x] !== '.')) g[y][x] = '0';
+      }
+    },
+    rows() { return g.map(r => r.join('')); }
+  };
+  return api;
+}
+
+function _face(b, cx, eyeY, dx, style, rng, mouthY, mouthStyle) {
+  for (const s of [-1, 1]) {
+    const ex = cx + s * dx;
+    if (style === 'glow') {
+      b.disc(ex, eyeY, 1.4, 1.8, '6'); b.set(ex - 0.4, eyeY - 0.6, '4');
+    } else if (style === 'sleepy') {
+      b.set(ex - 1, eyeY, '5'); b.set(ex, eyeY + 0.4, '5'); b.set(ex + 1, eyeY, '5');
+      b.set(ex + s, eyeY - 0.8, '5');
+    } else if (style === 'happy') {
+      b.set(ex - 1, eyeY + 0.5, '5'); b.set(ex, eyeY - 0.6, '5'); b.set(ex + 1, eyeY + 0.5, '5');
+    } else {
+      b.disc(ex, eyeY, 1.85, 2.25, '4');
+      const look = rng() < 0.45 ? 0 : (rng() < 0.5 ? -0.5 : 0.5);
+      b.disc(ex + look, eyeY + 0.25, 1.1, 1.35, '5');
+      b.set(ex - 0.5 + look, eyeY - 0.7, '4');
+      if (style === 'fierce') {
+        b.set(ex - s * 1.6, eyeY - 2.8, '3'); b.set(ex - s * 0.5, eyeY - 3.1, '3'); b.set(ex + s * 0.7, eyeY - 2.8, '3');
+      }
+    }
+  }
+  if (mouthStyle === 'smile') {
+    b.set(cx - 1.5, mouthY - 0.4, '0'); b.set(cx - 0.5, mouthY + 0.3, '0'); b.set(cx + 0.5, mouthY + 0.3, '0'); b.set(cx + 1.5, mouthY - 0.4, '0');
+  } else if (mouthStyle === 'fang') {
+    b.set(cx - 1.5, mouthY, '0'); b.set(cx - 0.5, mouthY, '0'); b.set(cx + 0.5, mouthY, '0'); b.set(cx + 1.5, mouthY, '0');
+    const side = rng() < 0.5 ? -1 : 1;
+    b.set(cx + side * 1.5, mouthY + 1, '4'); // one fang - asymmetric on purpose
+  } else if (mouthStyle === 'open') {
+    b.disc(cx, mouthY, 1.1, 1.3, '0'); b.set(cx, mouthY + 0.6, '6');
+  } else if (mouthStyle === 'o') {
+    b.disc(cx, mouthY, 0.9, 1.1, '0');
+  } else { // line
+    b.set(cx - 1, mouthY, '0'); b.set(cx, mouthY, '0'); b.set(cx + 1, mouthY, '0');
+  }
+}
+
+function _markings(b, rng, region, face, opts) {
+  const o = opts || {};
+  // belly patch (cream or secondary)
+  if (o.belly) b.disc(region.cx, region.cy + region.ry * 0.42, region.rx * 0.52, region.ry * 0.4, o.belly);
+  // forehead mark in accent
+  if (o.fore) {
+    const fx = region.cx, fy = region.cy - region.ry * 0.62;
+    if (o.fore === 'diamond') { b.set(fx, fy - 1, '6'); b.set(fx - 1, fy, '6'); b.set(fx, fy, '6'); b.set(fx + 1, fy, '6'); b.set(fx, fy + 1, '6'); }
+    else if (o.fore === 'star') { b.set(fx, fy - 1, '6'); b.set(fx - 1, fy, '6'); b.set(fx, fy, '6'); b.set(fx + 1, fy, '6'); b.set(fx, fy + 1, '6'); b.set(fx - 1, fy - 1, '6'); b.set(fx + 1, fy + 1, '6'); }
+    else { b.disc(fx, fy, 1.1, 1.1, '6'); }
+  }
+  // asymmetric spots in secondary shade
+  const nSpots = o.spots || 0;
+  for (let i = 0; i < nSpots; i++) {
+    for (let tries = 0; tries < 8; tries++) {
+      const ang = rng() * Math.PI * 2, rr = 0.45 + rng() * 0.5;
+      const x = region.cx + Math.cos(ang) * region.rx * rr, y = region.cy + Math.sin(ang) * region.ry * rr + region.ry * 0.15;
+      if (Math.abs(x - face.cx) < face.dx + 2 && y < face.bottom) continue;
+      if (b.get(Math.round(x), Math.round(y)) === '2' || b.get(Math.round(x), Math.round(y)) === '1') {
+        b.disc(x, y, 0.9 + rng() * 0.7, 0.9 + rng() * 0.6, rng() < 0.6 ? '9' : '3');
+        break;
+      }
+    }
+  }
+  // cheek patches
+  if (o.cheeks) for (const s of [-1, 1]) b.disc(face.cx + s * (face.dx + 2.2), face.eyeY + 1.6, 1.1, 0.9, '6');
+}
+
+function _elementFeature(b, type, hx, hy, rng) {
+  const P = (pts, ch) => pts.forEach(p => b.set(hx + p[0], hy + p[1], ch));
+  switch (type) {
+    case 'Fire': P([[0, -3.4], [-0.8, -2.4], [0, -2.6], [0.8, -2.4], [0, -1.6]], '6'); b.set(hx, hy - 2.2, '4'); break;
+    case 'Ice': P([[0, -3.6], [0, -2.6], [-0.9, -1.8], [0.9, -1.8], [0, -1.6]], '8'); b.set(hx, hy - 3.2, '4'); break;
+    case 'Electric': P([[0.4, -3.6], [-0.4, -2.6], [0.3, -2.4], [-0.5, -1.4]], '6'); break;
+    case 'Water': P([[0, -3], [-0.9, -2], [0.9, -2], [0, -1.8]], '7'); break;
+    case 'Grass': P([[-1, -2.2], [0, -3.2], [1, -2.2], [0, -2]], '7'); b.set(hx, hy - 1.2, '9'); break;
+    case 'Spirit': P([[0, -3.4], [0, -2.5]], '6'); b.set(hx + (rng() < 0.5 ? -2.4 : 2.4), hy - 2.8, '6'); break;
+    case 'Dark': P([[-1.6, -2.4], [1.6, -2.4]], '3'); break;
+    case 'Earth': P([[-1, -2], [0, -2.4], [1, -2]], '3'); break;
+    case 'Wind': P([[-1.2, -2.4], [0, -3.3], [1.2, -2.4]], '8'); break;
+    case 'Light': P([[0, -3.4], [-0.9, -2.6], [0, -2.6], [0.9, -2.6], [0, -1.8]], '6'); break;
+    case 'Dragon': P([[0, -3]], '1'); break;
+    default: if (rng() < 0.4) b.set(hx, hy - 2.8, '6');
+  }
+}
+
+function genCreatureSprite(dex) {
+  const c = CREATURES[dex];
+  if (!c) return null;
+  const plan = CREATURE_PLAN[dex] || 'blob';
+  const rng = _dexRng(dex);
+  // evolution stage: 0 base, 1 mid, 2 final
+  let stage = 0;
+  for (let d = 1; d <= 100; d++) if (CREATURES[d] && CREATURES[d].evo && CREATURES[d].evo[1] === dex) stage = Math.max(stage, 1);
+  for (let d = 1; d <= 100; d++) if (CREATURES[d] && CREATURES[d].evo && CREATURES[d].evo[1] === dex) {
+    for (let e = 1; e <= 100; e++) if (CREATURES[e] && CREATURES[e].evo && CREATURES[e].evo[1] === d) stage = 2;
+  }
+  if (c.evo) stage = Math.min(stage, 1); // still evolves -> not final
+  const sf = stage === 0 ? 0.9 : stage === 1 ? 0.97 : 1.05;
+  const b = _GB();
+  const CX = 11.5;
+  const eyeStyles = ['round', 'round', 'fierce', 'happy', 'sleepy'];
+  const eyeStyle = (c.types.includes('Spirit') || c.types.includes('Dark') || plan === 'ghost') && rng() < 0.55 ? 'glow'
+    : eyeStyles[Math.floor(rng() * eyeStyles.length)];
+  const mouthStyles = ['line', 'smile', 'fang', 'line', 'smile'];
+  const mouth = mouthStyles[Math.floor(rng() * mouthStyles.length)];
+  const fore = [null, 'dot', 'diamond', 'star', null][Math.floor(rng() * 5)];
+  const spots = Math.floor(rng() * 5);
+  const tailSide = rng() < 0.5 ? -1 : 1;
+
+  if (plan === 'quad' || plan === 'dragon') {
+    const isDrg = plan === 'dragon';
+    if (isDrg) { // swept wings behind the body, in the secondary colour
+      for (const s of [-1, 1]) {
+        b.disc(CX + s * 8.7, 6.2, 1.5, 2.4, '7');
+        b.disc(CX + s * 9.5, 9.8, 1.9, 3.4, '7');
+        b.disc(CX + s * 9.9, 13.8, 1.6, 2.6, '7');
+        b.disc(CX + s * 10.4, 9.8, 0.9, 3.2, '9');
+      }
+    }
+    // ears / horns
+    const earStyle = isDrg ? 'horn' : ['pointy', 'round', 'floppy', 'pointy'][Math.floor(rng() * 4)];
+    for (const s of [-1, 1]) {
+      const ex = CX + s * 5.2;
+      if (earStyle === 'pointy') { b.disc(ex, 4.3, 1.8, 3.1, '2'); b.disc(ex, 4.7, 0.95, 1.9, '7'); }
+      else if (earStyle === 'round') { b.disc(ex, 4.2, 2.1, 2.1, '2'); b.disc(ex, 4.4, 1.1, 1.1, '7'); }
+      else if (earStyle === 'floppy') { b.disc(ex + s * 0.8, 6.8, 1.8, 3.6, '2'); }
+      else { b.disc(ex, 3.9, 1.4, 2.8, '1'); b.disc(ex + s * 0.7, 2.6, 1, 1.8, '1'); } // horn
+    }
+    if (stage === 2 || isDrg) for (const s of [-1, 1]) b.disc(CX + s * 3.4, 3.4, 1, 2, '1'); // brow horns on finals
+    b.disc(CX, 14.9, 9.2 * sf, 7.4 * sf, '2');           // torso
+    b.disc(CX, 9.9, 6.3 * sf, 5.8 * sf, '2');            // head
+    b.cel(CX, 12.4, 8.8 * sf, 8.4 * sf);
+    b.discM(CX, 15.1, 6.4, 1.6, '3', '1');               // neck shade under the head
+    // tail curling up on ONE side
+    b.disc(CX + tailSide * 9.7, 15.8, 1.8, 3, '2');
+    b.disc(CX + tailSide * 10, 12.4, 1.6, 2, '2');
+    b.disc(CX + tailSide * 10, 10.2, 1.4, 1.5, c.types[0] === 'Fire' ? '6' : '7');
+    // snout
+    b.disc(CX, 13.6, 3.2, 2.2, '1');
+    // legs + paws
+    for (const s of [-1, 1]) { b.rect(Math.round(CX + s * 6.1) - 1, 19, Math.round(CX + s * 6.1) + 1, 23, '2'); b.rect(Math.round(CX + s * 6.1) - 1, 22, Math.round(CX + s * 6.1) + 1, 23, rng() < 0.5 ? '7' : '3'); }
+    for (const s of [-1, 1]) { b.disc(CX + s * 3, 21.9, 1.9, 1.3, '2'); } // sitting paws
+    b.outline();
+    for (const s of [-1, 1]) { b.set(CX + s * 3, 21.4, '0'); } // toe lines
+    _face(b, CX, 10.1, 3.4, eyeStyle, rng, 14.9, isDrg ? 'fang' : mouth);
+    b.set(CX - 0.5, 12.7, '0'); b.set(CX + 0.5, 12.7, '0'); // nostrils
+    _markings(b, rng, { cx: CX, cy: 13, rx: 8, ry: 8 }, { cx: CX, dx: 3.4, eyeY: 10.1, bottom: 13 },
+      { belly: rng() < 0.85 ? '4' : null, fore, spots, cheeks: rng() < 0.3 });
+    _elementFeature(b, c.types[0], CX, 4.6, rng);
+  }
+
+  else if (plan === 'blob') {
+    const top = ['none', 'sprout', 'antenna', 'tuft'][Math.floor(rng() * 4)];
+    if (top === 'sprout') { b.set(CX, 2.6, '9'); b.disc(CX - 1.2, 1.9, 1.3, 0.9, '7'); b.disc(CX + 1.2, 1.9, 1.3, 0.9, '7'); }
+    if (top === 'antenna') { b.set(CX + 1.5, 2.8, '2'); b.set(CX + 2.4, 1.9, '2'); b.disc(CX + 3, 1.4, 1.1, 1.1, '6'); }
+    if (top === 'tuft') for (const dx of [-1.4, 0, 1.4]) b.disc(CX + dx, 2.8, 0.9, 1.4, '2');
+    b.disc(CX, 13.8, 8.6 * sf, 8.6 * sf, '2');
+    b.disc(CX - 8.7, 15.8, 1.8, 2.6, '2'); b.disc(CX + 8.7, 15.8, 1.8, 2.6, '2'); // arms
+    b.cel(CX, 13.8, 8.6 * sf, 8.6 * sf);
+    // wavy base
+    for (const dx of [-5.5, 0, 5.5]) b.disc(CX + dx, 21.6, 2.2, 1.2, '2');
+    b.outline();
+    _face(b, CX, 11.6, 3.5, eyeStyle, rng, 15.2, mouth === 'fang' ? 'smile' : mouth);
+    _markings(b, rng, { cx: CX, cy: 13.8, rx: 8.2, ry: 8.2 }, { cx: CX, dx: 3.5, eyeY: 11.6, bottom: 14 },
+      { belly: '4', fore, spots, cheeks: rng() < 0.45 });
+    _elementFeature(b, c.types[0], CX, 5.4, rng);
+  }
+
+  else if (plan === 'bird') {
+    for (const s of [-1, 1]) { // wings
+      b.disc(CX + s * 8.6, 14.2, 2.7, 5.6, '7');
+      b.disc(CX + s * 8.2, 13.2, 1.7, 4.2, '8');
+      b.set(CX + s * 8.6, 17.5, '9'); b.set(CX + s * 8.6, 15.8, '9');
+    }
+    for (const dx of [-2.2, 0, 2.2]) b.disc(CX + dx, 3.4, 1.1, 2.1, '2'); // crest
+    b.disc(CX, 12.8, 7.8 * sf, 8.2 * sf, '2');
+    b.cel(CX, 12.8, 7.8 * sf, 8.2 * sf);
+    for (const dx of [-2.6, 0, 2.6]) b.disc(CX + dx, 21.8, 1.3, 2, '7'); // tail feathers
+    b.outline();
+    _face(b, CX, 10.4, 3.4, eyeStyle === 'glow' ? 'round' : eyeStyle, rng, 0, 'line');
+    // beak instead of a mouth
+    b.disc(CX, 13.4, 1.9, 1.2, '6'); b.disc(CX, 14.6, 1.2, 0.9, '6'); b.set(CX - 0.5, 13.2, '0'); b.set(CX + 0.5, 13.2, '0');
+    for (const s of [-1, 1]) b.set(CX + s * 3.4, 23, '6'); // feet
+    _markings(b, rng, { cx: CX, cy: 12.8, rx: 7.4, ry: 7.8 }, { cx: CX, dx: 3.4, eyeY: 10.4, bottom: 13 },
+      { belly: rng() < 0.55 ? '1' : null, fore, spots: Math.floor(spots / 2), cheeks: false });
+    _elementFeature(b, c.types[0], CX, 5.2, rng);
+  }
+
+  else if (plan === 'moth') {
+    for (const s of [-1, 1]) {
+      b.disc(CX + s * 6.4, 9.3, 5.2, 6.2, '7');   // upper wings
+      b.disc(CX + s * 6, 8.6, 3.6, 4.4, '8');
+      b.disc(CX + s * 5.8, 16.8, 4.4, 4.6, '7');  // lower wings
+      b.disc(CX + s * 6.2, 9, 1.6, 1.6, '6');     // eye-spot
+      b.disc(CX + s * 6.2, 9, 0.8, 0.8, '5');
+      b.set(CX + s * 3.4, 3.4, '2'); b.set(CX + s * 4.6, 2.4, '2'); b.disc(CX + s * 5.4, 1.9, 1, 1, '6'); // antennae
+    }
+    b.disc(CX, 12.5, 2.9, 7.6, '2');              // body
+    b.discM(CX, 10, 2.7, 6, '1', '2');
+    for (const yy of [8.5, 12, 15.5]) b.rect(10, Math.round(yy), 13, Math.round(yy), '9'); // fuzz bands in secondary shade
+    b.disc(CX, 5.6, 3.3, 3, '2');                 // head
+    b.cel(CX, 5.6, 3.3, 3);
+    b.outline();
+    // big moth eyes
+    for (const s of [-1, 1]) { b.disc(CX + s * 1.7, 5.4, 1.15, 1.35, '5'); b.set(CX + s * 1.7 - 0.4, 4.8, '4'); }
+    b.set(CX, 7.6, '0');
+    _markings(b, rng, { cx: CX, cy: 12.5, rx: 3, ry: 7 }, { cx: CX, dx: 1.7, eyeY: 5.4, bottom: 8 }, { belly: null, fore: null, spots: 0, cheeks: false });
+  }
+
+  else if (plan === 'serpent') {
+    const nx = CX + (tailSide > 0 ? -3.4 : 3.4); // neck/head lean to one side
+    b.disc(CX, 20.2, 9.2, 3.1, '2');              // coils
+    b.disc(CX, 16.9, 7.2, 2.7, '2');
+    b.discM(CX, 20.2, 9, 3, '7', '2');            // secondary sheen on the low coil (patchy via second disc below)
+    b.disc(CX + tailSide * 6.5, 20.2, 2.6, 2.6, '2');
+    b.disc(nx, 11.5, 3.4, 5.2, '2');              // neck
+    for (const yy of [9.5, 12, 14.5]) b.rect(Math.round(nx) - 1, Math.round(yy), Math.round(nx) + 1, Math.round(yy), '1'); // belly bands
+    b.disc(nx, 6.4, 4.9 * sf, 4.3 * sf, '2');     // head
+    b.cel(nx, 6.4, 4.9 * sf, 4.3 * sf);
+    // head crest / fin by type
+    if (c.types[0] === 'Water' || c.types[0] === 'Dragon') { for (const s of [-1, 1]) b.disc(nx + s * 4.2, 5.4, 1.4, 2.2, '7'); }
+    else if (c.types[0] === 'Ice') { b.disc(nx, 2.6, 1.1, 1.8, '8'); b.set(nx, 1.6, '4'); }
+    else if (stage === 2) for (const s of [-1, 1]) b.disc(nx + s * 3.2, 3.2, 1, 1.9, '1');
+    b.outline();
+    _face(b, nx, 6.2, 2.6, eyeStyle, rng, 8.8, 'fang');
+    b.set(nx + (tailSide > 0 ? 1.8 : -1.8), 9.6, '6'); b.set(nx + (tailSide > 0 ? 2.4 : -2.4), 10.4, '6'); // tongue flick, one side
+    _elementFeature(b, c.types[0], nx, 3.4, rng);
+  }
+
+  else if (plan === 'fish') {
+    for (const s of [-1, 1]) b.disc(CX + s * 9.2, 15, 2.3, 4, '7'); // side fins
+    b.disc(CX, 4.3, 3.4, 1.9, '7');                                    // dorsal fin
+    b.disc(CX, 11.6, 9.3 * sf, 6.9 * sf, '2');                         // body
+    b.cel(CX, 11.6, 9.3 * sf, 6.9 * sf);
+    // tail fin below
+    b.disc(CX - 3, 21.2, 3, 2.6, '7'); b.disc(CX + 3, 21.2, 3, 2.6, '7'); b.disc(CX, 20, 2.4, 2, '7');
+    b.set(CX - 2.6, 21.4, '9'); b.set(CX + 2.6, 21.4, '9');
+    b.outline();
+    _face(b, CX, 10.2, 5, eyeStyle === 'glow' ? 'round' : eyeStyle, rng, 15.4, 'o');
+    b.disc(CX, 15.2, 2.2, 1.1, '6'); // lips
+    // scale speckles
+    for (let i = 0; i < 6; i++) {
+      const x = CX + (rng() - 0.5) * 11, y = 12.5 + rng() * 5.5;
+      if (b.get(Math.round(x), Math.round(y)) === '2') b.set(x, y, '1');
+    }
+    _markings(b, rng, { cx: CX, cy: 11.8, rx: 8.4, ry: 7 }, { cx: CX, dx: 5, eyeY: 10.2, bottom: 13.5 }, { belly: null, fore, spots: 0, cheeks: false });
+  }
+
+  else if (plan === 'ghost') {
+    b.disc(CX - 8.8, 13, 1.9, 3, '2'); b.disc(CX + 8.8, 13, 1.9, 3, '2'); // arms
+    b.disc(CX, 10.8, 7.6 * sf, 7.2 * sf, '2');
+    b.rect(4, 12, 19, 17, '2');
+    b.cel(CX, 10.8, 7.6 * sf, 7.2 * sf);
+    for (const dx of [-6, -2, 2, 6]) b.disc(CX + dx, 18.6, 1.9, 1.7, '2');    // wispy hem
+    b.disc(CX + (rng() < 0.5 ? -2.5 : 2.5), 2.9, 1.2, 1.9, '6');              // head wisp in accent
+    b.outline();
+    _face(b, CX, 10.2, 3.3, 'glow', rng, 13.8, rng() < 0.5 ? 'o' : 'smile');
+    _markings(b, rng, { cx: CX, cy: 11, rx: 7.2, ry: 7 }, { cx: CX, dx: 3.3, eyeY: 10.2, bottom: 13 },
+      { belly: null, fore, spots, cheeks: false });
+  }
+
+  else if (plan === 'golem') {
+    for (const s of [-1, 1]) { // arms
+      b.rect(s < 0 ? 1 : 19, 11, s < 0 ? 4 : 22, 19, '2');
+      b.rect(s < 0 ? 1 : 19, 17, s < 0 ? 4 : 22, 19, '3');
+    }
+    b.disc(CX, 10.5, 9.3, 3.8, '2');                 // rounded shoulders
+    b.disc(CX, 16.8, 7.4 * sf, 6.2 * sf, '2');       // torso
+    b.disc(CX, 8.2, 5.2 * sf, 4.6 * sf, '2');        // head
+    b.cel(CX, 12, 8.6, 7.5);
+    b.rect(7, 7, 16, 8, '3');                        // heavy brow
+    for (const s of [-1, 1]) { b.rect(Math.round(CX + s * 4.6) - 1, 21, Math.round(CX + s * 4.6) + 1, 23, '2'); } // stub legs
+    // rocky facet lines
+    b.set(6, 10, '3'); b.set(7, 11, '3'); b.set(17, 9, '3'); b.set(16, 10, '3'); b.set(9, 18, '3'); b.set(10, 19, '3');
+    if (rng() < 0.6) { b.set(CX, 15.4, '6'); b.set(CX - 1, 16.2, '6'); b.set(CX, 16.2, '6'); b.set(CX + 1, 16.2, '6'); b.set(CX, 17, '6'); } // chest core
+    b.outline();
+    _face(b, CX, 10, 2.6, eyeStyle, rng, 12.2, 'line');
+    _markings(b, rng, { cx: CX, cy: 15, rx: 7, ry: 5.6 }, { cx: CX, dx: 2.6, eyeY: 10, bottom: 12.6 }, { belly: null, fore: null, spots: Math.floor(spots / 2), cheeks: false });
+  }
+
+  else if (plan === 'plant') {
+    for (const s of [-1, 1]) b.disc(CX + s * 7.6, 20.6, 2.6, 1.5, '9'); // root feet / ground leaves
+    b.disc(CX, 15.8, 7.2 * sf, 6.4 * sf, '2');        // bulb body
+    b.cel(CX, 15.8, 7.2 * sf, 6.4 * sf);
+    // leaf crown
+    const leafN = 3 + Math.floor(rng() * 3);
+    for (let i = 0; i < leafN; i++) {
+      const ang = -Math.PI * (0.15 + 0.7 * (i / Math.max(1, leafN - 1)));
+      b.disc(CX + Math.cos(ang) * 5.4, 9.6 + Math.sin(ang) * 3.4, 2.6, 1.5, '7');
+    }
+    if (rng() < 0.55) { // a flower on one side
+      const fx = CX + (rng() < 0.5 ? -5.6 : 5.6);
+      for (const p of [[0, -1.6], [-1.5, -0.5], [1.5, -0.5], [-1, 1], [1, 1]]) b.disc(fx + p[0], 6.8 + p[1], 1.15, 1.15, '6');
+      b.disc(fx, 6.8, 0.95, 0.95, '4');
+    }
+    b.disc(CX, 8.8, 2.2, 2.4, '2');                   // sprout head nub
+    b.outline();
+    _face(b, CX, 14.6, 3.2, eyeStyle === 'glow' ? 'happy' : eyeStyle, rng, 17.8, 'smile');
+    _markings(b, rng, { cx: CX, cy: 15.8, rx: 6.8, ry: 6 }, { cx: CX, dx: 3.2, eyeY: 14.6, bottom: 17 }, { belly: '4', fore: null, spots, cheeks: rng() < 0.4 });
+  }
+
+  else { // blob fallback (shouldn't happen)
+    b.disc(CX, 13, 8.4, 8.4, '2'); b.cel(CX, 13, 8.4, 8.4); b.outline();
+    _face(b, CX, 11.5, 3.5, eyeStyle, rng, 15, mouth);
+  }
+
+  return b.rows();
+}
+
 function initCreatureSprites(){
   const S=CREATURE_SPRITES;
   for(let i=1;i<=100;i++){
@@ -2738,6 +3099,12 @@ function initCreatureSprites(){
     if(typeof MINIMON_SPRITES_V2!=="undefined"&&MINIMON_SPRITES_V2[i]){S[i]=MINIMON_SPRITES_V2[i];continue;}
     const fn=CREATURE_SPRITE_FNS[i];
     S[i]=(typeof fn==='function')?normaliseCreatureGrid(fn()):genMinimonGrid(i);
+  }
+  // Generated per-species 24x24 sprites take over for everyone else;
+  // a species whose generation fails keeps its template sprite.
+  for(let i=1;i<=100;i++){
+    if(!CREATURES[i]||LEGENDARY_DEX.has(i))continue;
+    try{ const gen=genCreatureSprite(i); if(gen) S[i]=gen; }catch(e){ /* keep template */ }
   }
   // Legendaries get their hand-drawn 24x24 sprites over the templates
   for(const d in LEGENDARY_SPRITES){ if(CREATURES[d]) S[d]=LEGENDARY_SPRITES[d]; }
@@ -3534,10 +3901,15 @@ const CREATURE_BODY = { 87: [96, 58, 150], 90: [216, 196, 226] }; // per-species
 function creaturePalette(c, dex, shiny) {
   if (shiny) {
     const gold = [255, 203, 72];
+    const steel = [168, 186, 224];
     return [[26, 22, 32], _shadeMix(gold, [255, 246, 214], 0.45), gold,
-            _shadeMix(gold, [40, 38, 92], 0.4), [255, 250, 236], [30, 22, 10], [214, 42, 52]];
+            _shadeMix(gold, [40, 38, 92], 0.4), [255, 250, 236], [30, 22, 10], [214, 42, 52],
+            steel, _shadeMix(steel, [255, 246, 214], 0.4), _shadeMix(steel, [40, 38, 92], 0.45)];
   }
-  const body = CREATURE_BODY[dex] || TYPE_BODY[c.types[0]] || TYPE_COLORS[c.types[0]] || [200, 200, 200];
+  // Each species' own colour pair from its data drives the palette:
+  // color = body, color2 = secondary (belly/markings/limbs/fins).
+  const body = CREATURE_BODY[dex] || c.color || TYPE_BODY[c.types[0]] || TYPE_COLORS[c.types[0]] || [200, 200, 200];
+  const sec = c.color2 || body;
   const lum = (body[0] * 0.3 + body[1] * 0.55 + body[2] * 0.15) / 255;
   const hiAmt = lum > 0.72 ? 0.22 : 0.42;  // pale bodies: gentler highlight, stronger shadow
   const shAmt = lum > 0.72 ? 0.52 : 0.42;
@@ -3548,7 +3920,10 @@ function creaturePalette(c, dex, shiny) {
     _shadeMix(body, [40, 38, 92], shAmt),
     [255, 250, 236],
     [22, 20, 30],
-    CREATURE_ACCENT[dex] || body
+    CREATURE_ACCENT[dex] || body,
+    sec,
+    _shadeMix(sec, [255, 246, 214], hiAmt),
+    _shadeMix(sec, [40, 38, 92], shAmt)
   ];
 }
 

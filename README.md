@@ -99,3 +99,16 @@ The battle engine and overworld now follow the classic Nintendo DS games
   Pyraxis, Tidalon, Mythos) were hand-drawn at 24x24 - twice the pixel
   detail of the standard 16x16 sprites - with crowns, antlers, fins,
   glowing eyes/cores, teeth and chest gems.
+
+**Generated per-species sprites**
+- Every non-legendary species now gets its own unique 24x24 sprite,
+  generated deterministically from its dex seed - no more shared
+  templates in different colours. Each design is built from its family
+  body plan (quadruped, dragon, serpent, moth, bird, fish, ghost,
+  golem, plant, blob), its OWN colour pair from the species data
+  (body + secondary for bellies, fins, wings, markings), an individual
+  face (eye style, gaze, mouth - including one-fang grins), asymmetric
+  markings (spots, cheek patches, forehead marks, one-sided tails),
+  and an element feature from its type. Evolution stage scales the
+  build: basics are smaller and cuter, final evolutions larger with
+  extra horns/spikes. Legendaries keep their hand-drawn sprites.
