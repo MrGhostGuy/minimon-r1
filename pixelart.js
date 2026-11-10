@@ -3221,33 +3221,59 @@ function drawGrid(ctx,x,y,size,grid,palette){
   }
 }
 
+/* Pokémon-style cel shading for creatures: highlights mix toward warm
+   light and shadows toward cool indigo (flat +/- brightness greys the
+   colours out), and body colours are richer than the UI type colours -
+   pale types like Earth/Wind/Light used to wash out to near-white. */
+function _shadeMix(col, target, amt) {
+  return [0, 1, 2].map(i => Math.round(col[i] + (target[i] - col[i]) * amt));
+}
+const TYPE_BODY = {
+  Normal: [178, 158, 118], Fire: [242, 116, 44], Water: [64, 128, 232],
+  Grass: [92, 186, 72], Electric: [246, 196, 32], Ice: [104, 196, 216],
+  Dark: [98, 80, 88], Spirit: [156, 92, 196], Dragon: [106, 72, 226],
+  Earth: [198, 158, 84], Wind: [116, 186, 226], Light: [246, 206, 72]
+};
+const CREATURE_BODY = {}; // per-species body-colour overrides (rare)
+function creaturePalette(c, dex, shiny) {
+  if (shiny) {
+    const gold = [255, 203, 72];
+    return [[26, 22, 32], _shadeMix(gold, [255, 246, 214], 0.45), gold,
+            _shadeMix(gold, [40, 38, 92], 0.4), [255, 250, 236], [30, 22, 10], [214, 42, 52]];
+  }
+  const body = CREATURE_BODY[dex] || TYPE_BODY[c.types[0]] || TYPE_COLORS[c.types[0]] || [200, 200, 200];
+  const lum = (body[0] * 0.3 + body[1] * 0.55 + body[2] * 0.15) / 255;
+  const hiAmt = lum > 0.72 ? 0.22 : 0.42;  // pale bodies: gentler highlight, stronger shadow
+  const shAmt = lum > 0.72 ? 0.52 : 0.42;
+  return [
+    [26, 22, 32],
+    _shadeMix(body, [255, 246, 214], hiAmt),
+    body,
+    _shadeMix(body, [40, 38, 92], shAmt),
+    [255, 250, 236],
+    [22, 20, 30],
+    CREATURE_ACCENT[dex] || body
+  ];
+}
+
 function drawCreature(ctx,x,y,size,dex,isEnemy,shiny){
   const grid=CREATURE_SPRITES[dex];
   if(!grid)return;
   const c=CREATURES[dex];
   if(!c)return;
-  const ac=CREATURE_ACCENT[dex]||[255,255,100];
-  let palette;
-  if(shiny){
-    // alternate scheme: gold body, crimson accent - instantly reads as special
-    const gold=[255,203,72], goldHi=[255,236,158], goldLo=[186,128,26];
-    palette=[
-      [0,0,0], goldHi, gold, goldLo, [255,255,255], [30,22,10], [214,42,52]
-    ];
-  } else {
-    const tc=TYPE_COLORS[c.types[0]]||[200,200,200];
-    const a=CREATURE_ACCENT[dex]||tc;
-    palette=[
-      [0,0,0],
-      [Math.min(255,tc[0]+80),Math.min(255,tc[1]+80),Math.min(255,tc[2]+80)],
-      tc,
-      [Math.max(0,tc[0]-60),Math.max(0,tc[1]-60),Math.max(0,tc[2]-60)],
-      [255,255,255],
-      [20,20,30],
-      a
-    ];
+  const pal = creaturePalette(c, dex, shiny);
+  if (!shiny) {
+    // Some designs (golems, diggers, moles) were drawn light-dominant -
+    // most of the body uses the highlight shade, so they rendered as pale
+    // masks. Rebalance those: body colour leads, light becomes an edge.
+    let ones = 0, twos = 0;
+    for (const row of grid) for (const ch of row) { if (ch === '1') ones++; else if (ch === '2') twos++; }
+    if (ones > twos * 1.6) {
+      pal[1] = _shadeMix(pal[2], [255, 246, 214], 0.16);
+      pal[3] = _shadeMix(pal[2], [40, 38, 92], 0.55);
+    }
   }
-  drawGrid(ctx,x,y,size,grid,palette);
+  drawGrid(ctx,x,y,size,grid,pal);
   if(shiny) drawShinySparkle(ctx,x,y,size);
 }
 

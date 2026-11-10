@@ -71,3 +71,14 @@ The battle engine and overworld now follow the classic Nintendo DS games
   who spot you. (Before this pass NPCs didn't render at all: a sprite
   helper bug produced empty sprites, and a tile-variant bug kept most
   terrain textures from ever reaching the screen.)
+
+**Creature art (Pokémon-style pass)**
+- Cel shading the way the games do it: highlights mix toward warm light,
+  shadows toward cool indigo, instead of flat brightness steps that greyed
+  colours out; body colours are richer than the UI type colours, so pale
+  types (Earth/Wind/Light) no longer wash out to near-white
+- Designs drawn light-dominant (golems, moles, diggers) are rebalanced at
+  render time so the body colour leads and the light shade becomes an edge
+- Template touch-ups: cream bellies on quadrupeds and blobs (starters
+  included), the golem template's body is main-colour now instead of all
+  highlight, and serpents got a crest and a wider head
