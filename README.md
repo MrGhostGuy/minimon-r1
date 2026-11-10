@@ -58,3 +58,16 @@ The battle engine and overworld now follow the classic Nintendo DS games
 - NPCs are solid; you can't walk through people
 - Repel follows the DS rule: it only turns away wild Minis below your
   lead's level, and wild levels vary slightly around each route's table
+
+**World & character art (graphics pass)**
+- Terrain rebuilt in the DS style: two-tone shimmer grass with tufts and
+  flowers, dense layered tall grass, speckled dirt paths with soft rims
+  where they meet other surfaces, sandy shores with foam flecks, lobed
+  trees (one variant bears fruit), railed plank bridges, faceted boulders,
+  and warm wood-plank floors indoors
+- Every human is drawn by one DS-style sprite builder: the professor's
+  glasses and lab coat, the nurse's cap and cross, caps, backpacks,
+  aprons, capes - all in four directions, with a walk cycle for trainers
+  who spot you. (Before this pass NPCs didn't render at all: a sprite
+  helper bug produced empty sprites, and a tile-variant bug kept most
+  terrain textures from ever reaching the screen.)

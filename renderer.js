@@ -80,7 +80,7 @@ class Renderer {
     if (level !== undefined) this.text(x + size / 2, y + size + 12, "Lv." + level, COL_WHITE, 11, true);
   }
 
-  npcSprite(x, y, size, npcType, facing) { drawNPC(this.ctx, x, y, size, npcType, facing); }
+  npcSprite(x, y, size, npcType, facing, frame) { drawNPC(this.ctx, x, y, size, npcType, facing, frame); }
   playerSprite(x, y, size, facing, frame) { drawPlayer(this.ctx, x, y, size, facing || "down", frame || 0); }
 
   // ===== TILE SPRITE CACHE =====
@@ -91,52 +91,56 @@ class Renderer {
     const T = TILE; this.tileCache = {};
     const randIn = (n, seedA, seedB) => { const g = this._sr(seedA, seedB); return Math.floor(g * n); };
 
-    // GRASS variants (3)
+    // GRASS variants (3) - lush DS-style: two-tone shimmer, tuft clusters, flowers
     for (let v = 0; v < 3; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([74, 140, 63]); g.fillRect(0, 0, T, T);
-      // darker patches
-      g.fillStyle = rgb([60, 120, 50]);
-      for (let i = 0; i < 4; i++) {
-        const dx = randIn(T - 4, v * 11 + i + 1, v + 2);
-        const dy = randIn(T - 4, v + 2, v * 11 + i + 1);
-        g.fillRect(dx, dy, 2, 2);
+      g.fillStyle = rgb([88, 156, 70]); g.fillRect(0, 0, T, T);
+      // subtle checker shimmer (the classic DS grass texture)
+      g.fillStyle = rgb([81, 147, 63]);
+      for (let y = 0; y < 6; y++) for (let x = 0; x < 6; x++) if ((x + y) % 2 === 0) g.fillRect(x * 4, y * 4, 4, 4);
+      // soft light patches
+      g.fillStyle = rgb([99, 168, 78]);
+      for (let i = 0; i < 3; i++) {
+        const dx = randIn(T - 8, v * 31 + i * 3, v + 5), dy = randIn(T - 8, v + 5, v * 31 + i * 3);
+        g.fillRect(dx, dy, 5, 3);
       }
-      // blades
-      g.strokeStyle = rgb([80, 170, 70]); g.lineWidth = 1;
-      for (let i = 0; i < 14; i++) {
-        const bx = randIn(T - 4, v * 13 + i, v + 3);
-        const by = randIn(T - 6, v + 3, v * 13 + i);
-        g.beginPath(); g.moveTo(bx, by + 6); g.lineTo(bx + randIn(3, v, i) - 1, by); g.stroke();
+      // tuft clusters (little "w" grass marks, dark stroke + light stroke)
+      for (let i = 0; i < 7; i++) {
+        const bx = 1 + randIn(T - 6, v * 41 + i * 7, v + 9), by = 2 + randIn(T - 7, v + 9, v * 41 + i * 7);
+        g.strokeStyle = rgb([63, 124, 47]); g.lineWidth = 1;
+        g.beginPath(); g.moveTo(bx, by + 3); g.lineTo(bx + 1, by); g.lineTo(bx + 2, by + 3); g.stroke();
+        g.strokeStyle = rgb([118, 190, 94]);
+        g.beginPath(); g.moveTo(bx + 3, by + 3); g.lineTo(bx + 4, by + 1); g.stroke();
       }
-      // occasional flower
-      if (v === 0) { g.fillStyle = rgb([255, 90, 90]); g.fillRect(T / 2 - 1, T / 2 - 3, 3, 3); g.fillStyle = rgb([255, 255, 0]); g.fillRect(T / 2, T / 2 - 2, 1, 3); }
-      if (v === 1) { g.fillStyle = rgb([255, 130, 255]); g.fillRect(T / 2 - 1, T / 2 - 4, 3, 3); }
-      if (v === 2) { g.fillStyle = rgb([120, 200, 80]); g.fillRect(T / 2 - 1, T / 2 - 5, 3, 4); }
+      // one flower per variant (white / pink / yellow): 4 petals + heart
+      const fc = v === 0 ? [248, 248, 244] : v === 1 ? [246, 150, 190] : [250, 214, 84];
+      const fx = 5 + randIn(T - 11, v * 7 + 2, v + 1), fy = 5 + randIn(T - 11, v + 1, v * 7 + 2);
+      g.fillStyle = rgb(fc);
+      g.fillRect(fx - 1, fy, 3, 1); g.fillRect(fx, fy - 1, 1, 3);
+      g.fillStyle = rgb([250, 190, 60]); g.fillRect(fx, fy, 1, 1);
       this.tileCache[`grass_${v}`] = c.canvas;
     }
 
-    // TALL GRASS base (1) — much darker than grass + bold V-blade tufts (classic encounter grass)
-    {
+    // TALL GRASS (2 variants) - dense layered blades, the classic encounter grass
+    for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([24, 82, 24]); g.fillRect(0, 0, T, T);
-      // darker bottom half (depth)
-      g.fillStyle = rgb([16, 66, 18]); g.fillRect(0, T / 2, T, T / 2);
-      // bold blade clusters (V shapes) - 2 rows of tufts
-      g.strokeStyle = rgb([62, 150, 48]); g.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        const bx = 3 + i * 8;
-        g.beginPath(); g.moveTo(bx, 4); g.lineTo(bx + 3, T / 2 + 2); g.lineTo(bx + 6, 4); g.stroke();
-      }
-      g.strokeStyle = rgb([48, 122, 40]); g.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        const bx = 1 + i * 8;
-        g.beginPath(); g.moveTo(bx, T / 2 + 6); g.lineTo(bx + 3, T - 2); g.lineTo(bx + 6, T / 2 + 6); g.stroke();
-      }
-      // light tips
-      g.fillStyle = rgb([90, 180, 70]);
-      g.fillRect(6, 3, 2, 2); g.fillRect(14, 3, 2, 2); g.fillRect(2, T / 2 + 5, 2, 2);
-      this.tileCache.tallgrass = c.canvas;
+      // depth bands (lit top, dark roots)
+      g.fillStyle = rgb([47, 118, 41]); g.fillRect(0, 0, T, T);
+      g.fillStyle = rgb([39, 104, 35]); g.fillRect(0, 8, T, 8);
+      g.fillStyle = rgb([29, 86, 28]); g.fillRect(0, 16, T, 8);
+      // back row: tall dark blades
+      g.strokeStyle = rgb([35, 98, 31]); g.lineWidth = 2;
+      for (let i = 0; i < 5; i++) { const bx = 2 + i * 5 + v; g.beginPath(); g.moveTo(bx, T); g.lineTo(bx + 1, 3 + (i % 2) * 2); g.stroke(); }
+      // mid row
+      g.strokeStyle = rgb([58, 140, 48]); g.lineWidth = 2;
+      for (let i = 0; i < 6; i++) { const bx = 1 + i * 4; g.beginPath(); g.moveTo(bx, T); g.lineTo(bx - 1, 8 + (i % 3)); g.stroke(); }
+      // front row: bright blades
+      g.strokeStyle = rgb([84, 174, 62]); g.lineWidth = 1;
+      for (let i = 0; i < 7; i++) { const bx = 2 + i * 3 + v; g.beginPath(); g.moveTo(bx, T); g.lineTo(bx + 1, 13 + (i % 2) * 3); g.stroke(); }
+      // lit tips
+      g.fillStyle = rgb([152, 228, 118]);
+      for (let i = 0; i < 5; i++) g.fillRect(3 + i * 5, 4 + (i % 2) * 3, 1, 2);
+      this.tileCache[`tallgrass_${v}`] = c.canvas;
     }
 
     // WATER base (1) — vibrant blue, clear wave crests, sandy shore border
@@ -149,53 +153,63 @@ class Renderer {
       g.beginPath(); g.moveTo(4, 17); g.lineTo(T - 5, 17); g.stroke();
       g.fillStyle = rgb([90, 150, 220]);
       for (let i = 0; i < 4; i++) { const sx = 3 + i * 5, sy = 3 + (i % 2) * 5; g.fillRect(sx, sy, 2, 2); }
-      // sand shore border (drawn on all edges - townMap overrides adjacency)
-      g.strokeStyle = rgb([220, 195, 140]); g.lineWidth = 2;
-      g.strokeRect(1, 1, T - 2, T - 2);
+      // depth: darker keel at the bottom of the tile (shores drawn by townMap)
+      ctx_setAlpha(g, 0.18, () => { g.fillStyle = rgb([10, 30, 90]); g.fillRect(0, T - 5, T, 5); });
       this.tileCache.water = c.canvas;
     }
 
-    // PATH variants (3) — clear tan trail with pebbles, strong edge contrast
+    // PATH variants (3) - speckled packed dirt, soft edges (rims drawn by townMap)
     for (let v = 0; v < 3; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([208, 180, 132]); g.fillRect(0, 0, T, T);
-      // scattered pebbles
-      g.fillStyle = rgb([180, 150, 108]);
-      for (let i = 0; i < 5; i++) {
-        const dx = randIn(T - 6, v * 7 + i, v + 1);
-        const dy = randIn(T - 6, v + 1, v * 7 + i);
-        g.fillRect(1 + dx, 1 + dy, 2, 2);
+      g.fillStyle = rgb([216, 190, 142]); g.fillRect(0, 0, T, T);
+      // mottled packing
+      for (let i = 0; i < 8; i++) {
+        const dx = randIn(T - 5, v * 17 + i, v + 3), dy = randIn(T - 5, v + 3, v * 17 + i);
+        g.fillStyle = rgb([204, 176, 126]); g.fillRect(dx, dy, 4, 2);
       }
-      // darker border (reads clearly against grass)
-      g.strokeStyle = rgb([160, 132, 90]); g.lineWidth = 2;
-      g.strokeRect(0, 0, T - 1, T - 1);
-      g.strokeStyle = rgb([190, 162, 118]);
-      g.beginPath(); g.moveTo(0, T - 1); g.lineTo(T - 1, T - 1); g.lineTo(T - 1, 0); g.stroke();
+      for (let i = 0; i < 6; i++) {
+        const dx = randIn(T - 4, v * 23 + i, v + 8), dy = randIn(T - 4, v + 8, v * 23 + i);
+        g.fillStyle = rgb([230, 206, 160]); g.fillRect(dx, dy, 3, 2);
+      }
+      // small stones (shadow + lit top)
+      for (let i = 0; i < 3; i++) {
+        const dx = 2 + randIn(T - 5, v * 29 + i, v + 2), dy = 2 + randIn(T - 5, v + 2, v * 29 + i);
+        g.fillStyle = rgb([172, 144, 104]); g.fillRect(dx, dy, 2, 2);
+        g.fillStyle = rgb([190, 162, 120]); g.fillRect(dx, dy, 2, 1);
+      }
+      // worn lighter centre from foot traffic
+      ctx_setAlpha(g, 0.10, () => { g.fillStyle = rgb([255, 244, 200]); g.fillRect(4, 4, T - 8, T - 8); });
       this.tileCache[`path_${v}`] = c.canvas;
     }
 
-    // TREE variants (2): classic Pokemon tree - round outlined canopy + trunk
+    // TREE variants (2): DS-style lobed canopy with dark outline, lit top-left
     for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      // grass ground under tree
-      g.fillStyle = rgb([74, 140, 63]); g.fillRect(0, 0, T, T);
-      // canopy shadow on ground
-      ctx_setAlpha(g, 0.25, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(2, T - 3, T - 4, 3); });
-      // trunk (centered, brown, outlined)
-      g.fillStyle = rgb([62, 48, 28]); g.fillRect(T / 2 - 3, T - 9, 6, 9);
-      g.fillStyle = rgb([94, 70, 40]); g.fillRect(T / 2 - 2, T - 9, 3, 8);
-      // canopy: big filled circle with outline (classic layered look)
-      const cx = T / 2, cy = T / 2 - 2, r = T / 2 - 3;
-      g.fillStyle = rgb([20, 55, 20]);
-      g.beginPath(); g.arc(cx + (v ? 1 : -1), cy, r, 0, Math.PI * 2); g.fill();
-      g.fillStyle = rgb([46, 100, 44]);
-      g.beginPath(); g.arc(cx, cy - (v ? 1 : 0), r - 2, 0, Math.PI * 2); g.fill();
-      g.fillStyle = rgb([72, 140, 66]);
-      g.beginPath(); g.arc(cx - 2, cy - 3, r - 5, 0, Math.PI * 2); g.fill();
-      // light leaf clusters
-      g.fillStyle = rgb([100, 170, 88]);
-      g.beginPath(); g.arc(cx - 3 + v * 2, cy - 5, 3, 0, Math.PI * 2); g.fill();
-      g.beginPath(); g.arc(cx + 3, cy - 1, 2, 0, Math.PI * 2); g.fill();
+      // grass under the tree (matches the new grass base)
+      g.fillStyle = rgb([88, 156, 70]); g.fillRect(0, 0, T, T);
+      g.strokeStyle = rgb([63, 124, 47]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(3, 21); g.lineTo(4, 18); g.lineTo(5, 21); g.stroke();
+      g.beginPath(); g.moveTo(18, 22); g.lineTo(19, 19); g.lineTo(20, 22); g.stroke();
+      // canopy shadow on the ground
+      ctx_setAlpha(g, 0.22, () => { g.fillStyle = rgb([10, 40, 10]); g.fillRect(3, T - 4, T - 6, 3); });
+      // trunk with roots
+      g.fillStyle = rgb([96, 70, 40]); g.fillRect(T / 2 - 2, T - 10, 5, 10);
+      g.fillStyle = rgb([74, 52, 28]); g.fillRect(T / 2 + 1, T - 10, 2, 10);
+      g.fillStyle = rgb([96, 70, 40]); g.fillRect(T / 2 - 4, T - 3, 3, 2); g.fillRect(T / 2 + 2, T - 3, 3, 2);
+      // canopy: four lobes, outline pass then colour pass
+      const lobes = [[12, 9, 8], [6, 12, 6], [18, 12, 6], [12, 14, 7]];
+      g.fillStyle = rgb([24, 62, 26]);
+      for (const [lx, ly, lr] of lobes) { g.beginPath(); g.arc(lx + v, ly, lr + 1, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = rgb([46, 106, 44]);
+      for (const [lx, ly, lr] of lobes) { g.beginPath(); g.arc(lx + v, ly, lr - 1, 0, Math.PI * 2); g.fill(); }
+      // lit crown (top-left, where the DS games put the light)
+      g.fillStyle = rgb([88, 158, 74]);
+      g.beginPath(); g.arc(9, 7, 4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(15, 9, 3, 0, Math.PI * 2); g.fill();
+      g.fillStyle = rgb([132, 200, 104]);
+      g.fillRect(7, 5, 2, 2); g.fillRect(11, 4, 2, 2); g.fillRect(15, 7, 2, 2);
+      // variant 1 bears fruit
+      if (v === 1) { g.fillStyle = rgb([232, 70, 60]); g.fillRect(8, 11, 2, 2); g.fillRect(15, 13, 2, 2); g.fillRect(12, 9, 2, 2); }
       this.tileCache[`tree_${v}`] = c.canvas;
     }
 
@@ -515,80 +529,104 @@ class Renderer {
       // mat border
       g.fillStyle = rgb([100, 68, 38]); g.fillRect(5, 20, 14, 1);
       g.fillStyle = rgb([100, 68, 38]); g.fillRect(5, 22, 14, 1);
-      // === ARROW indicator above door ===
-      g.fillStyle = rgb([100, 200, 100]);
-      g.beginPath();
-      g.moveTo(12, 0); g.lineTo(10, 3); g.lineTo(14, 3);
-      g.closePath(); g.fill();
+      // warm light along the door seams + a worn stone step
+      ctx_setAlpha(g, 0.55, () => { g.fillStyle = rgb([255, 216, 130]); g.fillRect(6, 4, 1, 18); g.fillRect(17, 4, 1, 18); });
+      g.fillStyle = rgb([168, 158, 140]); g.fillRect(3, 23, 18, 1);
+      g.fillStyle = rgb([150, 140, 122]); g.fillRect(4, 22, 16, 1);
       this.tileCache.door = c.canvas;
     }
 
-    // BRIDGE variants (2)
+    // BRIDGE variants (2): railed plank deck over water
     for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([150, 110, 60]); g.fillRect(0, T / 2 + 2, T, T / 2 - 2);
-      g.strokeStyle = rgb([130, 95, 50]); g.lineWidth = 1;
-      for (let i = 0; i < 6; i++) {
-        const bx = (i * T) / 6;
-        g.beginPath(); g.moveTo(bx, T / 2 + 2); g.lineTo(bx + 2, T - 1); g.stroke();
+      // water beneath
+      g.fillStyle = rgb([44, 98, 178]); g.fillRect(0, 0, T, T);
+      g.strokeStyle = rgb([120, 180, 240]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(2, 3); g.lineTo(9, 3); g.stroke();
+      g.beginPath(); g.moveTo(15, T - 3); g.lineTo(22, T - 3); g.stroke();
+      // deck shadow cast on the water
+      ctx_setAlpha(g, 0.25, () => { g.fillStyle = rgb([0, 20, 60]); g.fillRect(0, 7, T, 12); });
+      // planks
+      g.fillStyle = rgb(v ? [176, 134, 80] : [170, 128, 74]); g.fillRect(0, 6, T, 12);
+      for (let i = 0; i < 4; i++) {
+        const px = i * 6;
+        g.fillStyle = rgb([140, 104, 58]); g.fillRect(px, 6, 1, 12);
+        g.fillStyle = rgb([190, 148, 90]); g.fillRect(px + 1, 6, 1, 12);
       }
-      // railings
-      g.strokeStyle = rgb([110, 80, 45]);
-      g.beginPath(); g.moveTo(0, T / 2 + 1); g.lineTo(T, T / 2 + 1); g.stroke();
+      g.fillStyle = rgb([120, 88, 48]); g.fillRect(0, 17, T, 1);
+      // rails top + bottom: posts and a double bar
+      for (const ry of [4, 18]) {
+        g.fillStyle = rgb([110, 80, 44]); g.fillRect(0, ry, T, 2);
+        g.fillStyle = rgb([152, 114, 64]); g.fillRect(0, ry, T, 1);
+        g.fillStyle = rgb([96, 68, 38]); g.fillRect(2, ry - 1, 3, 4); g.fillRect(T - 5, ry - 1, 3, 4);
+      }
       this.tileCache[`bridge_${v}`] = c.canvas;
     }
 
-    // ROCK variants (2)
+    // ROCK variants (2): faceted boulders on a worn dirt patch
     for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([136, 136, 136]); g.fillRect(0, 0, T, T);
-      g.fillStyle = rgb([150, 150, 150]);
-      // rock shape
-      if (v === 0) { g.fillRect(2, 6, T - 4, T - 8); g.fillRect(4, 4, T - 8, T - 10); }
-      else { g.fillRect(3, 5, T - 7, T - 8); g.fillRect(1, 8, T - 3, T - 10); }
-      // lighter highlights
-      g.fillStyle = rgb([170, 170, 170]);
-      for (let i = 0; i < 6; i++) {
-        const bx = randIn(T - 4, v * 6 + i, v);
-        const by = randIn(T - 4, v, v * 6 + i);
-        g.fillRect(bx, by, 2, 2);
+      g.fillStyle = rgb([124, 108, 84]); g.fillRect(0, 0, T, T);
+      g.fillStyle = rgb([112, 96, 74]);
+      for (let i = 0; i < 5; i++) { const dx = randIn(T - 4, v * 13 + i, v + 4), dy = randIn(T - 4, v + 4, v * 13 + i); g.fillRect(dx, dy, 3, 2); }
+      // ground shadow
+      ctx_setAlpha(g, 0.25, () => { g.fillStyle = rgb([20, 16, 8]); g.fillRect(3, T - 4, T - 6, 3); });
+      if (v === 0) {
+        // single boulder: outline, body, lit top facet, shaded right facet
+        g.fillStyle = rgb([94, 94, 102]); g.fillRect(4, 8, 16, 12); g.fillRect(6, 6, 12, 14);
+        g.fillStyle = rgb([156, 156, 164]); g.fillRect(5, 9, 14, 10); g.fillRect(7, 7, 10, 12);
+        g.fillStyle = rgb([186, 186, 194]); g.fillRect(7, 7, 9, 5);
+        g.fillStyle = rgb([126, 126, 134]); g.fillRect(14, 12, 5, 7);
+        g.fillStyle = rgb([204, 204, 212]); g.fillRect(8, 8, 3, 2);
+        g.fillStyle = rgb([110, 110, 118]); g.fillRect(9, 14, 1, 4);
+      } else {
+        // twin boulders
+        g.fillStyle = rgb([94, 94, 102]); g.fillRect(2, 11, 11, 9); g.fillRect(12, 8, 10, 12);
+        g.fillStyle = rgb([156, 156, 164]); g.fillRect(3, 12, 9, 7); g.fillRect(13, 9, 8, 10);
+        g.fillStyle = rgb([186, 186, 194]); g.fillRect(3, 12, 8, 3); g.fillRect(13, 9, 7, 4);
+        g.fillStyle = rgb([204, 204, 212]); g.fillRect(4, 12, 2, 2); g.fillRect(14, 10, 2, 2);
       }
-      // shadow
-      ctx_setAlpha(g, 0.3, () => { g.fillStyle = rgb([0,0,0]); g.fillRect(2, T - 2, T - 4, 2); });
       this.tileCache[`rock_${v}`] = c.canvas;
     }
 
-    // GROUND (indoor floor) variants (2)
+    // GROUND (indoor floor) variants (2): warm wood planks, DS interior style
     for (let v = 0; v < 2; v++) {
       const c = this._cc(T, T), g = c;
-      g.fillStyle = rgb([210, 180, 140]); g.fillRect(0, 0, T, T);
-      g.fillStyle = rgb([190, 160, 120]);
-      for (let i = 0; i < 4; i++) {
-        const bx = (i * T) / 4 + 1;
-        g.fillRect(bx, 1, 2, T - 2);
+      g.fillStyle = rgb(v ? [188, 158, 112] : [179, 149, 105]); g.fillRect(0, 0, T, T);
+      for (let row = 0; row < 4; row++) {
+        const y = row * 6;
+        g.fillStyle = rgb([146, 116, 76]); g.fillRect(0, y, T, 1);        // seam
+        g.fillStyle = rgb([198, 170, 124]); g.fillRect(0, y + 1, T, 1);   // lit top edge
+        const joint = (row % 2 ? 8 : 16) + v * 3;
+        g.fillStyle = rgb([146, 116, 76]); g.fillRect(joint, y, 1, 6);    // plank joint
+        g.fillStyle = rgb([122, 94, 60]);
+        g.fillRect((joint + 5) % T, y + 3, 1, 1); g.fillRect((joint + 11) % T, y + 2, 1, 1); // grain knots
       }
-      g.strokeStyle = rgb([180, 155, 115]); g.lineWidth = 1; g.strokeRect(0, 0, T - 1, T - 1);
       this.tileCache[`ground_${v}`] = c.canvas;
     }
 
   }
 
   _drawCachedTile(tile, sx, sy, variant) {
-    let key, v = variant || 0;
-    if (tile === TILE_GRASS) key = `grass_${v % 3}`;
-    else if (tile === TILE_TGRASS) key = "tallgrass";
+    // variant arrives as a 0..1 float from the seeded hash; turn it into a
+    // per-type index (the old code used the float directly, so keys like
+    // "grass_0.42" never matched the cache and tiles fell back to flat fills)
+    let key; const f = variant || 0;
+    const vi = (n) => Math.floor(f * n) % n;
+    if (tile === TILE_GRASS) key = `grass_${vi(3)}`;
+    else if (tile === TILE_TGRASS) key = `tallgrass_${vi(2)}`;
     else if (tile === TILE_WATER) key = "water";
-    else if (tile === TILE_PATH) key = `path_${v % 3}`;
-    else if (tile === TILE_TREE) key = `tree_${v % 2}`;
-    else if (tile === TILE_WALL) key = `wall_${v % 2}`;
-    else if (tile === TILE_ROOF) key = `roof_${v % 2}`;
+    else if (tile === TILE_PATH) key = `path_${vi(3)}`;
+    else if (tile === TILE_TREE) key = `tree_${vi(2)}`;
+    else if (tile === TILE_WALL) key = `wall_${vi(2)}`;
+    else if (tile === TILE_ROOF) key = `roof_${vi(2)}`;
     else if (tile === TILE_HEAL) key = "heal";
     else if (tile === TILE_SHOP) key = "shop";
     else if (tile === TILE_GYM) key = "gym";
     else if (tile === TILE_SIGN) key = "sign";
-    else if (tile === TILE_BRIDGE) key = `bridge_${v % 2}`;
-    else if (tile === TILE_ROCK) key = `rock_${v % 2}`;
-    else if (tile === TILE_GROUND) key = `ground_${v % 2}`;
+    else if (tile === TILE_BRIDGE) key = `bridge_${vi(2)}`;
+    else if (tile === TILE_ROCK) key = `rock_${vi(2)}`;
+    else if (tile === TILE_GROUND) key = `ground_${vi(2)}`;
     else if (tile === TILE_DOOR) key = "door";
     else key = null;
     if (key && this.tileCache[key]) { this.ctx.drawImage(this.tileCache[key], sx, sy); return true; }
@@ -632,12 +670,23 @@ class Renderer {
           const w2 = Math.sin(t * 1.5 + y * 0.8 + 0.7) * 2;
           ctx.beginPath(); ctx.moveTo(sx + 2, sy + 8 + w1); ctx.lineTo(sx + TILE - 3, sy + 8 + w1); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(sx + 4, sy + 16 + w2); ctx.lineTo(sx + TILE - 5, sy + 16 + w2); ctx.stroke();
+          // sandy shore on any side that touches land (DS-style beach edge)
+          ctx.fillStyle = rgb([233, 209, 153]);
+          if (getT(m, x, y - 1) !== TILE_WATER) ctx.fillRect(sx, sy, TILE, 3);
+          if (getT(m, x, y + 1) !== TILE_WATER) ctx.fillRect(sx, sy + TILE - 3, TILE, 3);
+          if (getT(m, x - 1, y) !== TILE_WATER) ctx.fillRect(sx, sy, 3, TILE);
+          if (getT(m, x + 1, y) !== TILE_WATER) ctx.fillRect(sx + TILE - 3, sy, 3, TILE);
+          // foam flecks where the waves meet the shore
+          ctx.fillStyle = rgb([240, 250, 255]);
+          if (getT(m, x, y - 1) !== TILE_WATER) { ctx.fillRect(sx + 4, sy + 3, 3, 1); ctx.fillRect(sx + 13, sy + 3, 4, 1); }
+          if (getT(m, x, y + 1) !== TILE_WATER) { ctx.fillRect(sx + 7, sy + TILE - 4, 4, 1); ctx.fillRect(sx + 16, sy + TILE - 4, 3, 1); }
         } else if (tile === TILE_TGRASS) {
-          // Cached dark tall-grass base (bold tufts)
-          if (this.tileCache.tallgrass) ctx.drawImage(this.tileCache.tallgrass, sx, sy);
+          // Cached layered tall-grass base (2 variants)
+          const tgVar = Math.floor(seededRand(x * 31, y * 47) * 2) % 2;
+          if (this.tileCache[`tallgrass_${tgVar}`]) ctx.drawImage(this.tileCache[`tallgrass_${tgVar}`], sx, sy);
           else { ctx.fillStyle = rgb([24, 82, 24]); ctx.fillRect(sx, sy, TILE - 1, TILE - 1); }
           // Swaying blade animation on top
-          ctx.strokeStyle = rgb([72, 160, 56]); ctx.lineWidth = 1;
+          ctx.strokeStyle = rgb([110, 196, 84]); ctx.lineWidth = 1;
           for (let i = 0; i < 5; i++) {
             const bx = sx + 2 + i * 4;
             const sway = Math.sin(t * 3 + i * 1.2 + x * 0.5) * 2;
@@ -650,6 +699,16 @@ class Renderer {
             const col = TILE_COLORS[tile] || COL_GRAY;
             ctx.fillStyle = rgb(col);
             ctx.fillRect(sx, sy, TILE - 1, TILE - 1);
+          }
+          // Dirt paths get a soft rim only where they meet a different surface,
+          // so a whole road reads as one surface instead of a grid of tiles
+          if (tile === TILE_PATH) {
+            const pathFam = (tt) => tt === TILE_PATH || tt === TILE_DOOR || tt === TILE_BRIDGE || tt === TILE_GROUND;
+            ctx.fillStyle = rgb([178, 150, 104]);
+            if (!pathFam(getT(m, x, y - 1))) ctx.fillRect(sx, sy, TILE, 2);
+            if (!pathFam(getT(m, x, y + 1))) ctx.fillRect(sx, sy + TILE - 2, TILE, 2);
+            if (!pathFam(getT(m, x - 1, y))) ctx.fillRect(sx, sy, 2, TILE);
+            if (!pathFam(getT(m, x + 1, y))) ctx.fillRect(sx + TILE - 2, sy, 2, TILE);
           }
         }
       }
@@ -708,7 +767,8 @@ class Renderer {
       ctx.fillStyle = rgba([0, 0, 0], 0.3);
       ctx.fillRect(nvx * TILE + 4, nvy * TILE + TILE - 2, TILE - 8, 3);
       // NPC sprite
-      this.npcSprite(nvx * TILE, nvy * TILE, TILE, npc.type, npc.facing);
+      const walkFrame = (typeof window !== "undefined" && window.__spottedNpc === npc) ? Math.floor(t * 8) % 2 : 0;
+      this.npcSprite(nvx * TILE, nvy * TILE, TILE, npc.type, npc.facing, walkFrame);
       // The DS moment: a trainer who just spotted you gets a big "!"
       if (typeof window !== "undefined" && window.__spottedNpc === npc && window.__spottedAlert) {
         ctx.fillStyle = rgb([255, 220, 50]);

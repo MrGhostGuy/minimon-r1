@@ -3322,43 +3322,147 @@ function drawLegendaryCreature(ctx,x,y,size,dex,t){
   drawCreature(ctx,x,y,size,dex,true);
 }
 
-function drawNPC(ctx,x,y,size,npcType,facing){
-  // Generate DS-quality 32x48 sprite based on NPC type and facing direction
-  let grid, pal;
-  facing = facing || "down";
-  
-  // Color palettes (7 colors: 0=trans, 1=dark outline, 2=darkest, 3=dark, 4=mid, 5=light, 6=highlight)
-  const palettes = {
-    professor:[[255,255,255],[245,235,210],[160,130,100],[60,40,30],[255,255,255],[20,20,30],[200,180,60]],
-    healer:[[255,255,255],[255,230,240],[240,120,160],[180,40,80],[255,255,255],[20,20,30],[255,180,200]],
-    gym_leader:[[255,255,255],[255,240,180],[240,180,40],[160,120,20],[255,255,255],[20,20,30],[255,220,80]],
-    trainer:[[255,255,255],[240,210,170],[200,120,80],[120,60,40],[255,255,255],[20,20,30],[220,140,60]],
-    rival:[[255,255,255],[220,230,255],[80,140,230],[30,60,140],[255,255,255],[20,20,30],[140,180,240]],
-    item_giver:[[255,255,255],[240,210,170],[190,150,90],[100,70,40],[255,255,255],[20,20,30],[200,160,80]],
-    talker:[[255,255,255],[230,200,160],[170,130,100],[80,50,30],[255,255,255],[20,20,30],[180,140,100]],
-    evil_grunt:[[255,255,255],[100,80,130],[60,40,90],[20,10,30],[255,255,255],[20,20,30],[80,50,110]],
-    evil_boss:[[255,255,255],[120,80,140],[70,30,100],[25,10,40],[255,255,255],[20,20,30],[140,60,120]],
-  };
-  
-  pal = palettes[npcType] || palettes.talker;
-  
-  // Generate sprite using procedural functions
-  const generators = {
-    professor:makeProfessorSprites,
-    healer:makeHealerSprites,
-    gym_leader:makeGymLeaderSprites,
-    trainer:makeTrainerSprites,
-    rival:makeRivalSprites,
-    item_giver:makeItemGiverSprites,
-    talker:makeTalkerSprites,
-    evil_grunt:makeEvilGruntSprites,
-    evil_boss:makeEvilBossSprites,
-  };
-  
-  const gen = generators[npcType] || generators.talker;
-  grid = gen(facing);
-  
-  drawGrid(ctx,x,y,size,grid,pal);
+/* ── DS-style humanoids ──────────────────────────────────────────────
+   One builder for every human in the game, modelled on the player's
+   sprite: big chibi head, outlined shapes, per-role hair and outfit.
+   (The old per-type generators produced empty grids - a helper bug
+   meant no NPC ever rendered at all - and ignored the facing string,
+   so everyone would have faced right anyway.)
+   Palette slots: 1 outline, 2 skin, 3 skin shade, 4 hair, 5 hair dark,
+   6 top, 7 top shade, 8 bottoms, 9 accent. */
+const HUMANOID_TYPES = {
+  professor:  { hair:[198,194,200], hairD:[156,152,160], style:'swept', top:[246,246,250], topD:[206,206,216], bottom:[104,96,92],  accent:[64,128,138],  glasses:true, coat:true },
+  healer:     { hair:[244,150,180], hairD:[216,104,144], style:'long',  top:[250,248,250], topD:[238,178,198], bottom:[244,144,172], accent:[224,52,52],   dress:true, nurseCap:true },
+  gym_leader: { hair:[240,196,84],  hairD:[198,150,46],  style:'spiky', top:[250,246,238], topD:[216,182,96],  bottom:[70,70,84],   accent:[216,182,60] },
+  trainer:    { hair:[122,78,40],   hairD:[92,56,28],    style:'cap',   top:[64,168,120],  topD:[46,130,92],   bottom:[66,96,170],  accent:[224,52,48],   pack:true },
+  rival:      { hair:[66,84,160],   hairD:[44,58,116],   style:'spiky', top:[98,82,170],   topD:[72,60,130],   bottom:[52,54,70],   accent:[240,200,70] },
+  item_giver: { hair:[96,64,36],    hairD:[70,44,24],    style:'flat',  top:[238,226,196], topD:[208,190,150], bottom:[120,88,56],  accent:[150,102,58],  apron:true },
+  trade_npc:  { hair:[60,60,66],    hairD:[40,40,46],    style:'cap',   top:[198,122,62],  topD:[162,96,44],   bottom:[86,96,110],  accent:[90,140,90],   pack:true },
+  talker:     { hair:[80,56,34],    hairD:[58,40,24],    style:'flat',  top:[96,150,90],   topD:[74,120,70],   bottom:[90,90,100],  accent:[232,232,232] },
+  evil_grunt: { hair:[42,38,54],    hairD:[28,26,38],    style:'cap',   top:[54,50,72],    topD:[40,38,56],    bottom:[42,40,54],   accent:[204,62,124] },
+  evil_boss:  { hair:[30,28,40],    hairD:[18,16,26],    style:'swept', top:[42,38,60],    topD:[30,28,46],    bottom:[36,34,50],   accent:[220,60,90],   coat:true, cape:true },
+};
+function humanoidPalette(cfg) {
+  return [[0,0,0], [30,26,38], [243,206,166], [216,166,118], cfg.hair, cfg.hairD, cfg.top, cfg.topD, cfg.bottom, cfg.accent];
+}
+
+function makeHumanoid(cfg, facing, frame) {
+  const g = ppBlank();
+  const back = facing === 'up';
+  const side = facing === 'left' ? -1 : facing === 'right' ? 1 : 0;
+  const bob = frame ? -1 : 0;
+  const R = (x1,y1,x2,y2,c) => ppRect(g, x1, y1 + bob, x2, y2 + bob, c);
+  const E = (cx,cy,rx,ry,c) => ppEllipse(g, cx, cy + bob, rx, ry, c);
+  const S = (x,y,c) => ppSet(g, x, y + bob, c);
+
+  // cape / long back hair sit behind everything
+  if (cfg.cape) R(6, 27, 25, 45, '7');
+  if (back && cfg.style === 'long') { R(7, 11, 24, 30, '4'); R(7, 27, 24, 30, '5'); }
+
+  // legs + shoes (never bob - they carry the stride)
+  const legC = cfg.dress ? '2' : '8';
+  if (frame) {
+    ppRect(g, 9, 42, 13, 46, legC); ppRect(g, 18, 41, 22, 45, legC);
+    ppRect(g, 7, 46, 14, 47, '1');  ppRect(g, 18, 44, 25, 45, '1');
+  } else {
+    ppRect(g, 10, 42, 14, 46, legC); ppRect(g, 17, 42, 21, 46, legC);
+    ppRect(g, 8, 46, 15, 47, '1');   ppRect(g, 16, 46, 23, 47, '1');
+  }
+
+  // torso
+  if (side) {
+    R(11, 29, 20, 41, '6');
+    R(side < 0 ? 11 : 18, 29, side < 0 ? 13 : 20, 41, '7');
+  } else if (cfg.dress) {
+    R(8, 29, 23, 38, '8');                 // pink bodice
+    R(11, 29, 20, 39, '6');                // white apron
+    R(15, 32, 16, 34, '9'); R(14, 33, 17, 33, '9');  // red cross
+    R(7, 38, 24, 40, '8'); R(6, 41, 25, 43, '8');    // skirt flare
+  } else {
+    R(8, 29, 23, 41, '6');
+    R(20, 29, 23, 41, '7');                // right-side shade
+    if (cfg.coat) {
+      R(8, 29, 23, 44, '6'); R(20, 29, 23, 44, '7');
+      if (!back) { R(14, 30, 17, 41, '9'); R(8, 42, 23, 43, '5'); }  // shirt V + belt line
+    }
+    if (cfg.apron) { R(11, 32, 20, 42, '9'); R(13, 29, 18, 31, '9'); }
+    if (back && cfg.pack) R(11, 31, 20, 40, '9');
+    if (back && facing === 'up' && !cfg.pack && !cfg.coat) R(14, 29, 17, 41, '7');
+    if (!back && !cfg.coat && !cfg.apron) R(13, 29, 18, 31, '9');    // collar / scarf
+  }
+
+  // arms
+  if (side) {
+    const ax = side < 0 ? 9 : 20;
+    R(ax, 30, ax + 2, 39, '6'); R(ax, 39, ax + 2, 41, '2');
+  } else {
+    R(5, 30, 7, 39, '6');   R(5, 39, 7, 41, '2');
+    R(24, 30, 26, 39, '6'); R(24, 39, 26, 41, '2');
+  }
+
+  // neck + head
+  R(14, 26, 17, 28, '3');
+  E(16, 18, 10, 9, '1');
+  E(16, 18, 9, 8, '2');
+  R(9, 20, 22, 25, '2');
+
+  if (back) {
+    // back of the head: hair mass (caps and long hair handled below too)
+    if (cfg.style === 'flat' || cfg.style === 'spiky' || cfg.style === 'swept') {
+      R(8, 11, 23, 24, '4'); R(8, 21, 23, 24, '5');
+    }
+  } else if (side) {
+    // profile: one eye near the front, small mouth
+    const ex = side < 0 ? 11 : 20;
+    S(ex, 19, '1'); S(ex, 20, '1');
+    S(side < 0 ? 8 : 23, 23, '3');
+    // hair sweeps over the back of the head
+    const bx1 = side < 0 ? 17 : 7, bx2 = side < 0 ? 24 : 14;
+    if (cfg.style !== 'cap') { E(16, 12, 9, 5, '4'); R(bx1, 11, bx2, 20, '4'); }
+  } else {
+    // face
+    S(12, 19, '1'); S(12, 20, '1'); S(19, 19, '1'); S(19, 20, '1');
+    R(14, 23, 17, 23, '3');
+  }
+
+  // hair / headwear
+  if (cfg.style === 'cap') {
+    if (!back) { R(7, 15, 9, 19, '4'); R(22, 15, 24, 19, '4'); }  // hair peeking out
+    E(16, 11, 10, 6, '9');
+    R(13, 4, 18, 10, '9');
+    if (back) R(12, 6, 19, 11, '5');
+    else if (side) { const bx1 = side < 0 ? 2 : 17, bx2 = side < 0 ? 14 : 29; R(bx1, 13, bx2, 14, '9'); }
+    else { R(5, 13, 26, 14, '9'); R(6, 15, 25, 15, '5'); }
+  } else if (!back) {
+    if (cfg.style === 'flat') {
+      E(16, 12, 9, 5, '4'); R(7, 11, 24, 14, '4');
+      R(7, 14, 8, 18, '4'); R(23, 14, 24, 18, '4'); R(20, 10, 24, 13, '5');
+    } else if (cfg.style === 'spiky') {
+      E(16, 12, 9, 5, '4');
+      R(8, 5, 10, 11, '4'); R(13, 3, 15, 11, '4'); R(18, 5, 20, 11, '4'); R(22, 7, 23, 12, '4');
+      R(8, 13, 11, 15, '4'); R(14, 13, 17, 14, '4'); R(20, 13, 23, 15, '4');
+    } else if (cfg.style === 'swept') {
+      E(16, 12, 9, 5, '4'); R(7, 11, 24, 14, '4'); R(22, 13, 24, 19, '4');
+      S(11, 10, '5'); S(12, 10, '5');
+    } else if (cfg.style === 'long') {
+      E(16, 12, 9, 5, '4'); R(7, 11, 24, 14, '4');
+      if (!side) { R(5, 13, 7, 30, '4'); R(24, 13, 26, 30, '4'); R(5, 26, 7, 30, '5'); R(24, 26, 26, 30, '5'); }
+    }
+    if (cfg.nurseCap) { R(11, 4, 20, 8, '6'); R(15, 5, 16, 7, '9'); R(14, 6, 17, 6, '9'); }
+  }
+  if (!back && cfg.glasses) {
+    R(9, 18, 14, 18, '1'); R(9, 21, 14, 21, '1'); S(9, 19, '1'); S(9, 20, '1'); S(14, 19, '1'); S(14, 20, '1');
+    R(17, 18, 22, 18, '1'); R(17, 21, 22, 21, '1'); S(17, 19, '1'); S(17, 20, '1'); S(22, 19, '1'); S(22, 20, '1');
+    S(15, 19, '1'); S(16, 19, '1');
+  }
+  return ppOut(g);
+}
+
+function drawNPC(ctx,x,y,size,npcType,facing,frame){
+  const cfg = HUMANOID_TYPES[npcType] || HUMANOID_TYPES.talker;
+  const f = (facing === 'up' || facing === 'left' || facing === 'right') ? facing : 'down';
+  const grid = makeHumanoid(cfg, f, frame ? 1 : 0);
+  drawGrid(ctx, x, y, size, grid, humanoidPalette(cfg));
 }
 
 function drawPlayer(ctx,x,y,size,facing,frame){
