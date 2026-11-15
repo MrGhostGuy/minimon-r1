@@ -25,8 +25,12 @@ S_MAP="map_screen";
 
 let state = S_TITLE, time = 0, cursor = 0, running = true;
 let currentMap = null, dialogQueue = [], dialogCurrent = "", dialogSpeaker = "";
+let currentMapIdx = 0; // tracked explicitly: several maps share a name ("Pokémon Center",
+                       // "Gym"...), so looking the index up BY NAME put saved games and
+                       // defeated-trainer records in the wrong town's building
 let pendingEvolution = null, pendingStarter = null, pendingTrainer = null, pendingGym = null;
 let pendingHealer = false, pendingTrade = null, pendingMoveLearn = null, pendingTM = null;
+let pendingShop = false; // buying an item shows a dialog, then drops you back into the shop
 let pendingNameInput = false;
 let battleState = null, battlePhase = "menu";
 let shopCursor = 0;
@@ -64,12 +68,9 @@ window.getRepelSteps = () => (typeof repelSteps!=='undefined'?repelSteps:0);
 window.getSprinting = () => (typeof isSprinting!=='undefined'?isSprinting:false);
 
 function saveGame() {
-  let mapIdx = 0;
-  for (let i = 0; i < MAP_CREATORS.length; i++) {
-    const m = MAP_CREATORS[i]();
-    if (m.name === currentMap.name) { mapIdx = i; break; }
-  }
+  const mapIdx = currentMapIdx;
   const data = {
+    lastHealSpot: lastHealSpot,
     player: { x: player.x, y: player.y, facing: player.facing, name: player.name,
       party: player.party.map(c => ({ dex: c.dex, level: c.level, xp: c.xp, hp: c.hp, moves: c.moves, status: c.status,
         statStages: c.statStages, confusionTurns: c.confusionTurns, ivs: c.ivs, shiny: c.shiny, ability: c.ability })),
@@ -99,11 +100,14 @@ function loadGame() {
       const bc = new BattleCreature(c.dex, c.level, undefined, false,
         { ivs: c.ivs, shiny: c.shiny, hp: c.hp, statStages: c.statStages, status: c.status, ability: c.ability });
       if (c.moves) bc.moves = c.moves;
+      bc.xp = c.xp || 0; // the constructor zeroes XP - without this, loading a save wiped progress to the next level
       return bc;
     });
     pokedex = data.pokedex || {};
-    currentMap = MAP_CREATORS[data.mapIdx || 0]();
-    applyTrainerFlags(currentMap, data.mapIdx || 0);
+    if (data.lastHealSpot && MAP_CREATORS[data.lastHealSpot.mapIdx]) lastHealSpot = data.lastHealSpot; // blackout returns to YOUR last heal spot, not the default
+    currentMapIdx = data.mapIdx || 0;
+    currentMap = MAP_CREATORS[currentMapIdx]();
+    applyTrainerFlags(currentMap, currentMapIdx);
     return true;
   } catch(e) { return false; }
 }
@@ -118,7 +122,7 @@ const SHOP_ITEMS = [
   I_SPHERE,I_GSPHERE,I_USPHERE,
   I_REVIVE,
   I_XATK,I_XDEF,
-  I_REPEL,
+  I_REPEL,I_ROPE,
   I_TM_EMBER,I_TM_WGUN,I_TM_VWHIP,I_TM_TSHOCK,I_TM_ISHARD,I_TM_BITE,I_TM_SBALL,I_TM_DCLAW,I_TMSEDGE,
   I_TM_ASLASH,I_TM_DGLEAM,I_TM_FLAMET,I_TM_HYDROP,I_TM_SOLBEAM,I_TM_THUND,I_TM_BLIZZ,I_TM_EQUAKE,
   I_TM_CRUNCH,I_TM_RECOVER,I_TM_SDANCE
@@ -142,11 +146,7 @@ function trainerKey(mapIdx, npc){
   return mapIdx + "|" + (npc.name||"") + "|" + npc.x + "," + npc.y;
 }
 function currentMapIndex(){
-  if(!currentMap) return 0;
-  for(let i=0;i<MAP_CREATORS.length;i++){
-    if(MAP_CREATORS[i]().name === currentMap.name) return i;
-  }
-  return -1;
+  return currentMapIdx; // tracked on every map change - name lookup collides on shared interior names
 }
 function applyTrainerFlags(map, mapIdx){
   if(!map || !map.npcs || !player.defeatedTrainers) return;
@@ -169,7 +169,7 @@ const BAG_TABS = [
   { name: "Medicine", items: ["Potion","Super Potion","Hyper Potion","Full Heal","Revive","Full Revive"] },
   { name: "Spheres", items: ["Soul Sphere","Great Sphere","Ultra Sphere","Master Sphere"] },
   { name: "TMs", items: ALL_TM },
-  { name: "Battle", items: ["X Attack","X Defense","Repel"] }
+  { name: "Battle", items: ["X Attack","X Defense","Repel","Escape Rope"] }
 ];
 function getBagItems(tabIdx) {
   const tab = BAG_TABS[tabIdx];
@@ -190,18 +190,15 @@ function useOverworldItem(itemName) {
     return "No Repel left!";
   }
   if (itemName === I_ROPE) {
-    // Escape Rope - return to last Pokemon Center exterior
-    let centerMap=0, cx=10, cy=10;
-    for(let i=0;i<MAP_CREATORS.length;i++){ const mm=MAP_CREATORS[i](); if(mm.name.includes('Village')||mm.name.includes('Town')){ centerMap=i; cx=10; cy=10; break; } }
-    // find nearest center door position from current map
-    currentMap = MAP_CREATORS[0](); player.x=10; player.y=10; player.visX=10; player.visY=10;
-  applyTrainerFlags(currentMap, 0);
-    if(removeItem(itemName)) return "Used Escape Rope! Returned to Starter Village!";
-    return "No Escape Rope!";
+    // Escape Rope - whisk back to Starter Village (the old code computed a
+    // destination, ignored it, and dropped you on Prof. Sage's tile at 10,10)
+    if (!removeItem(itemName)) return "No Escape Rope!";
+    changeMap(0, 10, 17);
+    return "Used Escape Rope! Returned to Starter Village!";
   }
   if ([I_POTION,I_SPOTION,I_HPOTION].includes(itemName)) {
     if (!player.party.length) return "No Minis to heal!";
-    const amt = { [I_POTION]:20, [I_SPOTION]:60, [I_HPOTION]:200 }[itemName];
+    const amt = { [I_POTION]:20, [I_SPOTION]:50, [I_HPOTION]:200 }[itemName];
     const injured = player.party.filter(c => c.hp < c.maxHP && c.isAlive());
     if (!injured.length) return "All Minis are at full health!";
     pendingUseItem = itemName;
@@ -229,11 +226,11 @@ function useOverworldItem(itemName) {
 }
 function applyOverworldItem(itemName, target) {
   if ([I_POTION,I_SPOTION,I_HPOTION].includes(itemName)) {
-    const amt = { [I_POTION]:20, [I_SPOTION]:60, [I_HPOTION]:200 }[itemName];
+    const amt = { [I_POTION]:20, [I_SPOTION]:50, [I_HPOTION]:200 }[itemName];
     if (removeItem(itemName)) { target.heal(amt); return "Used " + itemName + " on " + target.name + "! Healed " + amt + " HP!"; }
   }
   if ([I_REVIVE,I_FREVIVE].includes(itemName)) {
-    const hp = itemName === I_REVIVE ? 1 : target.maxHP;
+    const hp = itemName === I_REVIVE ? Math.max(1, Math.floor(target.maxHP / 2)) : target.maxHP; // Revive restores HALF, like the games - it used to bring Minis back at 1 HP
     if (removeItem(itemName)) { target.hp = hp; return target.name + " was revived!"; }
   }
   return "Failed!";
@@ -244,6 +241,7 @@ function formatDialog(text) { return String(text).replace(/\{name\}/g, player.na
 function setDialog(msgs, speaker) { dialogQueue = msgs.slice().map(formatDialog); dialogSpeaker = speaker || ""; nextDialog(); }
 function nextDialog() {
   if (dialogQueue.length) { dialogCurrent = dialogQueue.shift(); return; }
+  if (pendingShop) { pendingShop = false; state = S_SHOP; return; }
   if (pendingNameInput) { pendingNameInput = false; state = S_NAME; nameInput = ""; nameCursor = 0; return; }
   if (pendingStarter) { state = S_STARTER; cursor = 0; return; }
   if (pendingTrainer) { const npc = pendingTrainer; pendingTrainer = null; if (npc.type === "rival") startRivalBattle(npc); else startTrainerBattle(npc); return; }
@@ -256,6 +254,7 @@ function nextDialog() {
 }
 function advanceDialog() {
   if (dialogQueue.length) { dialogCurrent = dialogQueue.shift(); return; }
+  if (pendingShop) { pendingShop = false; state = S_SHOP; return; }
   if (pendingNameInput) { pendingNameInput = false; state = S_NAME; nameInput = ""; nameCursor = 0; return; }
   if (pendingStarter) { state = S_STARTER; cursor = 0; return; }
   if (pendingTrainer) { const npc = pendingTrainer; pendingTrainer = null; if (npc.type === "rival") startRivalBattle(npc); else startTrainerBattle(npc); return; }
@@ -331,6 +330,7 @@ function changeMap(idx, x, y) {
   if (idx >= 0 && idx < MAP_CREATORS.length) {
     R.triggerMapTransition();
     spotted = null; window.__spottedNpc = null; window.__spottedAlert = false;
+    currentMapIdx = idx;
     currentMap = MAP_CREATORS[idx](); player.x = x; player.y = y; player.visX = x; player.visY = y;
     applyTrainerFlags(currentMap, idx);
   }
@@ -440,6 +440,7 @@ function finishBattleTransition() {
     }
     if (!aliveParty().length) { state = S_GAMEOVER; return; }
     battleState = new BattleState(aliveParty(), party, true, npc.name, false, false, npc.type === "gym_leader");
+    battleState.trainerNpc = npc; // settle the win against THIS npc instance, not a name twin
     if (npc.aiLevel !== undefined) battleState.aiLevel = npc.aiLevel;
     state = S_BATTLE; battlePhase = "menu"; cursor = 0;
     battleState.addMsg((npc.isRematch ? npc.name + " wants a rematch!" : npc.name + " wants to battle!"));
@@ -455,6 +456,7 @@ function finishBattleTransition() {
     if (badgeCount >= 6) party.push(new BattleCreature(npc.rival_enc === 1 ? 23 : 39, lv - 4));
     if (!aliveParty().length) { state = S_GAMEOVER; return; }
     battleState = new BattleState(aliveParty(), party, true, npc.name, false, false);
+    battleState.trainerNpc = npc;
     battleState.aiLevel = AI_GYM;
     state = S_BATTLE; battlePhase = "menu"; cursor = 0;
     battleState.message = "Rival " + npc.name + " wants to battle!";
@@ -463,6 +465,7 @@ function finishBattleTransition() {
     const party = npc.party.map(([d, l]) => new BattleCreature(d, l));
     if (!aliveParty().length) { state = S_GAMEOVER; return; }
     battleState = new BattleState(aliveParty(), party, true, npc.name, false, false, true);
+    battleState.trainerNpc = npc;
     if (npc.aiLevel !== undefined) battleState.aiLevel = npc.aiLevel;
     state = S_BATTLE; battlePhase = "menu"; cursor = 0;
     battleState.addMsg("Gym Leader " + npc.name + " wants to battle!");
@@ -510,6 +513,28 @@ function selectBattleAction() {
   }
 }
 
+/* Settle a won trainer/gym/rival battle exactly once: mark the battled NPC
+   defeated (the actual instance - two "Gym Trainer"s share a name, and the old
+   name-matching loop defeated BOTH), pay the reward, award the badge.
+   Called from useBattleMove AND from nextBattleMsg, because a foe whose last
+   Mini faints on its own turn (recoil, burn tick) never passes through
+   useBattleMove - before this, that win paid nothing and gave no badge. */
+function settleTrainerWin() {
+  if (!battleState || !battleState.isTrainer || battleState._settled) return;
+  battleState._settled = true;
+  let npc = battleState.trainerNpc;
+  if (!npc && currentMap) npc = currentMap.npcs.find(n => n.name === battleState.trainerName && !n.defeated);
+  if (!npc) return;
+  npc.defeated = true;
+  markTrainerDefeated(currentMap, npc);   // survive leaving + reloading
+  const reward = npc.isRematch ? Math.floor((npc.reward || 3000) * 1.5) : (npc.reward || 0);
+  if (reward) { player.money += reward; battleState.addMsg("Got $" + reward + "!"); }
+  if (npc.badge && !player.badges.includes(npc.badge)) {
+    player.badges.push(npc.badge); battleState.addMsg("Got " + npc.badge + "!");
+  }
+  if (npc.isRematch) battleState.addMsg("You won the rematch!");
+}
+
 function useBattleMove() {
   const p = battleState.player; const mv = p.moves[cursor];
   if (mv.pp <= 0 && p.moves.some(m => m.pp > 0)) { battleState.addMsg("No PP left!"); battlePhase = "message"; return; }
@@ -546,22 +571,7 @@ function useBattleMove() {
     if (!battleState.nextEnemy()) {
       battleState.playerWon = true; battleState.battleOver = true;
       battleState.addMsg("You defeated " + battleState.trainerName + "!");
-      if (battleState.isTrainer) {
-        for (const npc of currentMap.npcs) {
-          if (npc.name === battleState.trainerName) {
-            npc.defeated = true;
-            markTrainerDefeated(currentMap, npc);   // survive leaving + reloading
-            const reward = npc.isRematch ? Math.floor((npc.reward || 3000) * 1.5) : (npc.reward || 0);
-            if (reward) { player.money += reward; battleState.addMsg("Got $" + reward + "!"); }
-            if (npc.badge && !player.badges.includes(npc.badge)) {
-              player.badges.push(npc.badge); battleState.addMsg("Got " + npc.badge + "!");
-            }
-            if (npc.isRematch) {
-              battleState.addMsg("You won the rematch!");
-            }
-          }
-        }
-      }
+      settleTrainerWin();
     }
   } else if (!battleState.player.isAlive()) {
     R.triggerShake(8, 0.3);
@@ -573,35 +583,26 @@ function useBattleMove() {
 
 function switchBattleCreature() {
   const target = player.party[cursor];
+  if (!target) { battlePhase = "message"; return; }
   if (!target.isAlive()) { battleState.addMsg(target.name + " can't fight!"); battlePhase = "message"; return; }
   if (target === battleState.player) { battleState.addMsg(target.name + " is already out!"); battlePhase = "message"; return; }
+  // The battle party is the ALIVE subset of the party, so the cursor's party
+  // index is not a battle-party index: with a fainted Mini in the team, the old
+  // code pointed playerIdx past the end of the battle party (undefined active
+  // Mini, soft-locked battle). Translate through indexOf instead.
+  const idx = battleState.playerParty.indexOf(target);
+  if (idx < 0) { battleState.addMsg(target.name + " can't fight!"); battlePhase = "message"; return; }
   const old = battleState.player.name;
-  battleState.playerIdx = cursor;
-  battleState.participants.add(cursor); // a Mini that enters the fight shares in the XP
+  battleState.playerIdx = idx;
+  battleState.participants.add(idx); // a Mini that enters the fight shares in the XP
   battleState.addMsg(old + ", come back! Go, " + target.name + "!");
-  // Enemy attacks after switch
-  const e = battleState.enemy;
-  if (e && e.isAlive() && battleState.player && battleState.player.isAlive()) {
-    const eMV = getAIMove(e, battleState.player, battleState.aiLevel !== undefined ? battleState.aiLevel : (battleState.isTrainer ? AI_TRAINER : AI_WILD));
-    const eMD = MOVES[eMV.id];
-    if (eMD && eMD.category !== STATUS) {
-      const [damage, effect] = calcDamage(e, battleState.player, eMD);
-      battleState.player.takeDamage(damage);
-      if (eMV.pp > 0) eMV.pp--;
-      battleState.addMsg(e.name + " used " + eMD.name + "!");
-      if (effect === "super_effective") battleState.addMsg("It's super effective!");
-      else if (effect === "not_effective") battleState.addMsg("It's not very effective...");
-      else if (effect === "no_effect") battleState.addMsg("It had no effect!");
-      if (effect && effect.includes("critical")) battleState.addMsg("Critical hit!");
-      // Enemy attack effects
-      const eff = typeEff(eMD.type, battleState.player.types);
-      R.triggerAttackFX(eMD.type, 90, 220, false, eff);
-      if (!battleState.player.isAlive()) battleState.addMsg(battleState.player.name + " fainted!");
-    } else if (eMD) {
-      applyStatus(e, battleState.player, eMD);
-      if (eMV.pp > 0) eMV.pp--;
-      battleState.addMsg(e.name + " used " + eMD.name + "!");
-    }
+  // The foe gets its move - through the real turn engine, so sleep, paralysis,
+  // confusion, Protect and plain missing all apply. The old hand-rolled attack
+  // here ignored every one of those: a sleeping foe still hit you, every time.
+  battleState.enemyTurnOnly();
+  if (battleState._eDmg > 0 && battleState._eMoveType && battleState.player.isAlive()) {
+    const eff = typeEff(battleState._eMoveType, battleState.player.types);
+    R.triggerAttackFX(battleState._eMoveType, 90, 220, false, eff);
   }
   battlePhase = "message";
 }
@@ -612,7 +613,7 @@ function useBattleItem() {
   const [name] = items[cursor];
   let usedItem = false; // using an item spends your turn - the foe still gets its move
   if ([I_POTION,I_SPOTION,I_HPOTION].includes(name)) {
-    const amt = { [I_POTION]:20, [I_SPOTION]:60, [I_HPOTION]:200 }[name];
+    const amt = { [I_POTION]:20, [I_SPOTION]:50, [I_HPOTION]:200 }[name];
     if (removeItem(name)) {
       usedItem = true;
       battleState.player.heal(amt);
@@ -652,7 +653,7 @@ function useBattleItem() {
     }
   } else if ([I_REVIVE,I_FREVIVE].includes(name)) {
     const fainted = player.party.filter(c => !c.isAlive() && c !== battleState.player);
-    if (fainted.length) { const hp = name === I_REVIVE ? 1 : fainted[0].maxHP; if (removeItem(name)) { usedItem = true; fainted[0].hp = hp; battleState.addMsg(fainted[0].name + " revived!"); R.addParticles(90, 220, "light", 10); } }
+    if (fainted.length) { const hp = name === I_REVIVE ? Math.max(1, Math.floor(fainted[0].maxHP / 2)) : fainted[0].maxHP; if (removeItem(name)) { usedItem = true; fainted[0].hp = hp; battleState.addMsg(fainted[0].name + " revived!"); R.addParticles(90, 220, "light", 10); } }
     else battleState.addMsg("No fainted Minis!");
   } else if (name === I_XATK) {
     if (removeItem(name)) { usedItem = true; battleState.player.statStages[1] = Math.min(6, battleState.player.statStages[1] + 1); battleState.addMsg(battleState.player.name + "'s ATK rose!"); R.triggerFlash([255, 100, 100], 0.2); }
@@ -668,7 +669,7 @@ function nextBattleMsg() {
   if (msg) { battleState.message = msg; return; }
   if (battleState.battleOver) {
     if (battleState.fled) state = S_OW;
-    else if (battleState.playerWon) { checkEvolution(); if (state !== S_EVOLUTION && state !== S_MOVES && state !== S_DIALOG) state = S_OW; }
+    else if (battleState.playerWon) { settleTrainerWin(); checkEvolution(); if (state !== S_EVOLUTION && state !== S_MOVES && state !== S_DIALOG) state = S_OW; }
     else {
       // DS blackout: you come to back where you last healed, team restored,
       // out some money for the trouble - not a full game over.
@@ -772,6 +773,12 @@ function selectTMCreature() {
   const tmMove = TM_MOVES[itemName];
   if (cursor >= compatible.length) return;
   const creature = compatible[cursor];
+  if (creature.moves.some(m => m.id === tmMove)) { // already knows it - don't eat the TM teaching a duplicate
+    pendingTM = null;
+    setDialog([creature.name + " already knows " + MOVES[tmMove].name + "!"]);
+    state = S_DIALOG;
+    return;
+  }
   const nm = { id: tmMove, pp: MOVES[tmMove].maxPP, maxPP: MOVES[tmMove].maxPP };
   if (creature.moves.length >= 4) {
     pendingMoveLearn = { creature, newMove: nm };
@@ -813,6 +820,7 @@ function selectParty() {
 
 function buyItem() {
   const item = SHOP_ITEMS[shopCursor]; const price = PRICES[item] || 100;
+  pendingShop = true; // after the receipt dialog, you're still at the counter
   if (player.money >= price) { player.money -= price; addItem(item); setDialog(["Bought " + item + " for $" + price + "!"]); }
   else setDialog(["Not enough money!"]);
   state = S_DIALOG;
@@ -832,7 +840,7 @@ function handleScroll(dir) {
     else if (battlePhase === "party") cursor = Math.max(0, Math.min(player.party.length - 1, cursor + dir));
     else if (battlePhase === "bag") { const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE,I_XATK,I_XDEF].includes(k)); cursor = Math.max(0, Math.min(items.length - 1, cursor + dir)); }
   }
-  else if (state === S_PAUSE) { cursor = Math.max(0, Math.min(6, cursor + dir)); }
+  else if (state === S_PAUSE) { cursor = Math.max(0, Math.min(7, cursor + dir)); } // 8 options - "Close" (index 7) was unreachable by scroll
   else if (state === S_PARTY) {
     const maxC = partyMode === "use" ? player.party.filter(c => (partyMode === "use" && pendingUseItem ? true : true)).length - 1 : player.party.length - 1;
     cursor = Math.max(0, Math.min(player.party.length - 1, cursor + dir));
@@ -851,7 +859,7 @@ function handleScroll(dir) {
   else if (state === S_MOVES && pendingMoveLearn) { cursor = Math.max(0, Math.min(pendingMoveLearn.creature.moves.length - 1, cursor + dir)); }
   else if (state === S_DIALOG) advanceDialog();
   else if (state === S_SHOP) shopCursor = Math.max(0, Math.min(SHOP_ITEMS.length - 1, shopCursor + dir));
-  else if (state === "pokedex") { const max = Math.max(0, Object.entries(pokedex).length - 15); cursor = Math.max(0, Math.min(max, cursor + dir)); }
+  else if (state === "pokedex") { const max = Math.max(0, Object.entries(pokedex).length - 14); cursor = Math.max(0, Math.min(max, cursor + dir)); }
   else if (state === S_EVOLUTION) advanceDialog();
   else if (state === S_STARTER) cursor = Math.max(0, Math.min(2, cursor + dir));
   else if (state === S_TM && pendingTM) cursor = Math.max(0, Math.min(pendingTM.compatible.length - 1, cursor + dir));
@@ -928,8 +936,9 @@ function handleClick(button, mx, my) {
       }
       else if (battlePhase === "bag") {
         const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE,I_XATK,I_XDEF].includes(k));
-        for (let i = 0; i < items.length; i++) {
-          const y = 65 + i * 32;
+        const maxShow = 9, bagOff = Math.max(0, Math.min(cursor - maxShow + 1, Math.max(0, items.length - maxShow)));
+        for (let i = bagOff; i < Math.min(items.length, bagOff + maxShow); i++) {
+          const y = 65 + (i - bagOff) * 32;
           if (mx >= 16 && mx <= 464 && my >= y && my <= y + 28) { cursor = i; useBattleItem(); return; }
         }
       }
@@ -1152,7 +1161,7 @@ function handleKeyDown(key) {
         const isPotion = [I_POTION, I_SPOTION, I_HPOTION].includes(pendingUseItem);
         if (isRevive && c.isAlive()) { state = S_DIALOG; setDialog([c.name + " isn't fainted!"]); pendingUseItem = null; partyMode = "select"; }
         else if (isPotion && (!c.isAlive() || c.hp >= c.maxHP)) { state = S_DIALOG; setDialog([c.name + " doesn't need healing!"]); pendingUseItem = null; partyMode = "select"; }
-        else { const msg = applyOverworldItem(pendingUseItem, c); pendingUseItem = null; partyMode = "select"; if (msg) dialogLog.push(msg); }
+        else { const msg = applyOverworldItem(pendingUseItem, c); pendingUseItem = null; partyMode = "select"; if (msg) { state = S_DIALOG; setDialog([msg]); } }
       }
     } else if (partyMode === "swap") {
       // swap the highlighted member with the one we came from
@@ -1249,6 +1258,7 @@ function initGame() {
   player.money = 3000; player.badges = []; player.storyFlags = {}; player.stepCounter = 0;
   player.inventory = {[I_POTION]:3,[I_SPHERE]:3,[I_GSPHERE]:0,[I_USPHERE]:0,[I_MSPHERE]:0,[I_FHEAL]:1,[I_REVIVE]:0,[I_XATK]:0,[I_XDEF]:0,[I_REPEL]:1};
   player.defeatedTrainers = [];
+  currentMapIdx = 0;
   currentMap = MAP_CREATORS[0]();
   applyTrainerFlags(currentMap, 0);
 }
@@ -1804,11 +1814,14 @@ function renderBattle() {
   else if (battlePhase === "bag") {
     const items = Object.entries(player.inventory).filter(([k, v]) => v > 0 && [I_POTION,I_SPOTION,I_HPOTION,I_FHEAL,I_SPHERE,I_GSPHERE,I_USPHERE,I_MSPHERE,I_REVIVE,I_FREVIVE,I_XATK,I_XDEF].includes(k));
     R.box(10, 30, 460, 350); R.text(240, 48, "BAG", COL_YELLOW, 14, true);
-    for (let i = 0; i < items.length; i++) {
-      const [item, count] = items[i]; const y = 65 + i * 32;
+    // Window the list: with every item type owned, rows used to spill past the box
+    const maxShow = 9, bagOff = Math.max(0, Math.min(cursor - maxShow + 1, Math.max(0, items.length - maxShow)));
+    for (let i = bagOff; i < Math.min(items.length, bagOff + maxShow); i++) {
+      const [item, count] = items[i]; const y = 65 + (i - bagOff) * 32;
       if (i === cursor) R.rect(16, y, 448, 28, COL_SELECT, 0.3);
       R.text(24, y + 18, item + " x" + count, i === cursor ? COL_WHITE : COL_LGRAY, 14);
     }
+    if (items.length > maxShow) R.text(240, 368, "Scroll for more (" + (bagOff + 1) + "-" + Math.min(bagOff + maxShow, items.length) + " of " + items.length + ")", COL_GRAY, 10, true);
     if (!items.length) R.text(240, 200, "No items!", COL_GRAY, 14, true);
   }
 }
@@ -1938,7 +1951,7 @@ if (location.hash === "#test") {
       px: player && player.x, py: player && player.y,
       facing: player && player.facing,
       map: currentMap && currentMap.name,
-      mapIdx: currentMap ? MAP_CREATORS.findIndex(f => f().name === currentMap.name) : -1,
+      mapIdx: currentMap ? currentMapIdx : -1,
       party: player && player.party.length,
       starter: pendingStarter, nameInput: nameInput,
       repelUsed: repelUsedInStarter, inventory: player && player.inventory,
