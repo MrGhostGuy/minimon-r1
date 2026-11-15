@@ -105,13 +105,13 @@ _m("shadow_sneak","Shadow Sneak",TYPE_SPIRIT,PHYSICAL,40,100,30,1);
 _m("shadow_claw","Shadow Claw",TYPE_SPIRIT,PHYSICAL,70,100,15,"crit_boost",100);
 _m("shadow_ball","Shadow Ball",TYPE_SPIRIT,SPECIAL,80,100,15,"sdef_down",20);
 _m("shadow_blast","Shadow Blast",TYPE_SPIRIT,SPECIAL,120,85,5);
-_m("spite","Spite",TYPE_SPIRIT,STATUS,0,100,10);
+_m("spite","Spite",TYPE_SPIRIT,STATUS,0,100,10,"spite",100);
 _m("night_shade","Night Shade",TYPE_SPIRIT,SPECIAL,0,100,15);
 _m("will_o_wisp","Will-O-Wisp",TYPE_SPIRIT,STATUS,0,85,15,"burn",100);
 _m("spirit_break","Spirit Break",TYPE_SPIRIT,PHYSICAL,75,100,15,"satk_down",100);
 
 // EARTH
-_m("mud_slap","Mud Slap",TYPE_EARTH,SPECIAL,20,100,10,"atk_down",100);
+_m("mud_slap","Mud Slap",TYPE_EARTH,SPECIAL,20,100,10,"acc_down",100);
 _m("sand_attack","Sand Attack",TYPE_EARTH,STATUS,0,100,15,"acc_down",100);
 _m("dig","Dig",TYPE_EARTH,PHYSICAL,80,100,10);
 _m("rock_throw","Rock Throw",TYPE_EARTH,PHYSICAL,50,90,15);
@@ -119,7 +119,7 @@ _m("rock_slide","Rock Slide",TYPE_EARTH,PHYSICAL,75,90,10,"flinch",30);
 _m("stone_edge","Stone Edge",TYPE_EARTH,PHYSICAL,100,80,5,"crit_boost",100);
 _m("earthquake","Earthquake",TYPE_EARTH,PHYSICAL,100,100,10);
 _m("fissure","Fissure",TYPE_EARTH,PHYSICAL,0,30,5);
-_m("sandstorm","Sandstorm",TYPE_EARTH,STATUS,0,0,10);
+_m("sandstorm","Sandstorm",TYPE_EARTH,STATUS,0,0,10,"sandstorm",100);
 
 // WIND
 _m("gust","Gust",TYPE_WIND,SPECIAL,40,100,35);
@@ -146,7 +146,8 @@ _m("outrage","Outrage",TYPE_DRAGON,PHYSICAL,120,100,10);
 _m("nasty_plot","Nasty Plot",TYPE_DARK,STATUS,0,0,20,"satk_up2",100);
 _m("recover","Recover",TYPE_NORMAL,STATUS,0,0,10,"recover",100);
 _m("sludge_bomb","Sludge Bomb",TYPE_DARK,SPECIAL,90,100,10,"poison",30);
-_m("protect","Protect",TYPE_NORMAL,STATUS,0,0,10);
+_m("protect","Protect",TYPE_NORMAL,STATUS,0,0,10,"protect",100);
+MOVES.protect.priority = 4; // Protect always goes first, like the real games (the _m helper can't carry both an effect and a priority)
 _m("rest","Rest",TYPE_SPIRIT,STATUS,0,0,5,"recover",100);
 _m("sleep_powder","Sleep Powder",TYPE_GRASS,STATUS,0,75,15,"sleep",100);
 _m("stun_spore","Stun Spore",TYPE_GRASS,STATUS,0,75,15,"paralyze",100);
