@@ -1,5 +1,5 @@
-// Minimon - World/Maps (12 overworld + 21 interiors = 33 total)
-const MAP_COUNT=33;
+// Minimon - World/Maps (12 overworld + 22 interiors = 34 total)
+const MAP_COUNT=34;
 
 function makeMap(w,h,name,encRate){
   return{width:w,height:h,name,encRate:encRate!==undefined?encRate:0.15,tiles:new Int32Array(w*h),npcs:[],signs:[],doors:[],encTable:[]};
@@ -64,18 +64,18 @@ function createStartingTown(){
   // Lab sign
   setT(m,8,12,TILE_SIGN); m.signs.push({x:8,y:12,text:"Prof. Sage's Lab"});
   // NPCs - placed logically outside/inside town
-  m.npcs.push({x:10,y:10,type:"professor",name:"Prof. Sage",dialog:["I'm Prof. Sage!","Good to see you, {name}!","Welcome to the world of Minimon!","Choose your partner wisely!","Your neighbor Luna's house is east!"],facing:"down"});
+  m.npcs.push({x:10,y:11,type:"professor",name:"Prof. Sage",dialog:["I'm Prof. Sage!","Good to see you, {name}!","Welcome to the world of Minimon!","Choose your partner wisely!","Your neighbor Luna's house is east!"],facing:"up"});
   m.npcs.push({x:11,y:9,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!","Visit the Center anytime!"],facing:"down"});
   m.npcs.push({x:15,y:10,type:"talker",name:"Rival's Mom",dialog:["My daughter Luna is out training.","She'll be your rival, {name}!","Her house is the one with the red roof!"],facing:"left"});
-  m.npcs.push({x:7,y:10,type:"item_giver",name:"Kind Old Man",dialog:["I don't battle anymore, {name}.","But I have this for you!","Take these Potions for Route 1!"],facing:"right",give_item:I_POTION,give_count:5,gave_item:false});
+  m.npcs.push({x:9,y:12,type:"item_giver",name:"Kind Old Man",dialog:["I don't battle anymore, {name}.","But I have this for you!","Take these Potions for Route 1!"],facing:"right",give_item:I_POTION,give_count:5,gave_item:false});
   m.npcs.push({x:9,y:7,type:"giver",name:"Wandering Sage",dialog:["I've traveled far, {name}.","Here, take this TM!","Use it well on Route 1!"],facing:"down",give_item:I_TM_BITE,give_count:1,gave_item:false});
   m.npcs.push({x:14,y:7,type:"talker",name:"Villager",dialog:["This town is peaceful, {name}.","The pond was built last year!"],facing:"down"});
-  m.npcs.push({x:7,y:15,type:"talker",name:"Fisherman",dialog:["I love fishing, {name}!","Have you seen the Water Minis?","The pond has some!"]});
+  m.npcs.push({x:7,y:16,type:"talker",name:"Fisherman",dialog:["I love fishing, {name}!","Have you seen the Water Minis?","The pond has some!"]});
   m.npcs.push({x:11,y:17,type:"talker",name:"Gate Guard",dialog:["South is Route 1, {name}!","Catch Minis in the tall grass!","Heed Prof. Sage's warning!"]});
   // Doors - correctly mapped to interiors
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:12,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:13,destX:5,destY:8});
-  m.doors.push({x:lab.doorX,y:lab.doorY,dest:14,destX:4,destY:6});
+  m.doors.push({x:lab.doorX,y:lab.doorY,dest:33,destX:4,destY:6});
   m.doors.push({x:house.doorX,y:house.doorY,dest:14,destX:4,destY:6});
   // Fix house door to correct interior slot 14 (shared for now, rival house uses same map but that's fine for progression)
   // Add second door for lab distinct interior - reuse 14 but we'll create separate 14 already
@@ -167,17 +167,17 @@ function createEmberTown(){
   // Interior doors
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:15,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:16,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:17,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:17,destX:6,destY:10});
   m.doors.push({x:house.doorX,y:house.doorY,dest:18,destX:4,destY:6});
   // NPCs placed around buildings logically
-  m.npcs.push({x:7,y:6,type:"gym_leader",name:"Flora",dialog:["I am Flora, Nature Lodge Leader!","Welcome, {name}!","My plants will entangle you!"],facing:"down",defeated:false,party:[[3,12],[25,11],[15,13]],badge:"Nature Badge",reward:3000,rematchParty:[[6,38],[26,37],[44,36],[28,35]],rematchDialog:["Nature has grown since we last met, {name}!"],aiLevel:AI_GYM});
+  m.npcs.push({x:6,y:15,type:"gym_leader",name:"Flora",dialog:["I am Flora, Nature Lodge Leader!","Welcome, {name}!","My plants will entangle you!"],facing:"right",defeated:false,party:[[3,12],[25,11],[15,13]],badge:"Nature Badge",reward:3000,rematchParty:[[6,38],[26,37],[44,36],[28,35]],rematchDialog:["Nature has grown since we last met, {name}!"],aiLevel:AI_GYM});
   m.npcs.push({x:7,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
-  m.npcs.push({x:14,y:6,type:"talker",name:"Mart Clerk Out",dialog:["Marts have great deals!"],facing:"down"});
+  m.npcs.push({x:12,y:8,type:"talker",name:"Mart Clerk Out",dialog:["Marts have great deals!"],facing:"down"});
   m.npcs.push({x:14,y:8,type:"trainer",name:"Blaze",dialog:["I am Blaze, the Inferno Dojo Leader!","Welcome, {name}!","Feel the heat!"],facing:"down",defeated:false,party:[[1,14],[21,13],[11,15]],badge:"Inferno Badge",reward:4000,rematchParty:[[4,40],[56,39],[70,38],[98,37]],rematchDialog:["Inferno rages!"],aiLevel:AI_GYM});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Camper Iris",dialog:["Nature is my ally!"],facing:"right",defeated:false,party:[[3,10]],rematchParty:[[6,25],[26,24]],rematchDialog:["Nature's power has grown!"],aiLevel:AI_TRAINER});
-  m.npcs.push({x:15,y:5,type:"rival",name:"Luna",dialog:["You got the Nature Badge, {name}?","I'm impressed! Let's battle!"],facing:"down",defeated:false,rival_enc:2,rival_party:true});
+  m.npcs.push({x:15,y:8,type:"rival",name:"Luna",dialog:["You got the Nature Badge, {name}?","I'm impressed! Let's battle!"],facing:"down",defeated:false,rival_enc:2,rival_party:true});
   m.npcs.push({x:5,y:15,type:"trainer",name:"Team Shadow Grunt",dialog:["Team Shadow will take over!"],facing:"right",defeated:false,party:[[25,12],[35,11]],evil:true,evil_enc:1,rematchParty:[[26,28],[36,27],[46,26]],rematchDialog:["Team Shadow is stronger!"],aiLevel:AI_TRAINER});
-  m.npcs.push({x:13,y:14,type:"item_giver",name:"TM Collector",dialog:["I collect TMs!","Here, have this one!"],facing:"down",give_item:I_TM_VWHIP,give_count:1,gave_item:false});
+  m.npcs.push({x:14,y:15,type:"item_giver",name:"TM Collector",dialog:["I collect TMs!","Here, have this one!"],facing:"down",give_item:I_TM_VWHIP,give_count:1,gave_item:false});
   m.npcs.push({x:10,y:13,type:"trade_npc",name:"Trader Sam",dialog:["I'll trade Fire Mini for Water Mini!","Deal?"],facing:"up",trade_want_type:TYPE_WATER,give_dex:11,give_name:"Sparkitten",traded:false});
   m.npcs.push({x:8,y:15,type:"talker",name:"Old Man",dialog:["I remember when this town was fields."]});
   m.npcs.push({x:13,y:10,type:"talker",name:"Backpacker",dialog:["I arrived from Frost Harbor.","Ice Minis are beautiful!"]});
@@ -226,7 +226,7 @@ function createFrostHarbor(){
   const pc = placeBuilding(m, 5, 5, 4, 4, 2, TILE_HEAL);
   const mart = placeBuilding(m, 11, 5, 4, 4, 1, TILE_SHOP);
   const gym = placeBuilding(m, 8, 11, 5, 4, 2, TILE_GYM);
-  setT(m,12,8,TILE_SIGN); m.signs.push({x:12,y:8,text:"Frost Harbor - Where ice meets sea!"});
+  setT(m,12,9,TILE_SIGN); m.signs.push({x:12,y:9,text:"Frost Harbor - Where ice meets sea!"});
   setT(m,9,10,TILE_SIGN); m.signs.push({x:9,y:10,text:"Tidal Temple Gym"});
   setT(m,10,0,TILE_DOOR); setT(m,11,0,TILE_DOOR);
   m.doors.push({x:10,y:0,dest:3,destX:10,destY:18}); m.doors.push({x:11,y:0,dest:3,destX:11,destY:18});
@@ -234,15 +234,15 @@ function createFrostHarbor(){
   m.doors.push({x:10,y:19,dest:5,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:5,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:19,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:20,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:21,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:21,destX:6,destY:10});
   m.npcs.push({x:10,y:9,type:"gym_leader",name:"Glacia",dialog:["I am Glacia, Tidal Temple Leader!","Welcome, {name}!","Feel the power of the ocean!"],facing:"down",defeated:false,party:[[22,22],[32,21],[42,23]],badge:"Tidal Badge",reward:5000,rematchParty:[[5,42],[32,41],[42,40],[94,39]],rematchDialog:["The tides answer to me, {name}!"],aiLevel:AI_GYM});
-  m.npcs.push({x:7,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
+  m.npcs.push({x:7,y:9,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
   m.npcs.push({x:6,y:12,type:"trainer",name:"Sailor Drake",dialog:["The sea is my home!"],facing:"right",defeated:false,party:[[31,16],[5,16]],rematchParty:[[32,32],[22,31],[5,30]],rematchDialog:["The ocean calls us back!"],aiLevel:AI_TRAINER});
   m.npcs.push({x:15,y:15,type:"trainer",name:"Team Shadow Elite",dialog:["Team Shadow's power grows!"],facing:"up",defeated:false,party:[[25,20],[35,19],[45,18]],evil:true,evil_enc:2,rematchParty:[[26,36],[36,35],[46,34],[58,33]],rematchDialog:["You think you stopped us?"],aiLevel:AI_GYM});
-  m.npcs.push({x:12,y:7,type:"item_giver",name:"Fisher",dialog:["Caught something special!","You can have it!"],facing:"down",give_item:I_TM_WGUN,give_count:1,gave_item:false});
+  m.npcs.push({x:11,y:9,type:"item_giver",name:"Fisher",dialog:["Caught something special!","You can have it!"],facing:"right",give_item:I_TM_WGUN,give_count:1,gave_item:false});
   m.npcs.push({x:14,y:10,type:"trade_npc",name:"Trader Marina",dialog:["I'll trade Ice Mini for Fire Mini!","Deal?"],facing:"left",trade_want_type:TYPE_FIRE,give_dex:32,give_name:"Reefguard",traded:false});
-  m.npcs.push({x:7,y:7,type:"talker",name:"Sailor",dialog:["Harbor is beautiful at sunset."]});
-  m.npcs.push({x:8,y:14,type:"talker",name:"Ice Fisher",dialog:["I fish through ice!"]});
+  m.npcs.push({x:13,y:12,type:"talker",name:"Sailor",dialog:["Harbor is beautiful at sunset."]});
+  m.npcs.push({x:8,y:15,type:"talker",name:"Ice Fisher",dialog:["I fish through ice!"]});
   return m;
 }
 
@@ -261,7 +261,7 @@ function createStormSpire(){
   // (doors for interiors added below)
   // Placeholder to keep PC/Gym doors
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:22,destX:5,destY:8});
-  m.doors.push({x:gym.doorX,y:gym.doorY,dest:24,destX:6,destY:11});
+  m.doors.push({x:gym.doorX,y:gym.doorY,dest:24,destX:6,destY:10});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:23,destX:5,destY:8});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Volt",dialog:["I am Volt, Storm Spire Leader!","Welcome, {name}!","Feel the power of lightning!"],facing:"down",defeated:false,party:[[23,28],[33,26]],badge:"Storm Badge",reward:6000,rematchParty:[[12,44],[46,43],[64,42],[28,41]],rematchDialog:["Lightning strikes twice, {name}!"],aiLevel:AI_GYM});
   m.npcs.push({x:10,y:11,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"up"});
@@ -269,7 +269,7 @@ function createStormSpire(){
   m.npcs.push({x:14,y:10,type:"item_giver",name:"Electric Engineer",dialog:["I study lightning!","Here, take this TM!"],facing:"left",give_item:I_TM_TSHOCK,give_count:1,gave_item:false});
   m.npcs.push({x:8,y:8,type:"talker",name:"Climber",dialog:["The view from the top is incredible!","But be careful of falling rocks!"]});
   m.npcs.push({x:13,y:13,type:"talker",name:"Storm Chaser",dialog:["I study storms!","The Electric Minis here love the thunder!"]});
-  m.signs.push({x:12,y:10,text:"Storm Spire - Where thunder rules!"});
+  setT(m,12,10,TILE_SIGN); m.signs.push({x:12,y:10,text:"Storm Spire - Where thunder rules!"});
   return m;
 }
 
@@ -293,7 +293,7 @@ function createCrystalCavern(){
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:25,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:26,destX:5,destY:8});
   m.npcs.push({x:10,y:7,type:"gym_leader",name:"Frostbane",dialog:["I am Frostbane, Crystal Cavern Leader!","Welcome, {name}!","Feel the chill of eternity!"],facing:"down",defeated:false,party:[[24,32],[34,30]],badge:"Crystal Badge",reward:7000,rematchParty:[[14,46],[38,45],[48,44],[66,43]],rematchDialog:["Eternal frost awaits, {name}!"],aiLevel:AI_GYM});
-  m.npcs.push({x:6,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
+  m.npcs.push({x:7,y:8,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal your Minis!"],facing:"down"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Frosty",dialog:["My Ice moves are freezing!"],facing:"right",defeated:false,party:[[24,24],[34,23]],rematchParty:[[24,40],[34,39],[66,38]],rematchDialog:["Feel the absolute zero!"],aiLevel:AI_GYM});
   m.npcs.push({x:14,y:10,type:"item_giver",name:"Gem Collector",dialog:["These crystals are mesmerizing!","Take this TM!"],facing:"left",give_item:I_TM_ISHARD,give_count:1,gave_item:false});
   m.npcs.push({x:13,y:13,type:"trade_npc",name:"Trader Frost",dialog:["Dragon Mini for Earth Mini?","Deal?"],facing:"up",trade_want_type:TYPE_EARTH,give_dex:63,give_name:"Tempestrix",traded:false});
@@ -318,10 +318,10 @@ function createShadowGate(){
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:27,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:28,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Nyx",dialog:["I am Nyx, Shadow Gate Leader!","Embrace the darkness!"],facing:"down",defeated:false,party:[[25,36],[35,34]],badge:"Shadow Badge",reward:8000,rematchParty:[[16,48],[58,47],[68,46],[87,45]],rematchDialog:["Darkness knows no limits!"],aiLevel:AI_GYM});
-  m.npcs.push({x:6,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
+  m.npcs.push({x:7,y:11,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:14,y:14,type:"trainer",name:"Team Shadow Boss",dialog:["I am the Boss!","You dare challenge?"],facing:"up",defeated:false,party:[[25,35],[35,34],[45,33],[55,32]],evil:true,evil_enc:3,rematchParty:[[58,52],[68,51],[46,50],[36,49]],rematchDialog:["Never falls!"],aiLevel:AI_ELITE});
-  m.npcs.push({x:8,y:10,type:"item_giver",name:"Shadow Researcher",dialog:["Study dark energy!","Take this TM!"],facing:"down",give_item:I_TM_SBALL,give_count:1,gave_item:false});
-  m.npcs.push({x:13,y:10,type:"talker",name:"Dark Walker",dialog:["Shadows are alive!"]});
+  m.npcs.push({x:8,y:11,type:"item_giver",name:"Shadow Researcher",dialog:["Study dark energy!","Take this TM!"],facing:"down",give_item:I_TM_SBALL,give_count:1,gave_item:false});
+  m.npcs.push({x:13,y:11,type:"talker",name:"Dark Walker",dialog:["Shadows are alive!"]});
   m.npcs.push({x:8,y:12,type:"talker",name:"Former Grunt",dialog:["I left Team Shadow."]});
   return m;
 }
@@ -345,7 +345,7 @@ function createSolarSanctum(){
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:29,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:30,destX:5,destY:8});
   m.npcs.push({x:10,y:6,type:"gym_leader",name:"Lux",dialog:["I am Lux, Solar Sanctum Leader!","Behold the light!"],facing:"down",defeated:false,party:[[26,40],[36,38]],badge:"Solar Badge",reward:9000,rematchParty:[[50,50],[72,49],[48,48],[8,47]],rematchDialog:["Dawn shines brighter!"],aiLevel:AI_GYM});
-  m.npcs.push({x:6,y:7,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
+  m.npcs.push({x:7,y:8,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
   m.npcs.push({x:6,y:10,type:"trainer",name:"Dawn",dialog:["My Light moves shine!"],facing:"right",defeated:false,party:[[26,32],[36,31]],rematchParty:[[26,48],[36,47],[72,46]],rematchDialog:["Light blinds all!"],aiLevel:AI_ELITE});
   m.npcs.push({x:14,y:10,type:"item_giver",name:"Light Keeper",dialog:["Light guides us!","Take this TM!"],facing:"left",give_item:I_TM_DGLEAM,give_count:1,gave_item:false});
   m.npcs.push({x:13,y:13,type:"trade_npc",name:"Trader Lux",dialog:["Spirit for Wind?","Deal?"],facing:"up",trade_want_type:TYPE_WIND,give_dex:46,give_name:"Voltsnake",traded:false});
@@ -370,11 +370,11 @@ function createGrandColosseum(){
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:10,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:10,destX:11,destY:1});
   m.doors.push({x:pc.doorX,y:pc.doorY,dest:31,destX:5,destY:8});
   m.doors.push({x:mart.doorX,y:mart.doorY,dest:32,destX:5,destY:8});
-  m.npcs.push({x:10,y:6,type:"gym_leader",name:"Drakon",dialog:["I am Drakon!","Witness the might of dragons!"],facing:"down",defeated:false,party:[[27,44],[37,42]],badge:"Dragon Badge",reward:10000,rematchParty:[[40,54],[60,53],[72,52],[58,51]],rematchDialog:["Dragon's soul burns eternal!"],aiLevel:AI_GYM});
-  m.npcs.push({x:6,y:10,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
-  m.npcs.push({x:6,y:11,type:"trainer",name:"Wyvern",dialog:["Dragon moves are fierce!"],facing:"right",defeated:false,party:[[27,36],[37,35]],rematchParty:[[27,52],[37,51],[58,50]],rematchDialog:["Fury is absolute!"],aiLevel:AI_ELITE});
-  m.npcs.push({x:14,y:10,type:"item_giver",name:"Dragon Master",dialog:["Only worthy carry this TM!"],facing:"left",give_item:I_TM_DCLAW,give_count:1,gave_item:false});
-  m.npcs.push({x:8,y:8,type:"talker",name:"Arena Spectator",dialog:["Battles for centuries!"]});
+  m.npcs.push({x:10,y:7,type:"gym_leader",name:"Drakon",dialog:["I am Drakon!","Witness the might of dragons!"],facing:"down",defeated:false,party:[[27,44],[37,42]],badge:"Dragon Badge",reward:10000,rematchParty:[[40,54],[60,53],[72,52],[58,51]],rematchDialog:["Dragon's soul burns eternal!"],aiLevel:AI_GYM});
+  m.npcs.push({x:7,y:11,type:"healer",name:"Nurse Joy",dialog:["Welcome!","Let me heal!"],facing:"down"});
+  m.npcs.push({x:6,y:12,type:"trainer",name:"Wyvern",dialog:["Dragon moves are fierce!"],facing:"right",defeated:false,party:[[27,36],[37,35]],rematchParty:[[27,52],[37,51],[58,50]],rematchDialog:["Fury is absolute!"],aiLevel:AI_ELITE});
+  m.npcs.push({x:13,y:11,type:"item_giver",name:"Dragon Master",dialog:["Only worthy carry this TM!"],facing:"left",give_item:I_TM_DCLAW,give_count:1,gave_item:false});
+  m.npcs.push({x:9,y:9,type:"talker",name:"Arena Spectator",dialog:["Battles for centuries!"]});
   m.npcs.push({x:12,y:13,type:"talker",name:"Dragon Breeder",dialog:["I raise dragons!"]});
   return m;
 }
@@ -392,8 +392,8 @@ function createElite4Hall(){
   setT(m,10,19,TILE_DOOR); setT(m,11,19,TILE_DOOR); m.doors.push({x:10,y:19,dest:11,destX:10,destY:1}); m.doors.push({x:11,y:19,dest:11,destX:11,destY:1});
   m.npcs.push({x:10,y:11,type:"healer",name:"Nurse Joy",dialog:["Welcome, {name}!","Let me heal!"],facing:"up"});
   m.npcs.push({x:10,y:5,type:"trainer",name:"Elite Aria",dialog:["I am Aria of the Elite Four!","My melodies shall console you!"],facing:"down",defeated:false,party:[[44,50],[54,49],[64,48]],reward:12000,rematchParty:[[44,68],[54,67],[64,66],[72,65]],rematchDialog:["My symphony has reached new heights!"],aiLevel:AI_ELITE});
-  m.npcs.push({x:5,y:10,type:"trainer",name:"Elite Terra",dialog:["I am Terra!","Earth trembles!"],facing:"right",defeated:false,party:[[45,52],[55,51],[65,50]],reward:12000,rematchParty:[[45,70],[55,69],[65,68],[74,67]],rematchDialog:["Earth's fury boundless!"],aiLevel:AI_ELITE});
-  m.npcs.push({x:15,y:10,type:"trainer",name:"Elite Umbra",dialog:["I am Umbra!","Shadow and nightmare!"],facing:"left",defeated:false,party:[[46,54],[56,53],[66,52]],reward:12000,rematchParty:[[46,72],[56,71],[66,70],[68,69]],rematchDialog:["Void beckons!"],aiLevel:AI_ELITE});
+  m.npcs.push({x:5,y:11,type:"trainer",name:"Elite Terra",dialog:["I am Terra!","Earth trembles!"],facing:"right",defeated:false,party:[[45,52],[55,51],[65,50]],reward:12000,rematchParty:[[45,70],[55,69],[65,68],[74,67]],rematchDialog:["Earth's fury boundless!"],aiLevel:AI_ELITE});
+  m.npcs.push({x:15,y:11,type:"trainer",name:"Elite Umbra",dialog:["I am Umbra!","Shadow and nightmare!"],facing:"left",defeated:false,party:[[46,54],[56,53],[66,52]],reward:12000,rematchParty:[[46,72],[56,71],[66,70],[68,69]],rematchDialog:["Void beckons!"],aiLevel:AI_ELITE});
   m.npcs.push({x:10,y:15,type:"trainer",name:"Elite Sol",dialog:["I am Sol!","Radiance purifies!"],facing:"up",defeated:false,party:[[47,56],[57,55],[67,54]],reward:12000,rematchParty:[[47,74],[57,73],[67,72],[80,71]],rematchDialog:["Light is blinding!"],aiLevel:AI_ELITE});
   return m;
 }
@@ -474,7 +474,9 @@ function createGymInterior(exteriorMapIdx, exitX, exitY, leaderName, leaderType,
   // Gym leader at top on platform
   fillRect(m,5,2,8,3,TILE_WALL);
   setT(m,6,2,TILE_SIGN); setT(m,8,2,TILE_SIGN); // statues
-  m.npcs.push({x:7,y:2,type:"gym_leader",name:leaderName,dialog:["I am the Leader of this Gym!","Let's battle, "+leaderName+"!"],facing:"down",defeated:false,party:leaderParty,badge:badgeName,reward:3000,aiLevel:AI_GYM});
+  // The leader stands on the gym floor in front of the platform: up on the
+  // platform itself (the old spot) no player could ever stand next to them to talk
+  m.npcs.push({x:7,y:4,type:"gym_leader",name:leaderName,dialog:["I am "+leaderName+", Leader of this Gym!","Show me what you've got, challenger!"],facing:"down",defeated:false,party:leaderParty,badge:badgeName,reward:3000,aiLevel:AI_GYM});
   // Trainers inside gym
   m.npcs.push({x:4,y:6,type:"trainer",name:"Gym Trainer",dialog:["Prove yourself!"],facing:"right",defeated:false,party:[[3,8]],aiLevel:AI_TRAINER});
   m.npcs.push({x:10,y:6,type:"trainer",name:"Gym Trainer",dialog:["The Leader is strong!"],facing:"left",defeated:false,party:[[3,8]],aiLevel:AI_TRAINER});
@@ -506,50 +508,73 @@ function createHouseInterior(exteriorMapIdx, exitX, exitY, npcData){
   return m;
 }
 
+function createLabInterior(exteriorMapIdx, exitX, exitY){
+  const m=makeMap(10,8,"Prof. Sage's Lab",0.0);
+  fillRect(m,0,0,9,7,TILE_GROUND);
+  for(let x=0;x<10;x++){setT(m,x,0,TILE_WALL);setT(m,x,7,TILE_WALL);}
+  for(let y=0;y<8;y++){setT(m,0,y,TILE_WALL);setT(m,9,y,TILE_WALL);}
+  // Research benches and bookshelves along the back wall
+  fillRect(m,2,2,7,2,TILE_WALL);
+  setT(m,3,2,TILE_SHOP); setT(m,6,2,TILE_SHOP); // machines on the bench
+  setT(m,2,4,TILE_SIGN); setT(m,7,4,TILE_SIGN); // specimen tables
+  setT(m,8,5,TILE_TREE); // potted plant
+  fillRect(m,3,4,6,5,TILE_PATH); // rug
+  m.npcs.push({x:5,y:3,type:"professor",name:"Prof. Sage",dialog:["Welcome to my lab, {name}!","Minis grow stronger by battling.","Some evolve when they reach a certain level!","Check the Minidex to track what you've seen!"],facing:"down"});
+  m.npcs.push({x:3,y:5,type:"talker",name:"Lab Aide",dialog:["The Professor studies Mini evolution!","Route 1 is south of town."],facing:"right"});
+  m.signs.push({x:2,y:4,text:"Research Notes: A Mini's hidden IVs make every one unique - and a rare few shine!"});
+  m.signs.push({x:7,y:4,text:"Specimen jars: Emberpup, Aquapup and Sproutling samples, carefully labelled."});
+  setT(m,4,7,TILE_DOOR); setT(m,5,7,TILE_DOOR);
+  m.doors.push({x:4,y:7,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  m.doors.push({x:5,y:7,dest:exteriorMapIdx,destX:exitX,destY:exitY});
+  return m;
+}
+
 // Add interior maps to MAP_CREATORS
 const MAP_CREATORS=[createStartingTown,createRoute1,createEmberTown,createRoute2,createFrostHarbor,createStormSpire,createCrystalCavern,createShadowGate,createSolarSanctum,createGrandColosseum,createElite4Hall,createChampionArena,
-  // 12: Starter Village Pokémon Center
-  () => createPokemonCenterInterior(0,10,11),
-  // 13: Starter Village Mart
-  () => createMartInterior(0,11,11),
+  // 12: Starter Village Pokémon Center - exits in front of the Center door
+  () => createPokemonCenterInterior(0,8,12),
+  // 13: Starter Village Mart - exits in front of the Mart door
+  () => createMartInterior(0,14,12),
   // 14: Starter Village House (rival's mom) - exits beside the house door, not inside a tree
   () => createHouseInterior(0,15,17,{type:"talker",name:"Rival's Mom",dialog:["My daughter Luna is out training.","She'll be your rival, {name}!","Good luck to you both!"]}),
   // 15: Ember Town Pokémon Center
-  () => createPokemonCenterInterior(2,10,11),
+  () => createPokemonCenterInterior(2,7,8),
   // 16: Ember Town Mart
-  () => createMartInterior(2,11,11),
-  // 17: Ember Town Gym (Nature Lodge)
-  () => createGymInterior(2,10,1,"Flora","Grass",[[3,12],[25,11],[15,13]],"Nature Badge"),
+  () => createMartInterior(2,13,8),
+  // 17: Ember Town Gym (Nature Lodge) - exits in front of the gym door, not across town
+  () => createGymInterior(2,7,15,"Flora","Grass",[[3,12],[25,11],[15,13]],"Nature Badge"),
   // 18: Ember Town House (TM Collector)
-  () => createHouseInterior(2,8,12,{type:"item_giver",name:"TM Collector",dialog:["I collect TMs!","Here, have this one!"],give_item:I_TM_VWHIP,give_count:1}),
+  () => createHouseInterior(2,13,15,{type:"item_giver",name:"TM Collector",dialog:["I collect TMs!","Here, have this one!"],give_item:I_TM_VWHIP,give_count:1}),
   // 19: Frost Harbor Pokémon Center - exits below the PC door (old spot was inside gym walls)
   () => createPokemonCenterInterior(4,7,9),
   // 20: Frost Harbor Mart - exits below the Mart door
   () => createMartInterior(4,12,9),
   // 21: Frost Harbor Gym (Tidal Temple)
-  () => createGymInterior(4,10,1,"Glacia","Water",[[22,22],[32,21],[42,23]],"Tidal Badge"),
+  () => createGymInterior(4,10,15,"Glacia","Water",[[22,22],[32,21],[42,23]],"Tidal Badge"),
   // 22: Storm Spire Pokémon Center
-  () => createPokemonCenterInterior(5,10,11),
+  () => createPokemonCenterInterior(5,6,8),
   // 23: Storm Spire Mart
-  () => createMartInterior(5,11,11),
+  () => createMartInterior(5,13,18),
   // 24: Storm Spire Gym
-  () => createGymInterior(5,10,1,"Volt","Electric",[[11,22],[12,21],[45,23]],"Storm Badge"),
+  () => createGymInterior(5,14,8,"Volt","Electric",[[11,22],[12,21],[45,23]],"Storm Badge"),
   // 25: Crystal Cavern Pokémon Center
-  () => createPokemonCenterInterior(6,10,11),
+  () => createPokemonCenterInterior(6,6,8),
   // 26: Crystal Cavern Mart
-  () => createMartInterior(6,11,11),
+  () => createMartInterior(6,14,8),
   // 27: Shadow Gate Pokémon Center
-  () => createPokemonCenterInterior(7,10,11),
+  () => createPokemonCenterInterior(7,6,11),
   // 28: Shadow Gate Mart
-  () => createMartInterior(7,11,11),
+  () => createMartInterior(7,14,11),
   // 29: Solar Sanctum Pokémon Center
-  () => createPokemonCenterInterior(8,10,11),
+  () => createPokemonCenterInterior(8,6,8),
   // 30: Solar Sanctum Mart
-  () => createMartInterior(8,11,11),
+  () => createMartInterior(8,14,8),
   // 31: Grand Colosseum Pokémon Center
-  () => createPokemonCenterInterior(9,10,11),
+  () => createPokemonCenterInterior(9,6,11),
   // 32: Grand Colosseum Mart
-  () => createMartInterior(9,11,11),
+  () => createMartInterior(9,14,11),
+  // 33: Starter Village Lab (Prof. Sage's lab - it used to dump you in the rival's house)
+  () => createLabInterior(0,7,16),
 ];
 
-// MAP_COUNT updated to 32 (handled by MAP_CREATORS length)
+// MAP_COUNT is informational only - MAP_CREATORS.length (34, incl. the lab) is what the game uses
