@@ -80,8 +80,17 @@ class BattleCreature {
 
 function typeEff(atkType, defTypes) {
   let m = 1; const chart = TYPE_CHART[atkType] || {};
-  for (const dt of defTypes) m *= (chart[dt] || 1); return m;
+  // (chart[dt] || 1) turned every 0 in the chart into 1: type IMMUNITIES never
+  // worked at all - Electric hit Earth types, Earth hit Wind types, etc.
+  for (const dt of defTypes) m *= (dt in chart ? chart[dt] : 1); return m;
 }
+
+/* Status moves whose effect lands on the USER (boosts, healing, Protect,
+   field weather) - they are never blocked by Protect and never fail against
+   the foe's type immunities. Everything else targets the foe. */
+const SELF_TARGET_EFFECTS = new Set(["recover", "atk_up", "def_up", "spd_up", "satk_up", "sdef_up",
+  "atk_up2", "satk_up2", "atk_spd_up", "satk_sdef_up", "eva_up", "protect", "sandstorm"]);
+function moveTargetsSelf(md) { return !!md && md.category === STATUS && SELF_TARGET_EFFECTS.has(md.effect); }
 
 /* Struggle: the typeless desperation move used when every move is out of PP. */
 if (typeof MOVES !== "undefined" && !MOVES.struggle) {
@@ -105,6 +114,9 @@ function calcDamage(atk, def, mvData) {
   if (mvData.category === STATUS) return [0, "status"];
   const mv = MOVES[mvData.id]; if (!mv) return [0, "miss"];
   if (mv.power === 0) {
+    // Fixed-damage moves still respect type immunity (Night Shade can't touch
+    // Normal types, Fissure can't touch Wind/Levitate targets, and so on).
+    if (typeEff(mv.type, def.types) === 0) return [0, "no_effect"];
     if (mv.id === "dragon_rage") return [40, "dragon_rage"];
     if (mv.id === "night_shade") return [atk.level, "night_shade"];
     if (mv.id === "fissure") return [def.hp, "fissure_ohko"];
@@ -133,13 +145,15 @@ function calcDamage(atk, def, mvData) {
     else if (aAb === "Torrent" && mv.type === "Water") abilityMod *= 1.5;
     else if (aAb === "Overgrow" && mv.type === "Grass") abilityMod *= 1.5;
   }
-  // Guts / Huge Power
+  // Guts / Huge Power / Hustle
   if (aAb === "Guts" && atk.status && mv.category === PHYSICAL) abilityMod *= 1.5;
   if (aAb === "HugePower" && mv.category === PHYSICAL) abilityMod *= 2;
+  if (aAb === "Hustle" && mv.category === PHYSICAL) abilityMod *= 1.5; // Hustle's accuracy cost is applied at the hit roll
+  if (aAb === "FlashFire" && atk._flashFireBoost && mv.type === "Fire") abilityMod *= 1.5; // Flash Fire powers up after absorbing a Fire move
 
   // defender-side: immunities and halving
   if (mv.type === "Earth" && dAb === "Levitate") immune = true;
-  if (mv.type === "Fire" && dAb === "FlashFire") immune = true;
+  if (mv.type === "Fire" && dAb === "FlashFire") { immune = true; def._flashFireBoost = true; }
   if (mv.type === "Water" && dAb === "WaterAbsorb") { immune = true; absorbHeal = Math.floor(def.maxHP / 4); }
   if (mv.type === "Electric" && dAb === "VoltAbsorb") { immune = true; absorbHeal = Math.floor(def.maxHP / 4); }
   if (dAb === "ThickFat" && (mv.type === "Fire" || mv.type === "Ice")) abilityMod *= 0.5;
@@ -182,7 +196,7 @@ function applyStatus(atk, def, mv) {
   if (mv.effect === "atk_up2") { atk.statStages[1] = Math.min(6, atk.statStages[1] + 2); return "atk_up2"; }
   if (mv.effect === "satk_up2") { atk.statStages[4] = Math.min(6, atk.statStages[4] + 2); return "satk_up2"; }
   if (mv.effect === "satk_sdef_up") { atk.statStages[4] = Math.min(6, atk.statStages[4] + 1); atk.statStages[5] = Math.min(6, atk.statStages[5] + 1); return "satk_sdef_up"; }
-  if (mv.effect === "acc_down") { def.statStages[6] = Math.max(-6, (def.statStages[6] || 0) - 1); return "acc_down"; }
+  if (mv.effect === "acc_down") { if (ab === "KeenEye" || ab === "ClearBody") return null; def.statStages[6] = Math.max(-6, (def.statStages[6] || 0) - 1); return "acc_down"; }
   if (mv.effect === "eva_up") { atk.statStages[7] = Math.min(6, (atk.statStages[7] || 0) + 1); return "eva_up"; }
   if (mv.effect === "protect") { atk.protected = true; return "protect_active"; }
   if (mv.effect === "sandstorm") { return "sandstorm_active"; }
@@ -191,9 +205,16 @@ function applyStatus(atk, def, mv) {
   const downs = ["atk_down", "def_down", "spd_down", "satk_down", "sdef_down"];
   const statMap = { atk_up: 1, def_up: 2, spd_up: 3, satk_up: 4, sdef_up: 5, atk_down: 1, def_down: 2, spd_down: 3, satk_down: 4, sdef_down: 5 };
   if (ups.includes(mv.effect)) { const i = statMap[mv.effect]; atk.statStages[i] = Math.min(6, atk.statStages[i] + 1); return mv.effect; }
-  if (downs.includes(mv.effect)) { const i = statMap[mv.effect]; def.statStages[i] = Math.max(-6, def.statStages[i] - 1); return mv.effect; }
+  if (downs.includes(mv.effect)) {
+    const i = statMap[mv.effect];
+    // Hammer Arm's price is paid by the USER's Speed, not the target's
+    if (mv.id === "hammer_arm") { atk.statStages[i] = Math.max(-6, atk.statStages[i] - 1); return "self_" + mv.effect; }
+    if (def.ability === "ClearBody") return null; // Clear Body blocks foe stat drops
+    def.statStages[i] = Math.max(-6, def.statStages[i] - 1); return mv.effect;
+  }
   const statusEffs = ["burn", "freeze", "paralyze", "poison", "sleep"];
   if (statusEffs.includes(mv.effect)) {
+    if (def.status) return null; // one major status at a time - a burned Mini can't also be put to sleep
     const chance = mv.effectChance ? mv.effectChance : 30;
     if (Math.random() * 100 <= chance) {
       def.status = mv.effect;
@@ -305,7 +326,7 @@ class BattleState {
      and the turn should stop there, the way the games end a turn on a KO. */
   _performAction(who, attacker, defender, move, moveData, log) {
     if (!attacker.isAlive() || !defender.isAlive()) return false;
-    if (defender.protected) { defender.protected = false; log.push(defender.name + " protected itself!"); return false; }
+    if (defender.protected && moveData && !moveTargetsSelf(moveData)) { defender.protected = false; log.push(defender.name + " protected itself!"); return false; }
     if (attacker.flinched) { attacker.flinched = false; log.push(attacker.name + " flinched!"); return false; }
     if (attacker.status === "paralyze" && Math.random() < 0.25) { log.push(attacker.name + " is fully paralyzed!"); return false; }
     if (attacker.confusionTurns > 0) {
@@ -332,16 +353,26 @@ class BattleState {
       attacker.status = null; log.push(attacker.name + " thawed out!");
     }
     if (!moveData) return false;
-    if (move.pp > 0) move.pp--; // PP is spent when the move is used, hit or miss
-    const accM = accStageMult(attacker.statStages[6] || 0) / accStageMult(defender.statStages[7] || 0);
+    if (move.pp > 0) { // PP is spent when the move is used, hit or miss
+      move.pp--;
+      if (defender.ability === "Pressure" && move.pp > 0) move.pp--; // Pressure: the foe's moves cost double PP
+    }
+    attacker.lastMoveId = moveData.id; // Spite needs to know what the foe used last
+    let accM = accStageMult(attacker.statStages[6] || 0) / accStageMult(defender.statStages[7] || 0);
+    if (attacker.ability === "Hustle" && moveData.category === PHYSICAL) accM *= 0.8; // Hustle trades accuracy for power
+    if (this.weather === "sandstorm" && defender.ability === "SandVeil") accM *= 0.8; // Sand Veil hides in the storm
     const hit = (moveData.accuracy === 0 || moveData.id === "swift") ? true : Math.random() * 100 <= moveData.accuracy * accM;
     if (!hit) { log.push("The attack missed!"); return false; }
     const [damage, effect] = calcDamage(attacker, defender, moveData);
     this._lastEffect = effect;
     log.push(attacker.name + " used " + moveData.name + "!");
     if (moveData.category !== STATUS) {
+      const defWasFull = defender.hp >= defender.maxHP;
+      const defHpBefore = defender.hp;
       defender.takeDamage(damage);
-      if (moveData.effect === "multi_hit") {
+      // Sturdy: a Mini at full HP cannot be knocked out in one hit
+      if (defWasFull && defender.hp <= 0 && damage > 0 && defender.ability === "Sturdy") { defender.hp = 1; log.push(defender.name + " held on with Sturdy!"); }
+      if (moveData.effect === "multi_hit" && effect !== "no_effect") {
         const hits = 2 + Math.floor(Math.random() * 4); let total = damage;
         for (let i = 1; i < hits; i++) { const [d] = calcDamage(attacker, defender, moveData); defender.takeDamage(d); total += d; }
         log.push("Hit " + hits + " times!");
@@ -353,9 +384,42 @@ class BattleState {
       if (effect && effect.includes("critical")) log.push("Critical hit!");
       if (moveData.effect === "recoil") { const r = Math.floor(damage / 3); attacker.takeDamage(r); log.push(attacker.name + " took recoil!"); }
       if (moveData.id === "struggle") { const r = Math.floor(attacker.maxHP / 4); attacker.takeDamage(r); log.push(attacker.name + " is hurt by recoil!"); }
-      const status = applyStatus(attacker, defender, moveData);
-      this._logStatusResult(status, attacker, defender, log);
+      // Contact abilities answer a connecting physical hit (physical = contact in Minimon)
+      if (moveData.category === PHYSICAL && damage > 0 && effect !== "no_effect") {
+        if (defender.ability === "RoughSkin" && attacker.isAlive()) { const rd = Math.max(1, Math.floor(attacker.maxHP / 8)); attacker.takeDamage(rd); log.push(attacker.name + " is hurt by " + defender.name + "'s Rough Skin!"); }
+        else if (defender.ability === "Static" && !attacker.status && attacker.ability !== "Limber" && Math.random() < 0.3) { attacker.status = "paralyze"; log.push(attacker.name + " is paralyzed! It may be unable to move!"); }
+      }
+      if (moveData.effect === "recover" && damage > 0) {
+        // Drain moves (Giga Drain, Leech Life): heal for half the HP the foe
+        // actually lost - NOT the flat half-max heal the status-move Recover
+        // path would give, and not half the rolled damage (overkill overhealed)
+        const dr = Math.floor(Math.max(0, defHpBefore - defender.hp) / 2);
+        if (dr > 0 && attacker.isAlive()) { attacker.heal(dr); log.push(attacker.name + " drained " + defender.name + "'s energy!"); }
+      } else if (effect !== "no_effect") {
+        // Shield Dust blocks a damaging move's added effects entirely
+        const status = defender.ability === "ShieldDust" ? null : applyStatus(attacker, defender, moveData);
+        this._logStatusResult(status, attacker, defender, log);
+      }
     } else {
+      // Foe-targeting status moves fail against type immunity, the way the games rule it:
+      // Thunder Wave can't touch Earth types, powders and Leech Seed can't touch Grass types
+      if (!moveTargetsSelf(moveData)) {
+        const grassImmune = (moveData.id === "sleep_powder" || moveData.id === "stun_spore" || moveData.effect === "leech") && defender.types.includes(TYPE_GRASS);
+        if (typeEff(moveData.type, defender.types) === 0 || grassImmune) { log.push("It had no effect on " + defender.name + "!"); return false; }
+      }
+      if (moveData.id === "rest") {
+        // Rest is its own thing: full heal, then sleep it off - not a plain Recover
+        if (attacker.status === "sleep" || attacker.hp >= attacker.maxHP) { log.push("But it failed!"); return false; }
+        attacker.heal(attacker.maxHP); attacker.status = "sleep"; attacker.statusTurns = 3;
+        log.push(attacker.name + " slept and became healthy!");
+        return false;
+      }
+      if (moveData.effect === "spite") {
+        const lm = defender.moves.find(m => m.id === defender.lastMoveId);
+        if (lm && lm.pp > 0) { const cut = Math.min(4, lm.pp); lm.pp -= cut; log.push("It reduced the PP of " + defender.name + "'s " + MOVES[lm.id].name + " by " + cut + "!"); }
+        else log.push("But it failed!");
+        return false;
+      }
       const status = applyStatus(attacker, defender, moveData);
       this._logStatusResult(status, attacker, defender, log);
     }
@@ -373,15 +437,17 @@ class BattleState {
     else if (status === "atk_spd_up") log.push(attacker.name + "'s ATK and SPD rose!");
     else if (status === "satk_sdef_up") log.push(attacker.name + "'s SATK and SDEF rose!");
     else if (status.endsWith("_up2")) log.push(attacker.name + "'s " + status.replace("_up2", "").toUpperCase() + " rose sharply!");
+    else if (status.startsWith("self_")) log.push(attacker.name + "'s " + status.slice(5).replace("_down", "").toUpperCase() + " fell!");
     else if (status.endsWith("_down")) log.push(defender.name + "'s " + status.replace("_down", "").toUpperCase() + " fell!");
     else if (status.endsWith("_up")) log.push(attacker.name + "'s " + status.replace("_up", "").toUpperCase() + " rose!");
     else if (status === "protect_active") log.push(attacker.name + " used Protect!");
-    else if (status === "sandstorm_active") { log.push("A sandstorm is brewing!"); this.weather = "sandstorm"; }
+    else if (status === "sandstorm_active") { log.push("A sandstorm is brewing!"); this.weather = "sandstorm"; this.weatherTurns = 5; }
     else if (status === "spite_active") log.push(defender.name + " is full of spite!");
   }
 
   /* XP split among the party members who took part, as the DS games do it. */
   _grantXP(defeated, log) {
+    defeated._xpGranted = true; // a KO pays out once, however it happens (hit, recoil, burn tick...)
     const total = calcXP(defeated, this.isTrainer);
     const parts = this.playerParty.filter((m, i) => this.participants.has(i) && m.isAlive());
     if (!parts.length) return;
@@ -416,6 +482,9 @@ class BattleState {
       if (c && !c.isAlive() && !this.battleOver) {
         this.messageQueue.push(c.name + " fainted!");
         if (c === this.enemy) {
+          // A foe finished off by burn/poison/Leech Seed/sandstorm pays XP too -
+          // before this, residual KOs silently paid nothing
+          if (!c._xpGranted) this._grantXP(c, this.messageQueue);
           if (!this.nextEnemy()) { this.playerWon = true; this.battleOver = true; this.messageQueue.push("You defeated " + this.trainerName + "!"); }
         } else {
           if (!this.nextPlayer()) { this.playerWon = false; this.battleOver = true; this.messageQueue.push("No more Minis!"); }
@@ -425,13 +494,21 @@ class BattleState {
     }
   }
 
+  /* Weather runs out: a kicked-up sandstorm lasts 5 turns, like the games. */
+  _tickWeather() {
+    if (this.weather === "sandstorm" && this.weatherTurns != null) {
+      this.weatherTurns--;
+      if (this.weatherTurns <= 0) { this.weather = null; this.weatherTurns = null; this.messageQueue.push("The sandstorm subsided."); }
+    }
+  }
+
   executeTurn(playerMoveIdx) {
     const p = this.player, e = this.enemy;
     if (!p || !e) return;
     let pMove = p.moves[playerMoveIdx];
     if (!pMove || pMove.pp <= 0) {
       if (p.moves.every(m => m.pp <= 0)) pMove = { id: "struggle", pp: 1, maxPP: 1 }; // no PP anywhere: Struggle
-      else if (!pMove) return;
+      else return; // a 0-PP move can't be fired for free while others still have PP
     }
     const pMD = MOVES[pMove.id];
     const eMV = getAIMove(e, p, this.aiLevel !== undefined ? this.aiLevel : (this.isTrainer ? AI_TRAINER : AI_WILD));
@@ -460,6 +537,7 @@ class BattleState {
     this._pDmg = Math.max(0, eHP0 - e.hp);   // damage the player dealt this turn
     this._eDmg = Math.max(0, pHP0 - p.hp);   // damage the enemy dealt this turn
     this._residuals();
+    this._tickWeather();
   }
 
   /* The enemy's half of a turn, used when the player spent their action on an
@@ -478,6 +556,7 @@ class BattleState {
     this._pDmg = 0;
     this._eDmg = Math.max(0, pHP0 - p.hp);
     this._residuals();
+    this._tickWeather();
     this.turn++;
   }
 }
